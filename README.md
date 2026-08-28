@@ -105,6 +105,10 @@ boleh digunakan sebagai dasar keputusan. Time series 2022–2026 sengaja memuat 
 bervariasi—kenaikan, penurunan sementara, pemulihan, dan stagnasi—agar perubahan pada
 grafik dapat terlihat dengan jelas.
 
+Pemilih tahun pada topbar mengubah data aktif di seluruh dashboard, termasuk nilai dan
+status indikator, target tahunan, kondisi kecamatan, skor OPD, layanan publik, keuangan,
+serta konteks jawaban Asisten Data.
+
 Menu **Asisten Data** menyediakan simulasi chatbot interaktif yang membaca objek data
 dummy yang sama dengan dashboard. Pertanyaan cepat maupun pertanyaan bebas diproses
 sepenuhnya di browser; tidak ada pesan yang dikirim ke AI atau API eksternal. Contoh
