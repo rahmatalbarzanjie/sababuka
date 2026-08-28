@@ -97,3 +97,16 @@ Tambahkan `?state=error` untuk melihat error state. Loading skeleton tampil sing
 ## Interaksi
 
 Navigasi menu, sidebar collapse, mobile drawer + overlay, tahun, tab grafik, pemilihan kecamatan, filter status OPD, pencarian global, drawer detail, validasi, sinkronisasi sumber, toast, dropdown profil, mode presentasi, reset filter, serta ekspor ringkasan lokal tersedia dalam sesi frontend.
+
+## Data demonstrasi dan Asisten Data
+
+Seluruh angka pada proyek ini adalah **data dummy** untuk demonstrasi antarmuka dan tidak
+boleh digunakan sebagai dasar keputusan. Time series 2022–2026 sengaja memuat pola yang
+bervariasi—kenaikan, penurunan sementara, pemulihan, dan stagnasi—agar perubahan pada
+grafik dapat terlihat dengan jelas.
+
+Menu **Asisten Data** menyediakan simulasi chatbot interaktif yang membaca objek data
+dummy yang sama dengan dashboard. Pertanyaan cepat maupun pertanyaan bebas diproses
+sepenuhnya di browser; tidak ada pesan yang dikirim ke AI atau API eksternal. Contoh
+pertanyaan yang didukung mencakup tren stunting, indikator kritis, kecamatan prioritas,
+kinerja OPD, dan penyerapan anggaran.
