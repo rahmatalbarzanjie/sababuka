@@ -226,7 +226,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
           return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : undefined} onClick={() => go(entry.route_name!)}><Icon /><span>{label}</span></button>;
         })}
       </nav>
-      <small className="sidebar-credit">Dikembangkan oleh<br /><strong>Tim IT UPR 2026</strong></small>
+      <small className="sidebar-credit">Dikembangkan oleh<br /><strong>Tim Peneliti Kajian SABABUKA BERSINAR 2026</strong></small>
       <button className="collapse-button" title={collapsed ? "Perbesar sidebar" : undefined} onClick={() => setCollapsed((value) => !value)}>{collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}<span>{collapsed ? "Perbesar" : "Perkecil sidebar"}</span></button>
     </aside>
     {mobile && <button className="mobile-overlay" onClick={() => setMobile(false)} aria-label="Tutup menu" />}

@@ -18,7 +18,7 @@ function AuthBrand() {
       <div><Sparkles /><span><strong>Data terkurasi</strong><small>Setiap angka memiliki sumber dan status validasi.</small></span></div>
       <div><Bot /><span><strong>Asisten untuk pimpinan</strong><small>Jawaban hanya dari data yang layak tayang.</small></span></div>
     </div>
-    <small className="auth-foot">Pemerintah Kabupaten Kapuas<br /><strong>Dikembangkan oleh Tim IT UPR 2026</strong></small>
+    <small className="auth-foot">Pemerintah Kabupaten Kapuas<br /><strong>Tim Peneliti Kajian SABABUKA BERSINAR 2026</strong></small>
   </aside>;
 }
 
@@ -85,7 +85,7 @@ export function LoginPage() {
         <button className="button primary full" disabled={busy}>{busy ? <Spinner label="Memeriksa" /> : <>{mfaMode ? "Verifikasi" : "Masuk"}<ArrowRight size={17} /></>}</button>
         {!mfaMode && <button className="button secondary full" type="button" onClick={() => navigate("/register")}><UserRoundPlus size={17} />Daftar akun baru</button>}
         <div className="security-note"><ShieldCheck size={17} /><span>Session dilindungi cookie HttpOnly, CSRF, dan pencatatan audit.</span></div>
-        <small className="login-credit">Dikembangkan oleh Tim IT UPR 2026</small>
+        <small className="login-credit">Tim Peneliti Kajian SABABUKA BERSINAR 2026</small>
       </form>
     </section>
   </main>;

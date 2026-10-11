@@ -174,8 +174,8 @@ code { font-family: "SFMono-Regular", Consolas, monospace; }
 .collapse-button:hover { background: rgba(255,255,255,.05); color: #fff; }
 .collapse-button svg { width: 18px; flex: 0 0 18px; }
 .collapsed .sidebar-brand-copy, .collapsed .nav-link span, .collapsed .nav-label, .collapsed .sidebar-status div, .collapsed .collapse-button span { display: none; }
-.sidebar-credit { display: block; margin: 12px 8px 10px; color: #86a9c9; font-size: 9px; line-height: 1.5; letter-spacing: .02em; white-space: nowrap; }
-.sidebar-credit strong { color: #c8dcef; font-size: 10px; }
+.sidebar-credit { display: block; margin: 12px 8px 10px; color: var(--muted); font-size: 9px; line-height: 1.5; letter-spacing: .02em; white-space: normal; }
+.sidebar-credit strong { color: var(--navy-800); font-size: 10px; }
 .collapsed .sidebar-credit { display: none; }
 .collapsed .sidebar-status { justify-content: center; }
 .workspace-main { min-width: 0; margin-left: var(--sidebar-width); min-height: 100vh; transition: margin-left .2s ease; }
