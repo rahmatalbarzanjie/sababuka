@@ -31,6 +31,24 @@ body { min-width: 320px; }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .58; }
+.field-locked input:disabled,
+.field-locked select:disabled,
+.field-locked textarea:disabled,
+.check-group-locked {
+  background: #f4f7fb;
+  border-color: #d8e1ec;
+  color: #7b899d;
+  cursor: not-allowed;
+}
+.field-lock-message {
+  display: block;
+  margin-top: .4rem;
+  color: #66758a;
+  font-size: .75rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+.check-group-locked .field-lock-message { flex-basis: 100%; margin: .25rem 0 0; }
 h1, h2, h3, p { margin-top: 0; }
 code { font-family: "SFMono-Regular", Consolas, monospace; }
 
