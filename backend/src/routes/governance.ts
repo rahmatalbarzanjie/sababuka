@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { requireCsrf, requirePermission } from "../plugins/authentication.js";
 import { requestAuditContext } from "../request-context.js";
 import {
-  GovernanceService, type CategoryInput, type IndicatorInput, type PolicyFocusInput,
+  GovernanceService, type CategoryInput, type IndicatorInput, type IndicatorTechnicalMetadataInput, type PolicyFocusInput,
 } from "../services/governance-service.js";
 
 const uuid = { type: "string", format: "uuid" } as const;
@@ -63,6 +63,21 @@ const indicatorBody = {
     targets: { type: "array", maxItems: 100, items: { type: "object", additionalProperties: false,
       required: ["period_id"], properties: { period_id: uuid, numeric_value: { type: ["number", "null"] },
         text_value: { type: ["string", "null"], maxLength: 1000 }, notes: { type: ["string", "null"], maxLength: 2000 } } } },
+  },
+} as const;
+
+const indicatorTechnicalMetadataBody = {
+  type: "object", additionalProperties: false,
+  required: ["definition", "unit_id", "frequency", "data_type", "source_reference"],
+  properties: {
+    definition: { type: "string", minLength: 5, maxLength: 10000 },
+    formula: { type: ["string", "null"], maxLength: 10000 },
+    unit_id: uuid,
+    frequency: { type: "string", enum: ["annual", "semester", "quarter", "monthly", "weekly", "event", "custom"] },
+    data_type: { type: "string", enum: ["number", "integer", "percentage", "currency", "text", "boolean"] },
+    direction: { type: ["string", "null"], enum: ["increase", "decrease", "maintain", null] },
+    source_reference: { type: "string", minLength: 3, maxLength: 4000 },
+    change_notes: { type: ["string", "null"], maxLength: 4000 },
   },
 } as const;
 
@@ -130,6 +145,15 @@ export async function governanceRoutes(app: FastifyInstance): Promise<void> {
   }, async (request) => {
     mutate(request, "indicator.manage");
     return service(request).updateIndicatorDraft(request.auth!, request.params.indicator_id, request.body, requestAuditContext(request));
+  });
+  app.patch<{ Params: { version_id: string }; Body: IndicatorTechnicalMetadataInput }>("/indicator-versions/:version_id/technical-metadata", {
+    schema: {
+      params: { type: "object", additionalProperties: false, required: ["version_id"], properties: { version_id: uuid } },
+      body: indicatorTechnicalMetadataBody,
+    },
+  }, async (request) => {
+    mutate(request, "indicator.verify");
+    return service(request).updateIndicatorTechnicalMetadata(request.auth!, request.params.version_id, request.body, requestAuditContext(request));
   });
   app.post<{ Params: { version_id: string; action: "submit" | "approve" | "verify" | "activate" | "retire" } }>(
     "/indicator-versions/:version_id/actions/:action",

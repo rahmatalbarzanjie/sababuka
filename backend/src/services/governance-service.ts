@@ -70,6 +70,17 @@ export interface IndicatorInput {
   targets?: IndicatorTargetInput[];
 }
 
+export interface IndicatorTechnicalMetadataInput {
+  definition: string;
+  formula?: string | null;
+  unit_id: string;
+  frequency: "annual" | "semester" | "quarter" | "monthly" | "weekly" | "event" | "custom";
+  data_type: "number" | "integer" | "percentage" | "currency" | "text" | "boolean";
+  direction?: "increase" | "decrease" | "maintain" | null;
+  source_reference: string;
+  change_notes?: string | null;
+}
+
 function pageEnvelope<T>(rows: (T & CountedRow)[], page: number, pageSize: number) {
   const total = Number(rows[0]?.total_count ?? 0);
   return {
@@ -507,6 +518,68 @@ export class GovernanceService {
     } finally { client.release(); }
   }
 
+  async updateIndicatorTechnicalMetadata(
+    auth: AuthContext,
+    versionId: string,
+    input: IndicatorTechnicalMetadataInput,
+    audit: AuditContext,
+  ) {
+    const scope = organizationScope(auth);
+    const client = await this.db.connect();
+    try {
+      await client.query("BEGIN");
+      const current = await client.query<QueryResultRow & {
+        id: string; indicator_id: string; indicator_name: string; owner_organization_id: string | null;
+        status: string; definition: string; formula: string | null; unit_id: string; frequency: string;
+        data_type: string; direction: string | null; source_reference: string | null; change_notes: string | null;
+      }>(
+        `SELECT iv.id::text, iv.indicator_id::text, i.name AS indicator_name,
+                i.owner_organization_id::text, iv.status, iv.definition, iv.formula,
+                iv.unit_id::text, iv.frequency, iv.data_type, iv.direction,
+                iv.source_reference, iv.change_notes
+         FROM sababuka.indicator_versions iv
+         JOIN sababuka.indicators i ON i.id = iv.indicator_id
+         WHERE iv.id = $1 AND i.archived_at IS NULL
+         FOR UPDATE OF iv`,
+        [versionId],
+      );
+      if (!current.rows[0]) throw new ApiError(404, "NOT_FOUND", "Versi indikator tidak ditemukan.");
+      const before = current.rows[0];
+      if (before.status !== "opd_verification") {
+        throw new ApiError(409, "CONFLICT", "Metadata teknis hanya dapat diperbaiki saat indikator menunggu verifikasi OPD.");
+      }
+      if (!before.owner_organization_id || !scope.includes(before.owner_organization_id)) {
+        throw new ApiError(403, "SCOPE_DENIED", "Metadata teknis hanya dapat diubah oleh OPD penanggung jawab indikator.");
+      }
+      const result = await client.query<QueryResultRow & Record<string, unknown>>(
+        `UPDATE sababuka.indicator_versions
+         SET definition = $2, formula = $3, unit_id = $4, frequency = $5,
+             data_type = $6, direction = $7, source_reference = $8, change_notes = $9
+         WHERE id = $1
+         RETURNING id::text, indicator_id::text, status, definition, formula, unit_id::text,
+                   frequency, data_type, direction, source_reference, change_notes, updated_at::text`,
+        [versionId, input.definition.trim(), input.formula?.trim() || null, input.unit_id,
+         input.frequency, input.data_type, input.direction ?? null, input.source_reference.trim(),
+         input.change_notes?.trim() || null],
+      );
+      await recordAudit(client, {
+        ...audit,
+        eventType: "indicator.technical_metadata_updated",
+        entityType: "indicator_version",
+        entityId: versionId,
+        organizationId: before.owner_organization_id,
+        beforeData: before,
+        afterData: result.rows[0]!,
+      });
+      await client.query("COMMIT");
+      return result.rows[0]!;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      if (error instanceof ApiError) throw error;
+      translateDatabaseError(error);
+    } finally { client.release(); }
+  }
+
   async transitionIndicatorVersion(
     auth: AuthContext,
     versionId: string,
@@ -561,10 +634,13 @@ export class GovernanceService {
         throw new ApiError(409, "CONFLICT", "Kategori harus disetujui BAPPERIDA sebelum indikator diajukan.");
       }
       if (action === "submit" && !currentVersion.metadata_complete) {
-        throw new ApiError(409, "CONFLICT", "Lengkapi definisi, satuan, OPD, sumber data, dan target RPJMD 2025–2029 sebelum indikator diajukan.");
+        throw new ApiError(409, "CONFLICT", "Lengkapi definisi, satuan, OPD, sumber data, dan target tahunan 2025–2029 sebelum indikator diajukan.");
       }
       if (action === "approve" && !currentVersion.owner_organization_id) {
         throw new ApiError(409, "CONFLICT", "OPD pemilik harus ditetapkan sebelum indikator dikirim untuk verifikasi teknis.");
+      }
+      if (action === "verify" && !currentVersion.metadata_complete) {
+        throw new ApiError(409, "CONFLICT", "Lengkapi metadata teknis dan target indikator sebelum konfirmasi OPD.");
       }
       if (action === "approve" && currentVersion.submitted_by === auth.user.id) {
         throw new ApiError(409, "CONFLICT", "Pengaju indikator tidak boleh menyetujui review indikator yang sama.");

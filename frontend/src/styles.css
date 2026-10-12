@@ -380,7 +380,14 @@ td small { color: var(--muted); margin-top: 3px; }
 .readiness-filter-primary { grid-template-columns: minmax(340px, 1.7fr) repeat(2, minmax(210px, 1fr)); }
 .readiness-filter-secondary { grid-template-columns: repeat(3, minmax(180px, 1fr)) auto auto; align-items: center; }
 .readiness-filter-primary .search-box { min-width: 0; }
-.readiness-filter-primary > select, .readiness-filter-secondary > select { width: 100%; min-width: 0; min-height: var(--control-height); }
+.readiness-filter-primary > select, .readiness-filter-secondary > select {
+  width: 100%; min-width: 0; min-height: var(--control-height);
+  border: 1px solid #cfdae7; border-radius: 10px; background: #fff; color: var(--ink);
+  padding: 0 38px 0 12px; outline: 0;
+}
+.readiness-filter-primary > select:focus, .readiness-filter-secondary > select:focus {
+  border-color: #4b83bd; box-shadow: 0 0 0 3px rgba(41, 105, 171, .12);
+}
 .readiness-filter-secondary .button { white-space: nowrap; }
 .mobile-sort-controls { display: none; }
 .bulk-action-bar { position: sticky; z-index: 8; top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 14px; padding: 12px 14px; border: 1px solid #8fb2d1; border-radius: 8px; background: #f4f9fd; box-shadow: 0 8px 22px rgba(16,46,82,.12); }
@@ -431,6 +438,7 @@ td small { color: var(--muted); margin-top: 3px; }
 .target-fields legend { padding: 0 7px; color: var(--muted); font-size: 10px; }
 .target-fields > div { display: grid; grid-template-columns: repeat(5, 1fr); gap: 9px; }
 .detail-actions { padding-top: 15px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 8px; }
+.technical-metadata-form { padding-top: 18px; }
 .pagination { min-height: 66px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 10px 16px; color: var(--muted); font-size: 12px; }
 .pagination-summary { margin-right: auto; }
 .page-size { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
