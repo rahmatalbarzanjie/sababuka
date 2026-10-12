@@ -186,8 +186,8 @@ export function IndicatorsPage() {
     finally { setBulkBusy(false); }
   };
   const visible = indicators.data?.data ?? [];
-  const completeCount = visible.filter((item) => item.metadata_complete).length;
-  const activeCount = visible.filter((item) => item.status === "active").length;
+  const completeCount = indicators.data?.meta.metadata_complete_count ?? 0;
+  const activeCount = indicators.data?.meta.active_count ?? 0;
   const filteredCategories = refs.data?.categories.filter((category) => !focusId || category.policy_focus_id === focusId) ?? [];
   const canApprove = user?.permissions.includes("indicator.approve") ?? false;
   const canVerify = user?.permissions.includes("indicator.verify") ?? false;

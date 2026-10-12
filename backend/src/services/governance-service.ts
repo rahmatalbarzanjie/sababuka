@@ -4,7 +4,11 @@ import type { AuthContext } from "../types/auth.js";
 import { recordAudit, type AuditContext } from "./audit-service.js";
 import { notifyOrganization, notifyRole, notifyUser } from "./notification-service.js";
 
-interface CountedRow extends QueryResultRow { total_count: string }
+interface CountedRow extends QueryResultRow {
+  total_count: string;
+  metadata_complete_count?: string;
+  active_count?: string;
+}
 
 export interface GovernancePageQuery {
   page: number;
@@ -83,9 +87,18 @@ export interface IndicatorTechnicalMetadataInput {
 
 function pageEnvelope<T>(rows: (T & CountedRow)[], page: number, pageSize: number) {
   const total = Number(rows[0]?.total_count ?? 0);
+  const metadataComplete = Number(rows[0]?.metadata_complete_count ?? 0);
+  const active = Number(rows[0]?.active_count ?? 0);
   return {
-    data: rows.map(({ total_count: _total, ...row }) => row),
-    meta: { page, page_size: pageSize, total_items: total, total_pages: total ? Math.ceil(total / pageSize) : 0 },
+    data: rows.map(({ total_count: _total, metadata_complete_count: _complete, active_count: _active, ...row }) => row),
+    meta: {
+      page,
+      page_size: pageSize,
+      total_items: total,
+      total_pages: total ? Math.ceil(total / pageSize) : 0,
+      metadata_complete_count: metadataComplete,
+      active_count: active,
+    },
   };
 }
 
@@ -343,7 +356,12 @@ export class GovernanceService {
               (length(trim(iv.definition)) >= 5 AND i.owner_organization_id IS NOT NULL
                 AND iv.unit_id IS NOT NULL AND length(trim(COALESCE(iv.source_reference, ''))) > 0
                 AND COALESCE(targets.target_count, 0) >= 5) AS metadata_complete,
-              count(*) OVER()::text AS total_count
+              count(*) OVER()::text AS total_count,
+              count(*) FILTER (WHERE length(trim(iv.definition)) >= 5
+                AND i.owner_organization_id IS NOT NULL AND iv.unit_id IS NOT NULL
+                AND length(trim(COALESCE(iv.source_reference, ''))) > 0
+                AND COALESCE(targets.target_count, 0) >= 5) OVER()::text AS metadata_complete_count,
+              count(*) FILTER (WHERE iv.status = 'active') OVER()::text AS active_count
        FROM sababuka.indicators i
        JOIN sababuka.categories c ON c.id = i.category_id
        LEFT JOIN sababuka.policy_focuses pf ON pf.id = c.policy_focus_id

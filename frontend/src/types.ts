@@ -51,6 +51,8 @@ export interface PageMeta {
   page_size: number;
   total_items: number;
   total_pages: number;
+  metadata_complete_count?: number;
+  active_count?: number;
 }
 
 export interface PageResponse<T> {
