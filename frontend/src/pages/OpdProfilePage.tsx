@@ -74,7 +74,7 @@ export function OpdProfilePage() {
   }, [organizationId]);
   useEffect(() => {
     if (!organizationId) { setAssignedIndicators([]); return; }
-    void api<PageResponse<Indicator>>(`/indicator-versions?page=1&page_size=100&organization_id=${encodeURIComponent(organizationId)}&sort_by=name&sort_order=asc`)
+    void api<PageResponse<Indicator>>(`/indicators?page=1&page_size=100&organization_id=${encodeURIComponent(organizationId)}&sort_by=name&sort_order=asc`)
       .then((result) => setAssignedIndicators(result.data))
       .catch(() => setAssignedIndicators([]));
   }, [organizationId]);
