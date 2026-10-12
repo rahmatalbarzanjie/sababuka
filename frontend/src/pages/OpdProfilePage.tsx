@@ -32,10 +32,10 @@ const emptyResponse = (): ProfileResponse => ({
 function normalizeResponse(value: ProfileResponse): ProfileResponse {
   const empty = emptyResponse();
   return {
-    pic: { ...empty.pic, name: value.pic?.name, position: value.pic?.position, email: value.pic?.email, whatsapp: value.pic?.whatsapp },
-    website: { ...empty.website, has_website: value.website?.has_website, url: value.website?.url, active_status: value.website?.active_status, managed_by: value.website?.managed_by },
-    integration: { ...empty.integration, api_available: value.integration?.api_available, api_endpoint: value.integration?.api_endpoint, api_documentation_url: value.integration?.api_documentation_url, api_access_type: value.integration?.api_access_type, export_formats: value.integration?.export_formats ?? [], update_frequency: value.integration?.update_frequency, internal_database: value.integration?.internal_database },
-    data_management: { ...empty.data_management, rpjmd_on_website: value.data_management?.rpjmd_on_website, renstra_on_website: value.data_management?.renstra_on_website, storage_locations: value.data_management?.storage_locations ?? [], internal_systems: value.data_management?.internal_systems, responsible_unit: value.data_management?.responsible_unit },
+    pic: { ...empty.pic, name: value.pic?.name ?? "", position: value.pic?.position ?? "", email: value.pic?.email ?? "", whatsapp: value.pic?.whatsapp ?? "" },
+    website: { ...empty.website, has_website: value.website?.has_website ?? "unknown", url: value.website?.url ?? "", active_status: value.website?.active_status ?? "unknown", managed_by: value.website?.managed_by ?? "unknown" },
+    integration: { ...empty.integration, api_available: value.integration?.api_available ?? "unknown", api_endpoint: value.integration?.api_endpoint ?? "", api_documentation_url: value.integration?.api_documentation_url ?? "", api_access_type: value.integration?.api_access_type ?? "unknown", export_formats: value.integration?.export_formats ?? [], update_frequency: value.integration?.update_frequency ?? "unknown", internal_database: value.integration?.internal_database ?? "" },
+    data_management: { ...empty.data_management, rpjmd_on_website: value.data_management?.rpjmd_on_website ?? "unknown", renstra_on_website: value.data_management?.renstra_on_website ?? "unknown", storage_locations: value.data_management?.storage_locations ?? [], internal_systems: value.data_management?.internal_systems ?? "", responsible_unit: value.data_management?.responsible_unit ?? "" },
     baseline_items: value.baseline_items ?? [], declaration: { accurate: Boolean(value.declaration?.accurate) },
   };
 }
@@ -58,11 +58,11 @@ export function OpdProfilePage() {
   const isOpdRole = Boolean(user?.roles.some((item) => item.code === "opd"));
   const mayEditSelected = Boolean(user?.roles.some((item) => item.code === "superadmin") || user?.organizations.some((item) => item.id === organizationId));
   const editable = mayEditSelected && (!profile || (["draft", "returned"].includes(profile.technical_status) && ["draft", "returned"].includes(profile.planning_status)));
-  const websiteAnswered = form.website?.has_website !== "unknown";
+  const websiteAnswered = form.website?.has_website === "yes" || form.website?.has_website === "no";
   const websiteAvailable = form.website?.has_website === "yes";
-  const apiAnswered = form.integration?.api_available !== "unknown";
+  const apiAnswered = ["yes", "no", "planned"].includes(form.integration?.api_available ?? "");
   const apiAvailable = form.integration?.api_available === "yes";
-  const planningAvailabilityAnswered = form.data_management?.rpjmd_on_website !== "unknown" && form.data_management?.renstra_on_website !== "unknown";
+  const planningAvailabilityAnswered = ["all", "some", "no"].includes(form.data_management?.rpjmd_on_website ?? "") && ["all", "some", "no"].includes(form.data_management?.renstra_on_website ?? "");
   const storageSelected = Boolean(form.data_management?.storage_locations?.length);
 
   useEffect(() => {
