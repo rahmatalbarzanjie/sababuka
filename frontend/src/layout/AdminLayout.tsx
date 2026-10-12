@@ -114,7 +114,8 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
   const isSuperadmin = user?.roles.some((role) => role.code === "superadmin") ?? false;
   const isRolePreview = Boolean(user?.simulation?.active);
   const isBapperida = user?.roles.some((role) => role.code === "bapperida") ?? false;
-  const operationalEntries = useMemo(() => menu.filter((item) => ["operations", "opd-profile", "submissions", "reviews", "publications"].includes(item.code) && item.route_name && supportedRoutes.has(item.route_name) && !(!isSuperadmin && isBapperida && item.code === "submissions")), [menu, isSuperadmin, isBapperida]);
+  const isOpd = user?.roles.some((role) => role.code === "opd") ?? false;
+  const operationalEntries = useMemo(() => menu.filter((item) => ["operations", "opd-profile", "submissions", "reviews", "publications"].includes(item.code) && item.route_name && supportedRoutes.has(item.route_name) && !(!isSuperadmin && isBapperida && !isOpd && item.code === "submissions")), [menu, isSuperadmin, isBapperida, isOpd]);
   const sourceEntries = useMemo(() => menu.filter((item) => item.code === "connectors" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const primaryEntries = useMemo(() => menu.filter((item) => ["dashboard", "assistant"].includes(item.code) && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const analysisEntries = useMemo(() => menu.filter((item) => ["analysis", "finance", "public-services"].includes(item.code) && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
@@ -130,6 +131,9 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
   const initials = user?.full_name.split(/\s+/u).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "SA";
   const roleCode = user?.roles[0]?.code ?? "opd";
   const help = roleHelp[roleCode] ?? roleHelp.opd;
+  const roleLabel = isBapperida && isOpd ? "Verifikator BAPPERIDA + PIC OPD"
+    : (user?.roles.some((role) => role.code === "kominfo") && isOpd) ? "Walidata + PIC OPD"
+    : roleLabels[roleCode] ?? "Pengguna";
 
   useEffect(() => {
     setProfileOpen(false);
@@ -250,7 +254,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
             </section>}
           </div>}
           <div className="profile-wrap" ref={profileRef}>
-            <button className="profile-button" aria-haspopup="menu" aria-expanded={profileOpen} onClick={() => setProfileOpen((value) => !value)}><span className="avatar">{initials}</span><span><strong>{user?.full_name}</strong><small>{roleLabels[user?.roles[0]?.code ?? ""] ?? "Pengguna"}</small></span><ChevronDown /></button>
+            <button className="profile-button" aria-haspopup="menu" aria-expanded={profileOpen} onClick={() => setProfileOpen((value) => !value)}><span className="avatar">{initials}</span><span><strong>{user?.full_name}</strong><small>{roleLabel}</small></span><ChevronDown /></button>
             {profileOpen && <div className="profile-popover"><div className="profile-identity"><UserRound /><span><strong>{user?.simulation?.original_email ?? user?.email}</strong><small>{isRolePreview ? `Pratinjau: ${roleLabels[user?.roles[0]?.code ?? ""] ?? "Peran"}` : user?.organizations[0]?.name ?? "Lingkup global"}</small></span></div>
               {isRolePreview ? <div className="profile-preview-return"><small>MODE PRATINJAU HANYA BACA</small><button disabled={previewBusy} onClick={() => void leavePreview()}><RotateCcw />Kembali ke Developer</button></div>
                 : isSuperadmin && <div className="profile-preview"><small>PRATINJAU TAMPILAN PERAN</small><p>Lihat menu dan data sesuai kewenangan tanpa login ulang.</p>{previewError && <span className="profile-preview-error">{previewError}</span>}<button disabled={previewBusy} onClick={() => void enterPreview("bapperida")}><Eye />BAPPERIDA</button><button disabled={previewBusy} onClick={() => void enterPreview("kominfo")}><Eye />Walidata Diskominfosantik</button><button disabled={previewBusy} onClick={() => void enterPreview("pimpinan")}><Eye />Pimpinan</button><label><span>Pratinjau OPD</span><select value={previewOrganizationId} onChange={(event) => setPreviewOrganizationId(event.target.value)}><option value="">Pilih OPD</option>{previewOrganizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.short_name ? `${organization.short_name} — ` : ""}{organization.name}</option>)}</select></label><button disabled={previewBusy || !previewOrganizationId} onClick={() => void enterPreview("opd", previewOrganizationId)}><Eye />Masuk sebagai OPD terpilih</button></div>}

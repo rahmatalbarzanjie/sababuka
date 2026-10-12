@@ -98,7 +98,7 @@ export class AccountService {
       );
       if (!organization.rowCount) throw new ApiError(404, "NOT_FOUND", "Organisasi tidak ditemukan atau sudah tidak aktif.");
 
-      const accountLimit = ["BAPPERIDA", "DISKOMINFOSANTIK"].includes(organization.rows[0]!.code) ? 2 : 1;
+      const accountLimit = 1;
       const occupied = await client.query<{ count: string } & QueryResultRow>(
         `SELECT count(DISTINCT u.id)::text AS count
          FROM sababuka.users u
@@ -110,9 +110,7 @@ export class AccountService {
         [input.organization_id],
       );
       if (Number(occupied.rows[0]?.count ?? 0) >= accountLimit) {
-        throw new ApiError(409, "CONFLICT", accountLimit === 1
-          ? "OPD ini sudah memiliki satu akun PIC. Hubungi Pengelola Sistem jika PIC perlu diganti."
-          : "Batas dua akun untuk BAPPERIDA/Diskominfosantik sudah terisi.");
+        throw new ApiError(409, "CONFLICT", "Instansi ini sudah memiliki satu akun PIC. Hubungi Pengelola Sistem jika PIC perlu diganti.");
       }
 
       const result = await client.query<QueryResultRow & Record<string, unknown>>(

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { allowedScopesForRole, assertRoleScope } from "../src/services/admin-service.js";
+import { allowedScopesForRole, assertRoleScope, registrationRoleCodesForOrganization } from "../src/services/admin-service.js";
 
 test("matriks role-scope mengikuti desain SABABUKA", () => {
   assert.deepEqual(allowedScopesForRole("superadmin"), ["global"]);
@@ -14,4 +14,10 @@ test("matriks role-scope mengikuti desain SABABUKA", () => {
   assert.throws(() => assertRoleScope("opd", "global"), { code: "INVALID_ROLE_SCOPE" });
   assert.throws(() => assertRoleScope("pimpinan", "organization", "org-1"), { code: "INVALID_ROLE_SCOPE" });
   assert.throws(() => assertRoleScope("opd", "organization"), { code: "VALIDATION_ERROR" });
+});
+
+test("paket peran pendaftaran mengikuti instansi", () => {
+  assert.deepEqual(registrationRoleCodesForOrganization("BAPPERIDA"), ["opd", "bapperida"]);
+  assert.deepEqual(registrationRoleCodesForOrganization("DISKOMINFOSANTIK"), ["opd", "kominfo"]);
+  assert.deepEqual(registrationRoleCodesForOrganization("DINKES"), ["opd"]);
 });

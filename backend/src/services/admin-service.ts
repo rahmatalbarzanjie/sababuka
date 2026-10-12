@@ -80,6 +80,12 @@ export function assertRoleScope(roleCode: string, scopeType: RoleScope, organiza
   }
 }
 
+export function registrationRoleCodesForOrganization(organizationCode: string): string[] {
+  if (organizationCode === "BAPPERIDA") return ["opd", "bapperida"];
+  if (organizationCode === "DISKOMINFOSANTIK") return ["opd", "kominfo"];
+  return ["opd"];
+}
+
 const PROTECTED_SUPERADMIN_PERMISSIONS = [
   "system.configure",
   "organization.manage",
@@ -145,7 +151,7 @@ async function assertOrganizationAccountLimit(
   );
   if (!organization.rows[0]) throw new ApiError(404, "NOT_FOUND", "Organisasi tidak ditemukan.");
   const code = organization.rows[0].code;
-  const limit = ["BAPPERIDA", "DISKOMINFOSANTIK"].includes(code) ? 2 : 1;
+  const limit = 1;
   if (roleCode !== "opd" && !["BAPPERIDA", "DISKOMINFOSANTIK"].includes(code)) return;
   const occupied = await client.query<{ count: string } & QueryResultRow>(
     `SELECT count(DISTINCT u.id)::text AS count
@@ -156,9 +162,7 @@ async function assertOrganizationAccountLimit(
     [organizationId, userId],
   );
   if (Number(occupied.rows[0]?.count ?? 0) >= limit) {
-    throw new ApiError(409, "CONFLICT", limit === 1
-      ? "Setiap OPD hanya boleh memiliki satu akun PIC aktif. Nonaktifkan atau ganti PIC lama terlebih dahulu."
-      : "BAPPERIDA dan Diskominfosantik masing-masing dibatasi dua akun aktif.");
+    throw new ApiError(409, "CONFLICT", "Setiap instansi hanya boleh memiliki satu akun PIC aktif. Nonaktifkan atau ganti PIC lama terlebih dahulu.");
   }
 }
 
@@ -308,6 +312,7 @@ export class AdminService {
         [input.email.trim().toLowerCase(), input.username?.trim() || null, input.full_name.trim()],
       );
       const user = result.rows[0]!;
+      await assertOrganizationAccountLimit(client, user.id as string, "opd", input.organization_id);
       await client.query(
         `INSERT INTO sababuka.organization_memberships
            (user_id, organization_id, membership_type, is_primary)
@@ -573,15 +578,35 @@ export class AdminService {
       );
       if (!role.rows[0]) throw new ApiError(404, "NOT_FOUND", "Peran tidak ditemukan.");
       assertRoleScope(role.rows[0].code, input.scope_type, input.organization_id);
+      if (role.rows[0].code !== "opd" || input.scope_type !== "organization" || !input.organization_id) {
+        throw new ApiError(400, "VALIDATION_ERROR", "Pendaftaran PIC harus disetujui untuk satu OPD. Peran tambahan BAPPERIDA atau Walidata diberikan otomatis sesuai instansi.");
+      }
       await assertOrganizationAccountLimit(client, userId, role.rows[0].code, input.organization_id);
-
-      const assignment = await client.query<QueryResultRow & Record<string, unknown>>(
-        `INSERT INTO sababuka.user_role_assignments
-           (user_id, role_id, organization_id, scope_type, ends_at, assigned_by)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         RETURNING id::text, role_id::text, organization_id::text, scope_type`,
-        [userId, input.role_id, input.organization_id ?? null, input.scope_type, input.ends_at ?? null, auth.user.id],
+      const organization = await client.query<{ code: string } & QueryResultRow>(
+        "SELECT code FROM sababuka.organizations WHERE id = $1 AND is_active = true AND archived_at IS NULL",
+        [input.organization_id],
       );
+      if (!organization.rows[0]) throw new ApiError(404, "NOT_FOUND", "Organisasi tidak ditemukan.");
+      const roleCodes = registrationRoleCodesForOrganization(organization.rows[0].code);
+      const packageRoles = await client.query<{ id: string; code: string } & QueryResultRow>(
+        "SELECT id::text, code FROM sababuka.roles WHERE code = ANY($1::text[]) AND is_active = true",
+        [roleCodes],
+      );
+      if (packageRoles.rowCount !== roleCodes.length) throw new ApiError(409, "CONFLICT", "Paket peran instansi belum lengkap. Hubungi Pengelola Sistem.");
+      const assignments: Record<string, unknown>[] = [];
+      for (const packageRole of packageRoles.rows) {
+        const opdRole = packageRole.code === "opd";
+        const assignment = await client.query<QueryResultRow & Record<string, unknown>>(
+          `INSERT INTO sababuka.user_role_assignments
+             (user_id, role_id, organization_id, scope_type, ends_at, assigned_by)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT (user_id, role_id, organization_id, scope_type) DO UPDATE
+           SET starts_at = now(), ends_at = EXCLUDED.ends_at, assigned_by = EXCLUDED.assigned_by
+           RETURNING id::text, role_id::text, organization_id::text, scope_type`,
+          [userId, packageRole.id, opdRole ? input.organization_id : null, opdRole ? "organization" : "global", input.ends_at ?? null, auth.user.id],
+        );
+        assignments.push(assignment.rows[0]!);
+      }
       await client.query(
         `UPDATE sababuka.users
          SET status = 'active', failed_login_count = 0, locked_until = NULL, updated_at = now()
@@ -630,10 +655,10 @@ export class AdminService {
         beforeData: { status: "invited" },
         afterData: {
           status: "active",
-          role_code: role.rows[0].code,
+          role_codes: roleCodes,
           approved_organization_id: input.organization_id ?? null,
           approval_notes: input.approval_notes?.trim() || null,
-          assignment: assignment.rows[0]!,
+          assignments,
         },
       });
       await notifyUser(client, userId, {
@@ -644,7 +669,7 @@ export class AdminService {
         entityId: userId,
       });
       await client.query("COMMIT");
-      return { id: userId, status: "active", role_code: role.rows[0].code };
+      return { id: userId, status: "active", role_codes: roleCodes };
     } catch (error) {
       await client.query("ROLLBACK");
       if (error instanceof ApiError) throw error;

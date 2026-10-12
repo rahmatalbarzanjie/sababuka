@@ -61,7 +61,7 @@ function ProtectedApp() {
         : user.permissions.includes("submission.view") ? "/operations" : "/dashboard";
       navigate(landing);
     }
-    if (!loading && user && pathname === "/submissions" && user.roles.some((role) => role.code === "bapperida") && !user.roles.some((role) => role.code === "superadmin")) {
+    if (!loading && user && pathname === "/submissions" && user.roles.some((role) => role.code === "bapperida") && !user.roles.some((role) => role.code === "opd") && !user.roles.some((role) => role.code === "superadmin")) {
       navigate(`/reviews${window.location.search}`);
     }
   }, [loading, user, pathname]);

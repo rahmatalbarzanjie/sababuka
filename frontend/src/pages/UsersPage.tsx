@@ -166,19 +166,31 @@ function InvitationResult({ invitation, onClose }: { invitation: { name: string;
 
 function RoleAssignmentForm({ user, roles, organizations, onClose, onSaved }: { user: UserSummary; roles: Role[]; organizations: Organization[]; onClose(): void; onSaved(): void }) {
   const approvalMode = user.status === "invited" && user.has_password;
-  const [roleId, setRoleId] = useState((approvalMode ? roles.find((role) => role.code === "opd") : roles.find((role) => role.code !== "superadmin"))?.id ?? roles[0]?.id ?? "");
+  const opdRole = roles.find((role) => role.code === "opd");
+  const [roleId, setRoleId] = useState((approvalMode ? opdRole : roles.find((role) => role.code !== "superadmin"))?.id ?? roles[0]?.id ?? "");
   const selectedRole = roles.find((role) => role.id === roleId);
-  const allowedScopes = selectedRole ? roleScopeRules[selectedRole.code] ?? [] : [];
+  const allowedScopes = approvalMode ? (["organization"] as const) : selectedRole ? roleScopeRules[selectedRole.code] ?? [] : [];
   const [scope, setScope] = useState<RoleScope>(allowedScopes[0] ?? "organization");
   const [organizationId, setOrganizationId] = useState(user.requested_organization_id ?? user.organization_id ?? organizations[0]?.id ?? "");
+  const selectedOrganization = organizations.find((organization) => organization.id === organizationId);
+  const automaticRoles = selectedOrganization?.code === "BAPPERIDA"
+    ? ["Admin/PIC OPD BAPPERIDA", "Verifikator BAPPERIDA"]
+    : selectedOrganization?.code === "DISKOMINFOSANTIK"
+      ? ["Admin/PIC OPD Diskominfosantik", "Walidata Diskominfosantik"]
+      : ["Admin/PIC OPD"];
   const [approvalNotes, setApprovalNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError(null);
     try {
-      if (!selectedRole || !allowedScopes.includes(scope)) throw new Error("Role tersebut belum memiliki aturan scope yang sah.");
-      await api(`/users/${user.id}/${approvalMode ? "approve-registration" : "role-assignments"}`, { method: "POST", mutation: true, body: jsonBody({ role_id: roleId, scope_type: scope, organization_id: scope === "organization" ? organizationId : null, ...(approvalMode ? { approval_notes: approvalNotes || null } : {}) }) });
+      if (approvalMode) {
+        if (!opdRole || !organizationId) throw new Error("OPD final dan paket peran PIC belum tersedia.");
+        await api(`/users/${user.id}/approve-registration`, { method: "POST", mutation: true, body: jsonBody({ role_id: opdRole.id, scope_type: "organization", organization_id: organizationId, approval_notes: approvalNotes || null }) });
+      } else {
+        if (!selectedRole || !allowedScopes.includes(scope)) throw new Error("Role tersebut belum memiliki aturan scope yang sah.");
+        await api(`/users/${user.id}/role-assignments`, { method: "POST", mutation: true, body: jsonBody({ role_id: roleId, scope_type: scope, organization_id: scope === "organization" ? organizationId : null }) });
+      }
       onSaved();
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Peran gagal ditetapkan."); }
     finally { setBusy(false); }
@@ -192,5 +204,22 @@ function RoleAssignmentForm({ user, roles, organizations, onClose, onSaved }: { 
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Pendaftaran gagal ditolak."); }
     finally { setBusy(false); }
   }
-  return <Modal title={`${approvalMode ? "Periksa pendaftaran" : "Tetapkan peran"} - ${user.full_name}`} onClose={onClose}>{error && <Notice tone="error">{error}</Notice>}<form className="form-stack" onSubmit={submit}>{approvalMode && <section className="registration-review"><h3>Identitas yang diajukan</h3><div><span>Jabatan<strong>{user.job_title ?? "Belum dilengkapi"}</strong></span><span>Kontak<strong>{user.contact_phone ?? "-"}</strong></span><span>NIP/NIK pegawai<strong>{user.employee_id ?? "Tidak dicantumkan"}</strong></span><span>OPD yang diklaim<strong>{user.requested_organization_name ?? user.organization_name ?? "-"}</strong></span></div>{user.request_note && <p><strong>Keterangan:</strong> {user.request_note}</p>}</section>}<label className="field"><span>Peran final</span><select value={roleId} onChange={(event) => { const nextRoleId = event.target.value; const nextRole = roles.find((role) => role.id === nextRoleId); setRoleId(nextRoleId); setScope(roleScopeRules[nextRole?.code ?? ""]?.[0] ?? "organization"); }}>{roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</select><small>Operator OPD adalah pilihan standar untuk pendaftar perwakilan perangkat daerah.</small></label><label className="field"><span>Lingkup akses</span><select value={scope} onChange={(event) => setScope(event.target.value as RoleScope)}>{allowedScopes.map((item) => <option value={item} key={item}>{item === "organization" ? "Satu OPD" : item === "published" ? "Data terpublikasi" : item === "global" ? "Seluruh Kabupaten Kapuas" : "Data sendiri"}</option>)}</select></label>{scope === "organization" && <label className="field"><span>OPD final</span><select value={organizationId} onChange={(event) => setOrganizationId(event.target.value)}>{organizations.map((item) => <option key={item.id} value={item.id}>{item.code} - {item.name}</option>)}</select><small>Boleh berbeda dari OPD yang diklaim jika hasil verifikasi menunjukkan penugasan lain.</small></label>}{approvalMode && <label className="field"><span>Catatan keputusan <small>(wajib jika ditolak)</small></span><textarea rows={3} value={approvalNotes} onChange={(event) => setApprovalNotes(event.target.value)} placeholder="Contoh: surat tugas belum dapat diverifikasi; silakan daftar ulang setelah diperbaiki." /></label>}{!allowedScopes.length && <Notice tone="error">Peran ini belum memiliki kebijakan lingkup yang sah.</Notice>}<Notice tone="warning">{approvalMode ? "Superadmin menetapkan OPD dan peran final. Persetujuan maupun penolakan tersimpan dalam audit." : "Penetapan peran mengubah kewenangan pengguna dan dicatat dalam audit."}</Notice><footer className="modal-actions">{approvalMode && <button type="button" className="button danger" disabled={busy} onClick={() => void reject()}><XCircle />Tolak pendaftaran</button>}<button type="button" className="button secondary" onClick={onClose}>Batal</button><button className="button primary" disabled={busy || !allowedScopes.length || (scope === "organization" && !organizationId)}><KeyRound />{busy ? "Menyimpan…" : approvalMode ? "Setujui dan aktifkan akun" : "Tetapkan peran"}</button></footer></form></Modal>;
+  return <Modal title={`${approvalMode ? "Periksa pendaftaran" : "Tetapkan peran"} - ${user.full_name}`} onClose={onClose}>
+    {error && <Notice tone="error">{error}</Notice>}
+    <form className="form-stack" onSubmit={submit}>
+      {approvalMode && <section className="registration-review"><h3>Identitas yang diajukan</h3><div><span>Jabatan<strong>{user.job_title ?? "Belum dilengkapi"}</strong></span><span>Kontak<strong>{user.contact_phone ?? "-"}</strong></span><span>NIP/NIK pegawai<strong>{user.employee_id ?? "Tidak dicantumkan"}</strong></span><span>OPD yang diklaim<strong>{user.requested_organization_name ?? user.organization_name ?? "-"}</strong></span></div>{user.request_note && <p><strong>Keterangan:</strong> {user.request_note}</p>}</section>}
+      {approvalMode ? <>
+        <label className="field"><span>OPD final</span><select value={organizationId} onChange={(event) => setOrganizationId(event.target.value)}>{organizations.map((item) => <option key={item.id} value={item.id}>{item.code} - {item.name}</option>)}</select><small>Boleh berbeda dari OPD yang diklaim jika hasil verifikasi menunjukkan penugasan lain.</small></label>
+        <section className="registration-review"><h3>Akses yang diberikan otomatis</h3><div>{automaticRoles.map((label) => <span key={label}>Peran<strong>{label}</strong></span>)}</div><p>Satu akun PIC dapat menjalankan tugas instansi dan tugas khususnya tanpa login terpisah.</p></section>
+      </> : <>
+        <label className="field"><span>Peran final</span><select value={roleId} onChange={(event) => { const nextRoleId = event.target.value; const nextRole = roles.find((role) => role.id === nextRoleId); setRoleId(nextRoleId); setScope(roleScopeRules[nextRole?.code ?? ""]?.[0] ?? "organization"); }}>{roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</select></label>
+        <label className="field"><span>Lingkup akses</span><select value={scope} onChange={(event) => setScope(event.target.value as RoleScope)}>{allowedScopes.map((item) => <option value={item} key={item}>{item === "organization" ? "Satu OPD" : item === "published" ? "Data terpublikasi" : item === "global" ? "Seluruh Kabupaten Kapuas" : "Data sendiri"}</option>)}</select></label>
+        {scope === "organization" && <label className="field"><span>OPD</span><select value={organizationId} onChange={(event) => setOrganizationId(event.target.value)}>{organizations.map((item) => <option key={item.id} value={item.id}>{item.code} - {item.name}</option>)}</select></label>}
+      </>}
+      {approvalMode && <label className="field"><span>Catatan keputusan <small>(wajib jika ditolak)</small></span><textarea rows={3} value={approvalNotes} onChange={(event) => setApprovalNotes(event.target.value)} placeholder="Contoh: surat tugas belum dapat diverifikasi; silakan daftar ulang setelah diperbaiki." /></label>}
+      {!approvalMode && !allowedScopes.length && <Notice tone="error">Peran ini belum memiliki kebijakan lingkup yang sah.</Notice>}
+      <Notice tone="warning">{approvalMode ? "Sistem menerapkan satu PIC per instansi dan memberikan paket peran sesuai OPD secara otomatis. Keputusan tersimpan dalam audit." : "Penetapan peran mengubah kewenangan pengguna dan dicatat dalam audit."}</Notice>
+      <footer className="modal-actions">{approvalMode && <button type="button" className="button danger" disabled={busy} onClick={() => void reject()}><XCircle />Tolak pendaftaran</button>}<button type="button" className="button secondary" onClick={onClose}>Batal</button><button className="button primary" disabled={busy || (approvalMode ? !organizationId || !opdRole : !allowedScopes.length || (scope === "organization" && !organizationId))}><KeyRound />{busy ? "Menyimpan…" : approvalMode ? "Setujui dan aktifkan akun" : "Tetapkan peran"}</button></footer>
+    </form>
+  </Modal>;
 }

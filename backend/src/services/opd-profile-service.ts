@@ -62,7 +62,6 @@ export class OpdProfileService {
        FROM sababuka.user_registration_requests rr
        JOIN sababuka.users u ON u.id=rr.user_id
          AND u.status='active' AND u.archived_at IS NULL
-       JOIN sababuka.roles r ON r.id=rr.approved_role_id AND r.code='opd'
        JOIN sababuka.user_role_assignments ura ON ura.user_id=u.id AND ura.ends_at IS NULL
        JOIN sababuka.roles active_role ON active_role.id=ura.role_id AND active_role.code='opd'
        JOIN sababuka.organization_memberships om ON om.user_id=u.id
