@@ -66,10 +66,10 @@ const iconByCode: Record<string, typeof LayoutDashboard> = {
 const supportedRoutes = new Set(["/admin", "/dashboard", "/executive", "/assistant", "/analysis", "/finance", "/public-services", "/notifications", "/audit", "/operations", "/opd-profile", "/admin/organizations", "/admin/opd-monitoring", "/admin/users", "/admin/roles", "/admin/menus", "/admin/system", "/governance/categories", "/governance/indicators", "/submissions", "/reviews", "/publications", "/connectors"]);
 
 const navigationLabels: Record<string, string> = {
-  categories: "Kelompok Isu RPJMD",
+  categories: "Kelompok Isu",
   indicators: "Matriks Indikator",
   operations: "Beranda Tugas",
-  "opd-profile": "Profil Data RPJMD/Renstra",
+  "opd-profile": "Profil Data OPD",
   submissions: "Pelaporan Realisasi",
   reviews: "Verifikasi Pelaporan OPD",
   publications: "Kurasi dan Publikasi",

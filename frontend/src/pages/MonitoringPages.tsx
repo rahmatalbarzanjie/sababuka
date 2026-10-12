@@ -2,7 +2,7 @@ import { Bell, CheckCheck, ScrollText, Wrench } from "lucide-react";
 import { useState } from "react";
 import { api } from "../api";
 import { useAuth } from "../auth";
-import { Badge, EmptyState, formatDate, Notice, Pagination, SortableHeader, Spinner, useAsync, type SortDirection } from "../components";
+import { Badge, EmptyState, formatDate, Notice, PageSizeControl, Pagination, SortableHeader, Spinner, useAsync, type SortDirection } from "../components";
 import type { AuditEvent, NotificationItem, PageResponse } from "../types";
 import { navigate } from "../router";
 import { notificationDestination } from "../notification-routing";
@@ -31,7 +31,7 @@ export function NotificationsPage() {
 
 export function AuditPage() {
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(20);
   const [eventType, setEventType] = useState("");
   const [entityType, setEntityType] = useState("");
   const [sortBy, setSortBy] = useState("occurred_at");
@@ -41,17 +41,18 @@ export function AuditPage() {
   const result = useAsync(() => api<PageResponse<AuditEvent>>(url), [url]);
   const changeSort = (column: string, direction: SortDirection) => { setSortBy(column); setSortOrder(direction); setPage(1); };
   return <>
-    <div className="toolbar audit-filter">
+    <div className="toolbar data-toolbar audit-filter">
       <input aria-label="Cari jenis aktivitas" value={eventType} onChange={(e) => { setEventType(e.target.value); setPage(1); }} placeholder="Cari aktivitas, misalnya persetujuan" />
       <input aria-label="Cari objek data" value={entityType} onChange={(e) => { setEntityType(e.target.value); setPage(1); }} placeholder="Cari objek, misalnya capaian" />
       <label className="inline-check"><input type="checkbox" checked={technical} onChange={(event) => setTechnical(event.target.checked)} /><Wrench />Tampilkan detail teknis</label>
+      <PageSizeControl value={pageSize} onChange={(size) => { setPageSize(size); setPage(1); }} />
     </div>
     <Notice tone="warning">Riwayat aktivitas tidak dapat diubah atau dihapus. Anda hanya melihat aktivitas sesuai lingkup kewenangan.</Notice>
     <section className="panel table-panel governance-table">
       {result.loading ? <div className="panel-loading"><Spinner /></div>
         : !result.data?.data.length ? <EmptyState title="Belum ada audit">Aktivitas yang berada dalam lingkup Anda akan tampil di sini.</EmptyState>
         : <div className="table-scroll"><table><thead><tr><SortableHeader label="Waktu" column="occurred_at" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /><SortableHeader label="Aktivitas" column="event_type" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /><SortableHeader label="Objek data" column="entity_type" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /><SortableHeader label="Dilakukan oleh" column="actor" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /><SortableHeader label="Instansi" column="organization" sortBy={sortBy} direction={sortOrder} onSort={changeSort} />{technical && <th>Detail teknis</th>}</tr></thead><tbody>{result.data.data.map((item) => <tr key={item.id}><td>{formatDate(item.occurred_at)} WIB</td><td><div className="identity-cell"><span className="table-icon"><ScrollText /></span><span><strong>{auditEventLabel(item.event_type)}</strong>{technical && <small>{item.event_type}</small>}</span></div></td><td><Badge tone="neutral">{auditEntityLabel(item.entity_type)}</Badge></td><td>{item.actor_name ?? "Proses otomatis sistem"}</td><td>{item.organization_name ?? "Lintas instansi"}</td>{technical && <td><code title={item.request_id ?? undefined}>{item.request_id?.slice(0, 8) ?? "-"}</code><small>{item.id.slice(0, 8)}</small></td>}</tr>)}</tbody></table></div>}
-      {result.data && <Pagination page={result.data.meta.page} pageSize={result.data.meta.page_size} totalItems={result.data.meta.total_items} totalPages={result.data.meta.total_pages} sortLabel={`${({ occurred_at: "Waktu", event_type: "Aktivitas", entity_type: "Entitas", actor: "Aktor", organization: "Organisasi" } as Record<string, string>)[sortBy] ?? "Waktu"} ${sortBy === "occurred_at" ? (sortOrder === "desc" ? "terbaru" : "terlama") : (sortOrder === "desc" ? "menurun" : "menaik")}`} onChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />}
+      {result.data && <Pagination page={result.data.meta.page} pageSize={result.data.meta.page_size} totalItems={result.data.meta.total_items} totalPages={result.data.meta.total_pages} sortLabel={`${({ occurred_at: "Waktu", event_type: "Aktivitas", entity_type: "Entitas", actor: "Aktor", organization: "Organisasi" } as Record<string, string>)[sortBy] ?? "Waktu"} ${sortBy === "occurred_at" ? (sortOrder === "desc" ? "terbaru" : "terlama") : (sortOrder === "desc" ? "menurun" : "menaik")}`} onChange={setPage} showPageSize={false} />}
     </section>
   </>;
 }

@@ -2,7 +2,7 @@ import { BadgeCheck, CheckCircle2, ClipboardList, Download, FileCheck2, Plus, Sa
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { api, apiPath, jsonBody } from "../api";
 import { useAuth } from "../auth";
-import { Badge, capaianStatusLabel, EmptyState, Modal, Notice, Pagination, SortableHeader, Spinner, useAsync, type SortDirection } from "../components";
+import { Badge, capaianStatusLabel, EmptyState, Modal, Notice, PageSizeControl, Pagination, SortableHeader, Spinner, useAsync, type SortDirection } from "../components";
 import { navigate } from "../router";
 import type { Organization, PageResponse, Period, Submission, SubmissionEvidence, SubmissionObservation } from "../types";
 
@@ -41,13 +41,14 @@ export function SubmissionsPage({ review = false }: { review?: boolean }) {
 
   return <>
     {review && <section className="review-guidance"><span><ClipboardList /></span><div><strong>Antrean pemeriksaan BAPPERIDA</strong><p>Buka capaian, periksa nilai dan dokumen pendukung, lalu pilih setujui atau kembalikan dengan catatan yang spesifik.</p></div></section>}
-    <div className="toolbar">
+    <div className="toolbar data-toolbar">
       <div className="status-filter" role="group" aria-label="Filter status capaian">
         {[
           ["", review ? "Semua" : "Semua"],
           ...(review ? [["submitted", "Baru masuk"], ["under_review", "Sedang diperiksa"], ["returned", "Dikembalikan"], ["approved", "Disetujui"]] : [["draft", "Perlu diisi"], ["returned", "Perlu diperbaiki"], ["submitted", "Menunggu pemeriksaan"], ["approved", "Selesai"]]),
         ].map(([value, label]) => <button key={value} className={status === value ? "active" : ""} onClick={() => { setStatus(value); setPage(1); }}>{label}</button>)}
       </div>
+      <PageSizeControl value={pageSize} onChange={(size) => { setPageSize(size); setPage(1); }} />
       {canCreate && <button className="button primary" onClick={() => setCreateOpen(true)}><Plus />Mulai pelaporan</button>}
     </div>
     <Notice tone="success">Setiap formulir hanya memuat indikator aktif yang frekuensinya sesuai periode—tahunan, semesteran, triwulanan, bulanan, mingguan, atau insidental.</Notice>
@@ -62,7 +63,7 @@ export function SubmissionsPage({ review = false }: { review?: boolean }) {
             <td><Badge tone={item.status === "approved" ? "success" : item.status === "returned" ? "warning" : "neutral"}>{capaianStatusLabel(item.status)}</Badge></td>
           </tr>)}
         </tbody></table></div><div className="submission-mobile-list">{submissions.data.data.map((item) => <button key={item.id} onClick={() => setSelectedId(item.id)}><header><span><strong>{item.organization_name}</strong><small>{item.organization_code}</small></span><Badge tone={item.status === "approved" ? "success" : item.status === "returned" ? "warning" : "neutral"}>{capaianStatusLabel(item.status)}</Badge></header><dl><div><dt>Periode</dt><dd>{item.period_label ?? "-"} · {frequencyLabel(item.period_type)}</dd></div><div><dt>Kelengkapan</dt><dd>{item.row_count}/{item.indicator_count ?? 0} indikator</dd></div><div><dt>Diperbarui</dt><dd>{new Date(item.updated_at).toLocaleDateString("id-ID")}</dd></div></dl><span className="mobile-card-action">{review ? "Periksa capaian" : ["draft", "returned"].includes(item.status) ? "Lanjutkan pengisian" : "Lihat rincian"}</span></button>)}</div></>}
-      {submissions.data && <Pagination page={submissions.data.meta.page} pageSize={submissions.data.meta.page_size} totalItems={submissions.data.meta.total_items} totalPages={submissions.data.meta.total_pages} sortLabel={`${({ updated_at: "Diperbarui", organization: "OPD", period: "Periode", row_count: "Jumlah indikator", status: "Status" } as Record<string, string>)[sortBy] ?? "Diperbarui"} ${sortBy === "updated_at" ? (sortOrder === "desc" ? "terbaru" : "terlama") : (sortOrder === "desc" ? "menurun" : "menaik")}`} onChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />}
+      {submissions.data && <Pagination page={submissions.data.meta.page} pageSize={submissions.data.meta.page_size} totalItems={submissions.data.meta.total_items} totalPages={submissions.data.meta.total_pages} sortLabel={`${({ updated_at: "Diperbarui", organization: "OPD", period: "Periode", row_count: "Jumlah indikator", status: "Status" } as Record<string, string>)[sortBy] ?? "Diperbarui"} ${sortBy === "updated_at" ? (sortOrder === "desc" ? "terbaru" : "terlama") : (sortOrder === "desc" ? "menurun" : "menaik")}`} onChange={setPage} showPageSize={false} />}
     </section>
     {createOpen && refs.data && <CreateSubmission organizations={refs.data.organizations} preferredOrganizationId={user?.organizations[0]?.id} onClose={() => setCreateOpen(false)} onCreated={(id) => { setCreateOpen(false); submissions.reload(); setSelectedId(id); }} />}
     {selectedId && <SubmissionDetailModal id={selectedId} review={review} permissions={user?.permissions ?? []} onClose={() => setSelectedId(null)} onChanged={() => submissions.reload()} />}

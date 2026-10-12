@@ -106,6 +106,10 @@ export async function governanceRoutes(app: FastifyInstance): Promise<void> {
       return service(request).bulkTransitionCategories(request.auth!, request.body.ids, request.params.action, requestAuditContext(request));
     },
   );
+  app.post("/categories/actions/submit-all", async (request) => {
+    mutate(request, "category.submit");
+    return service(request).submitAllDraftCategories(request.auth!, requestAuditContext(request));
+  });
   app.get("/units", async (request) => { requirePermission(request, "indicator.view"); return service(request).listUnits(); });
   app.get("/periods", async (request) => { requirePermission(request, "indicator.view"); return service(request).listPeriods(); });
   app.get<{ Querystring: PageQueryInput & { policy_focus_id?: string; category_id?: string; organization_id?: string; status?: string; completeness?: string } }>("/indicators", {

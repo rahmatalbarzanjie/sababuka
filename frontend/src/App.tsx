@@ -39,13 +39,13 @@ const pageMeta: Record<string, { title: string; subtitle: string; permission?: s
   "/admin/menus": { title: "Pengaturan Menu", subtitle: "Tentukan menu yang tampil untuk setiap peran.", permission: "menu.manage" },
   "/admin/system": { title: "Konfigurasi Sistem", subtitle: "Kelola kendali fitur dan parameter aplikasi yang tidak bersifat rahasia.", permission: "system.configure" },
   "/admin/profile": { title: "Keamanan Akun", subtitle: "Kelola Authenticator dan perlindungan akun Anda." },
-  "/governance/categories": { title: "Kelompok Isu RPJMD", subtitle: "Kelompokkan indikator RPJMD berdasarkan fokus pembangunan daerah.", permission: "category.view" },
-  "/governance/indicators": { title: "Matriks Indikator", subtitle: "Finalisasi definisi, sumber, target tahunan, serta OPD penanggung jawab indikator RPJMD.", permission: "indicator.view" },
+  "/governance/categories": { title: "Kelompok Isu", subtitle: "Kelompokkan indikator berdasarkan fokus pembangunan daerah.", permission: "category.view" },
+  "/governance/indicators": { title: "Matriks Indikator", subtitle: "Finalisasi definisi, sumber, target tahunan, serta OPD penanggung jawab indikator pembangunan.", permission: "indicator.view" },
   "/submissions": { title: "Pelaporan Realisasi", subtitle: "Isi, simpan, dan kirim realisasi indikator OPD untuk periode pelaporan.", permission: "submission.view" },
   "/reviews": { title: "Verifikasi Pelaporan OPD", subtitle: "Periksa, kembalikan, atau setujui pelaporan yang dikirim perangkat daerah.", permission: "submission.review" },
   "/publications": { title: "Kurasi dan Publikasi", subtitle: "Pilih capaian yang disetujui sebelum diterbitkan ke dashboard pimpinan.", permission: "publication.view" },
   "/connectors": { title: "Ruang Walidata", subtitle: "Kelola kualitas teknis, metadata, interoperabilitas, dan kesehatan aliran data daerah.", permission: "connector.view" },
-  "/opd-profile": { title: "Profil Data RPJMD/Renstra", subtitle: "Konfirmasi PIC, sumber data, dokumen acuan, dan baseline RPJMD/Renstra.", permission: "submission.view" },
+  "/opd-profile": { title: "Profil Data OPD", subtitle: "Konfirmasi PIC, sumber data, dokumen acuan, dan baseline OPD.", permission: "submission.view" },
 };
 
 function ProtectedApp() {

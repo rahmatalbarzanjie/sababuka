@@ -280,6 +280,23 @@ export class GovernanceService {
     return result;
   }
 
+  async submitAllDraftCategories(
+    auth: AuthContext,
+    audit: AuditContext,
+  ): Promise<BulkTransitionResult> {
+    requireGlobal(auth);
+    requireCategoryDrafter(auth);
+    const drafts = await this.db.query<{ id: string }>(
+      `SELECT id::text
+       FROM sababuka.categories
+       WHERE archived_at IS NULL
+         AND is_active = true
+         AND review_status = 'draft'
+       ORDER BY display_order, name`,
+    );
+    return this.bulkTransitionCategories(auth, drafts.rows.map((item) => item.id), "submit", audit);
+  }
+
   async listUnits() {
     const result = await this.db.query(`SELECT id::text, code, name, symbol, decimal_places FROM sababuka.units WHERE is_active = true ORDER BY name`);
     return { data: result.rows };

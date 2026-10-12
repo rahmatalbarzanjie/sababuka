@@ -2,15 +2,15 @@ import { AlertTriangle, CheckCircle2, FolderTree, Gauge, ListChecks, Plus, Searc
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { api, jsonBody } from "../api";
 import { useAuth } from "../auth";
-import { Badge, EmptyState, formatCategoryCode, Modal, Notice, Pagination, SortableHeader, Spinner, statusLabel, useAsync, type SortDirection } from "../components";
+import { Badge, EmptyState, formatCategoryCode, Modal, Notice, PageSizeControl, Pagination, SortableHeader, Spinner, statusLabel, useAsync, type SortDirection } from "../components";
 import type { BulkTransitionResult, Category, Indicator, Organization, PageResponse, Period, PolicyFocus, Unit } from "../types";
 
 const categorySortLabels: Record<string, string> = {
-  hierarchy: "Urutan RPJMD", name: "Nama kelompok isu", focus: "Fokus pembangunan",
+  hierarchy: "Urutan kelompok isu", name: "Nama kelompok isu", focus: "Fokus pembangunan",
   count: "Jumlah indikator", status: "Status", updated_at: "Terakhir diperbarui",
 };
 const indicatorSortLabels: Record<string, string> = {
-  hierarchy: "Urutan RPJMD", name: "Nama indikator", focus: "Fokus pembangunan",
+  hierarchy: "Urutan indikator", name: "Nama indikator", focus: "Fokus pembangunan",
   owner: "OPD penanggung jawab", metadata: "Kesiapan metadata", targets: "Jumlah target",
   status: "Tahap", updated_at: "Terakhir diperbarui",
 };
@@ -50,6 +50,17 @@ export function CategoriesPage() {
     } catch (cause) { setActionError(cause instanceof Error ? cause.message : "Aksi massal gagal diproses."); }
     finally { setBulkBusy(false); }
   };
+  const submitAllDrafts = async () => {
+    setBulkBusy(true); setActionError(""); setBulkMessage("");
+    try {
+      const result = await api<BulkTransitionResult>("/categories/actions/submit-all", { method: "POST", mutation: true });
+      setBulkMessage(result.processed.length
+        ? `${result.processed.length} kelompok isu diajukan ke BAPPERIDA untuk diverifikasi${result.skipped.length ? `, ${result.skipped.length} dilewati.` : "."}`
+        : "Tidak ada kelompok isu draf yang perlu diajukan.");
+      setSelectedIds([]); categories.reload();
+    } catch (cause) { setActionError(cause instanceof Error ? cause.message : "Seluruh isu gagal diajukan ke BAPPERIDA."); }
+    finally { setBulkBusy(false); }
+  };
   const transition = async (category: Category, action: "submit" | "approve" | "reject" | "reopen") => {
     setActionError("");
     setRowError((current) => ({ ...current, [category.id]: "" }));
@@ -65,16 +76,17 @@ export function CategoriesPage() {
   };
 
   return <>
-    <div className="toolbar">
-      <form className="search-box" role="search" onSubmit={(event) => { event.preventDefault(); setPage(1); setQuery(search); }}><Search aria-hidden /><input aria-label="Cari kelompok isu" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari kelompok isu" /><button className="button secondary">Cari</button></form>
+    <div className="toolbar data-toolbar">
+      <div className="table-filters"><form className="search-box" role="search" onSubmit={(event) => { event.preventDefault(); setPage(1); setQuery(search); }}><Search aria-hidden /><input aria-label="Cari kelompok isu" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari kelompok isu" /><button className="button secondary">Cari</button></form><PageSizeControl value={pageSize} onChange={(size) => { setPageSize(size); setPage(1); }} /></div>
+      {canSubmit && <button className="button secondary" disabled={bulkBusy} onClick={() => void submitAllDrafts()}><ListChecks />Ajukan semua isu draf</button>}
       {canManage && <button className="button primary" onClick={() => setCreateOpen(true)}><Plus />Tambah kelompok isu</button>}
     </div>
-    <Notice tone="warning">Kelompok Isu RPJMD berada di bawah Fokus Pembangunan. BAPPERIDA menyetujui kelompok isu terlebih dahulu sebelum indikator di dalamnya dapat diajukan.</Notice>
+    <Notice tone="warning">Setiap kelompok isu berada di bawah Fokus Pembangunan. Seluruh isu draf diajukan kepada BAPPERIDA untuk diverifikasi sebelum indikator di dalamnya dapat diproses.</Notice>
     {selectedIds.length > 0 && <div className="bulk-action-bar"><span><ListChecks /><strong>{selectedIds.length} kelompok isu dipilih</strong><small>{selectedDraftCount} draf dapat diajukan · {selectedReviewCount} menunggu keputusan</small></span><div>{canSubmit && selectedDraftCount > 0 && <button className="button secondary" disabled={bulkBusy} onClick={() => void bulkTransition("submit")}>Ajukan {selectedDraftCount} draf</button>}{canApprove && selectedReviewCount > 0 && <button className="button primary" disabled={bulkBusy} onClick={() => void bulkTransition("approve")}>Setujui {selectedReviewCount} yang menunggu</button>}<button className="button secondary" onClick={() => setSelectedIds([])}>Bersihkan pilihan</button></div></div>}
     {bulkMessage && <div className="governance-table"><Notice tone="success">{bulkMessage}</Notice></div>}
     {actionError && <div className="governance-table"><Notice tone="error">{actionError}</Notice></div>}
     <section className="panel table-panel governance-table">
-      {categories.loading ? <div className="panel-loading"><Spinner /></div> : !categories.data?.data.length ? <EmptyState title="Belum ada kelompok isu">Tambahkan kelompok isu sebagai pengelompokan indikator RPJMD.</EmptyState> : <div className="table-scroll"><table><thead><tr><th className="select-column"><input type="checkbox" aria-label="Pilih semua tugas kelompok isu pada halaman ini" disabled={!categories.data.data.some(categoryActionable)} checked={categories.data.data.some(categoryActionable) && categories.data.data.filter(categoryActionable).every((item) => selectedIds.includes(item.id))} onChange={(event) => setSelectedIds(event.target.checked ? categories.data!.data.filter(categoryActionable).map((item) => item.id) : [])} /></th><SortableHeader label="Kelompok Isu RPJMD" column="name" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /><SortableHeader label="Fokus Pembangunan" column="focus" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /><SortableHeader label="Indikator" column="count" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /><SortableHeader label="Status" column="status" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /><th>Tindakan</th></tr></thead><tbody>
+      {categories.loading ? <div className="panel-loading"><Spinner /></div> : !categories.data?.data.length ? <EmptyState title="Belum ada kelompok isu">Tambahkan kelompok isu sebagai pengelompokan indikator pembangunan.</EmptyState> : <div className="table-scroll"><table><thead><tr><th className="select-column"><input type="checkbox" aria-label="Pilih semua tugas kelompok isu pada halaman ini" disabled={!categories.data.data.some(categoryActionable)} checked={categories.data.data.some(categoryActionable) && categories.data.data.filter(categoryActionable).every((item) => selectedIds.includes(item.id))} onChange={(event) => setSelectedIds(event.target.checked ? categories.data!.data.filter(categoryActionable).map((item) => item.id) : [])} /></th><SortableHeader label="Kelompok Isu" column="name" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /><SortableHeader label="Fokus Pembangunan" column="focus" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /><SortableHeader label="Indikator" column="count" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /><SortableHeader label="Status" column="status" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /><th>Tindakan</th></tr></thead><tbody>
         {categories.data.data.map((category) => {
           const selfSubmitted = category.submitted_by === user?.id;
           const action = category.review_status === "draft" && canSubmit ? ["submit", "Ajukan ke BAPPERIDA"] as const
@@ -91,7 +103,7 @@ export function CategoriesPage() {
           );
         })}
       </tbody></table></div>}
-      {categories.data && <Pagination page={categories.data.meta.page} pageSize={categories.data.meta.page_size} totalItems={categories.data.meta.total_items} totalPages={categories.data.meta.total_pages} sortLabel={`${categorySortLabels[sortBy] ?? "Urutan RPJMD"} ${sortOrder === "asc" ? "menaik" : "menurun"}`} onChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />}
+      {categories.data && <Pagination page={categories.data.meta.page} pageSize={categories.data.meta.page_size} totalItems={categories.data.meta.total_items} totalPages={categories.data.meta.total_pages} sortLabel={`${categorySortLabels[sortBy] ?? "Urutan kelompok isu"} ${sortOrder === "asc" ? "menaik" : "menurun"}`} onChange={setPage} showPageSize={false} />}
     </section>
     {createOpen && focuses.data && <CategoryForm focuses={focuses.data.data} onClose={() => setCreateOpen(false)} onCreated={() => { setCreateOpen(false); categories.reload(); }} />}
   </>;
@@ -112,13 +124,13 @@ function CategoryForm({ focuses, onClose, onCreated }: { focuses: PolicyFocus[];
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Kelompok isu gagal disimpan."); }
     finally { setBusy(false); }
   };
-  return <Modal title="Tambah Kelompok Isu RPJMD" onClose={onClose}>{error && <Notice tone="error">{error}</Notice>}<form className="form-stack" onSubmit={submit}><div className="form-grid"><label className="field"><span>Kode</span><input value={code} onChange={(e) => setCode(e.target.value.replace(/\s+/gu, "_"))} required /></label><label className="field"><span>Fokus Pembangunan</span><select value={focusId} onChange={(e) => setFocusId(e.target.value)}><option value="">Pilih fokus pembangunan</option>{focuses.map((focus) => <option key={focus.id} value={focus.id}>{focus.name}</option>)}</select></label></div><label className="field"><span>Nama Kelompok Isu</span><input value={name} onChange={(e) => setName(e.target.value)} required /></label><label className="field"><span>Deskripsi</span><textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></label><footer className="modal-actions"><button className="button secondary" type="button" onClick={onClose}>Batal</button><button className="button primary" disabled={busy}>{busy ? "Menyimpan…" : "Simpan kelompok isu"}</button></footer></form></Modal>;
+  return <Modal title="Tambah Kelompok Isu" onClose={onClose}>{error && <Notice tone="error">{error}</Notice>}<form className="form-stack" onSubmit={submit}><div className="form-grid"><label className="field"><span>Kode</span><input value={code} onChange={(e) => setCode(e.target.value.replace(/\s+/gu, "_"))} required /></label><label className="field"><span>Fokus Pembangunan</span><select value={focusId} onChange={(e) => setFocusId(e.target.value)}><option value="">Pilih fokus pembangunan</option>{focuses.map((focus) => <option key={focus.id} value={focus.id}>{focus.name}</option>)}</select></label></div><label className="field"><span>Nama Kelompok Isu</span><input value={name} onChange={(e) => setName(e.target.value)} required /></label><label className="field"><span>Deskripsi</span><textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></label><footer className="modal-actions"><button className="button secondary" type="button" onClick={onClose}>Batal</button><button className="button primary" disabled={busy}>{busy ? "Menyimpan…" : "Simpan kelompok isu"}</button></footer></form></Modal>;
 }
 
 export function IndicatorsPage() {
   const { user } = useAuth();
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(100);
+  const [pageSize, setPageSize] = useState(20);
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
   const [focusId, setFocusId] = useState("");
@@ -189,17 +201,18 @@ export function IndicatorsPage() {
 
   return <>
     <section className="readiness-heading">
-      <div><span className="eyebrow">FINALISASI MASTER RPJMD</span><h2>Matriks kesiapan indikator</h2><p>Telusuri dari fokus pembangunan dan kelompok isu, lalu selesaikan tugas sesuai kewenangan Anda.</p></div>
+      <div><span className="eyebrow">FINALISASI MASTER INDIKATOR</span><h2>Matriks kesiapan indikator</h2><p>Telusuri dari fokus pembangunan dan kelompok isu, lalu selesaikan tugas sesuai kewenangan Anda.</p></div>
       <div className="readiness-metrics"><span><strong>{indicators.data?.meta.total_items ?? 0}</strong><small>Indikator ditemukan</small></span><span><strong>{completeCount}</strong><small>Metadata lengkap</small></span><span><strong>{activeCount}</strong><small>Sudah aktif</small></span></div>
     </section>
-    <div className="toolbar indicator-toolbar readiness-filters">
+    <div className="toolbar data-toolbar indicator-toolbar readiness-filters">
       <form className="search-box" role="search" onSubmit={(event) => { event.preventDefault(); setPage(1); setQuery(search); }}><Search aria-hidden /><input aria-label="Cari indikator" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari kode atau nama indikator" /><button className="button secondary">Cari</button></form>
       <select aria-label="Filter fokus pembangunan" value={focusId} onChange={(event) => { setFocusId(event.target.value); setCategoryId(""); setPage(1); }}><option value="">Semua fokus pembangunan</option>{refs.data?.focuses.map((focus) => <option key={focus.id} value={focus.id}>{focus.name}</option>)}</select>
-      <select aria-label="Filter kelompok isu RPJMD" value={categoryId} onChange={(event) => { setCategoryId(event.target.value); setPage(1); }}><option value="">Semua kelompok isu</option>{filteredCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select>
+      <select aria-label="Filter kelompok isu" value={categoryId} onChange={(event) => { setCategoryId(event.target.value); setPage(1); }}><option value="">Semua kelompok isu</option>{filteredCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select>
       <select aria-label="Filter OPD penanggung jawab" value={organizationId} onChange={(event) => { setOrganizationId(event.target.value); setPage(1); }}><option value="">Semua OPD</option>{refs.data?.organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}</select>
       <select aria-label="Filter status indikator" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }}><option value="">Semua status</option><option value="draft">Draf</option><option value="in_review">Pemeriksaan BAPPERIDA</option><option value="opd_verification">Verifikasi OPD</option><option value="approved">Siap diaktifkan</option><option value="active">Aktif</option><option value="retired">Diarsipkan</option></select>
       <select aria-label="Filter kelengkapan metadata" value={completeness} onChange={(event) => { setCompleteness(event.target.value); setPage(1); }}><option value="">Semua kelengkapan</option><option value="complete">Metadata lengkap</option><option value="incomplete">Perlu dilengkapi</option></select>
-      <div className="mobile-sort-controls"><label><span>Urutkan</span><select aria-label="Urutkan indikator" value={sortBy} onChange={(event) => { setSortBy(event.target.value); setPage(1); }}><option value="hierarchy">Urutan RPJMD</option><option value="name">Nama indikator</option><option value="focus">Fokus pembangunan</option><option value="owner">OPD penanggung jawab</option><option value="metadata">Kesiapan metadata</option><option value="targets">Jumlah target</option><option value="status">Tahap</option><option value="updated_at">Terakhir diperbarui</option></select></label><button type="button" className="button secondary" onClick={() => { setSortOrder((current) => current === "asc" ? "desc" : "asc"); setPage(1); }}>{sortOrder === "asc" ? "Menaik ↑" : "Menurun ↓"}</button></div>
+      <PageSizeControl value={pageSize} onChange={(size) => { setPageSize(size); setPage(1); }} />
+      <div className="mobile-sort-controls"><label><span>Urutkan</span><select aria-label="Urutkan indikator" value={sortBy} onChange={(event) => { setSortBy(event.target.value); setPage(1); }}><option value="hierarchy">Urutan indikator</option><option value="name">Nama indikator</option><option value="focus">Fokus pembangunan</option><option value="owner">OPD penanggung jawab</option><option value="metadata">Kesiapan metadata</option><option value="targets">Jumlah target</option><option value="status">Tahap</option><option value="updated_at">Terakhir diperbarui</option></select></label><button type="button" className="button secondary" onClick={() => { setSortOrder((current) => current === "asc" ? "desc" : "asc"); setPage(1); }}>{sortOrder === "asc" ? "Menaik ↑" : "Menurun ↓"}</button></div>
       {canManage && <button className="button primary" onClick={() => setCreateOpen(true)}><Plus />Tambah indikator</button>}
     </div>
     <Notice tone="warning">Urutan kerja: penyusun mengajukan → BAPPERIDA memeriksa → OPD penanggung jawab memverifikasi → BAPPERIDA mengaktifkan. Aksi massal tetap mematuhi urutan dan pemisahan petugas ini.</Notice>
@@ -211,7 +224,7 @@ export function IndicatorsPage() {
         <div className="readiness-mobile-list">{visible.map((indicator) => <IndicatorReadinessCard key={indicator.id} indicator={indicator} actionable={isActionable(indicator)} checked={selectedIds.includes(indicator.version_id)} onToggle={(checked) => setSelectedIds((current) => checked ? [...current, indicator.version_id] : current.filter((id) => id !== indicator.version_id))} onOpen={() => setSelected(indicator)} />)}</div>
         <div className="table-scroll readiness-desktop-table"><table className="readiness-table"><thead><tr><th className="select-column"><input type="checkbox" aria-label="Pilih semua tugas yang dapat diproses pada halaman ini" disabled={!actionableVisible.length} checked={actionableVisible.length > 0 && actionableVisible.every((item) => selectedIds.includes(item.version_id))} onChange={(event) => setSelectedIds(event.target.checked ? actionableVisible.map((item) => item.version_id) : [])} /></th><SortableHeader label="Indikator" column="name" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /><SortableHeader label="Fokus & Kelompok Isu" column="focus" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /><SortableHeader label="OPD Penanggung Jawab" column="owner" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /><SortableHeader label="Kesiapan Metadata" column="metadata" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /><SortableHeader label="Target RPJMD" column="targets" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /><SortableHeader label="Tahap" column="status" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /></tr></thead><tbody>{visible.map((indicator) => { const missing = readinessMissing(indicator); const actionable = isActionable(indicator); return <tr key={indicator.id} className="clickable-row" tabIndex={0} aria-label={`Buka detail ${indicator.name}`} onClick={() => setSelected(indicator)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelected(indicator); } }}><td className="select-column"><input type="checkbox" aria-label={actionable ? `Pilih ${indicator.name}` : `${indicator.name} belum menjadi tugas pada tahap ini`} disabled={!actionable} checked={selectedIds.includes(indicator.version_id)} onClick={(event) => event.stopPropagation()} onChange={(event) => setSelectedIds((current) => event.target.checked ? [...current, indicator.version_id] : current.filter((id) => id !== indicator.version_id))} /></td><td><div className="identity-cell"><span className="table-icon"><Gauge /></span><span><strong>{indicator.name}</strong><small>{indicator.code} · {indicator.unit_symbol ?? indicator.unit_name}</small></span></div></td><td><strong>{indicator.policy_focus_name ?? "Belum dipetakan"}</strong><small>{indicator.category_name}</small></td><td>{indicator.owner_organization_name ?? <span className="missing-text">Belum ditetapkan</span>}</td><td><span className={`readiness-state ${indicator.metadata_complete ? "complete" : "incomplete"}`}>{indicator.metadata_complete ? <CheckCircle2 /> : <AlertTriangle />}{indicator.metadata_complete ? "Lengkap" : `${missing.length} perlu dilengkapi`}</span>{missing.length > 0 && <small>{missing.join(", ")}</small>}</td><td><strong>{indicator.target_count}/5 tahun</strong><small>{indicator.has_rpjmd_targets ? "2025–2029 tersedia" : "Target belum lengkap"}</small></td><td><Badge tone={indicator.status === "active" ? "success" : indicator.status === "opd_verification" || indicator.status === "approved" ? "info" : "warning"}>{statusLabel(indicator.status)}</Badge></td></tr>; })}</tbody></table></div>
       </>}
-      {indicators.data && <Pagination page={indicators.data.meta.page} pageSize={indicators.data.meta.page_size} totalItems={indicators.data.meta.total_items} totalPages={indicators.data.meta.total_pages} sortLabel={`${indicatorSortLabels[sortBy] ?? "Urutan RPJMD"} ${sortOrder === "asc" ? "menaik" : "menurun"}`} onChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />}
+      {indicators.data && <Pagination page={indicators.data.meta.page} pageSize={indicators.data.meta.page_size} totalItems={indicators.data.meta.total_items} totalPages={indicators.data.meta.total_pages} sortLabel={`${indicatorSortLabels[sortBy] ?? "Urutan indikator"} ${sortOrder === "asc" ? "menaik" : "menurun"}`} onChange={setPage} showPageSize={false} />}
     </section>
     {createOpen && refs.data && <IndicatorForm references={refs.data} onClose={() => setCreateOpen(false)} onCreated={() => { setCreateOpen(false); indicators.reload(); }} />}
     {editing && refs.data && <IndicatorForm references={refs.data} initial={editing} onClose={() => setEditing(null)} onCreated={() => { setEditing(null); indicators.reload(); }} />}
