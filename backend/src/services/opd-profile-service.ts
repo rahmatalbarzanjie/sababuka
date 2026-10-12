@@ -5,6 +5,7 @@ import { recordAudit, type AuditContext } from "./audit-service.js";
 
 type JsonObject = Record<string, unknown>;
 interface PicIdentity { name: string; position: string; email: string; whatsapp: string }
+interface BaselineIndicatorIdentity extends QueryResultRow { code: string; name: string; unit: string }
 interface ProfileRow extends QueryResultRow { id: string | null; organization_id: string; organization_code: string; organization_name: string; response_json: JsonObject; pic_identity?: PicIdentity | null; technical_status: string; planning_status: string; technical_notes: string | null; planning_notes: string | null; submitted_at: string | null; updated_at: string | null; active_account_count?: number; indicator_count?: number; issue_count?: number; issue_names?: string[]; focus_names?: string[] }
 
 const reviewRoles = new Set(["superadmin", "bapperida", "kominfo"]);
@@ -28,13 +29,26 @@ function validateResponse(value: JsonObject): void {
     try { const url = new URL(String(website.url ?? "")); if (!["http:", "https:"].includes(url.protocol)) throw new Error(); }
     catch { throw new ApiError(400, "VALIDATION_ERROR", "Alamat website OPD tidak valid."); }
   }
+  const integration = value.integration as JsonObject | undefined;
+  if (integration?.api_available === "yes") {
+    try { const url = new URL(String(integration.api_endpoint ?? "")); if (!["http:", "https:"].includes(url.protocol)) throw new Error(); }
+    catch { throw new ApiError(400, "VALIDATION_ERROR", "URL API/endpoint tidak valid."); }
+    if (integration.api_documentation_url) {
+      try { const url = new URL(String(integration.api_documentation_url)); if (!["http:", "https:"].includes(url.protocol)) throw new Error(); }
+      catch { throw new ApiError(400, "VALIDATION_ERROR", "URL dokumentasi API tidak valid."); }
+    }
+  }
   const baseline = Array.isArray(value.baseline_items) ? value.baseline_items : [];
   if (baseline.length > 500) throw new ApiError(400, "VALIDATION_ERROR", "Maksimal 500 baris baseline per OPD.");
+  const baselineKeys = new Set<string>();
   for (const [index, raw] of baseline.entries()) {
     const item = raw as JsonObject;
-    if (!item || !["rpjmd", "renstra"].includes(String(item.plan_type)) || typeof item.indicator_name !== "string" || !item.indicator_name.trim() || typeof item.period !== "string" || !item.period.trim()) {
+    if (!item || !["rpjmd", "renstra"].includes(String(item.plan_type)) || typeof item.indicator_code !== "string" || !item.indicator_code.trim() || typeof item.indicator_name !== "string" || !item.indicator_name.trim() || typeof item.period !== "string" || !item.period.trim() || typeof item.realization !== "string" || !item.realization.trim()) {
       throw new ApiError(400, "VALIDATION_ERROR", `Baris baseline ${index + 1} belum lengkap.`);
     }
+    const key = `${item.indicator_code}:${item.period}`.toLowerCase();
+    if (baselineKeys.has(key)) throw new ApiError(400, "VALIDATION_ERROR", `Baseline ${item.indicator_name} untuk periode ${item.period} tercatat lebih dari satu kali.`);
+    baselineKeys.add(key);
   }
 }
 
@@ -63,6 +77,29 @@ export class OpdProfileService {
   private async withAuthoritativePic(organizationId: string, response: JsonObject): Promise<{ response: JsonObject; pic: PicIdentity | null }> {
     const pic = await this.getPicIdentity(organizationId);
     return { response: pic ? { ...response, pic } : { ...response, pic: {} }, pic };
+  }
+
+  private async withAuthoritativeBaseline(organizationId: string, response: JsonObject): Promise<JsonObject> {
+    const baseline = Array.isArray(response.baseline_items) ? response.baseline_items as JsonObject[] : [];
+    if (!baseline.length) return response;
+    const codes = [...new Set(baseline.map((item) => String(item.indicator_code ?? "").trim()).filter(Boolean))];
+    const result = await this.db.query<BaselineIndicatorIdentity>(
+      `SELECT i.code, i.name, COALESCE(u.symbol,u.name) AS unit
+       FROM sababuka.indicators i
+       JOIN LATERAL (SELECT v.* FROM sababuka.indicator_versions v WHERE v.indicator_id=i.id ORDER BY v.version_number DESC LIMIT 1) iv ON true
+       JOIN sababuka.units u ON u.id=iv.unit_id
+       LEFT JOIN sababuka.indicator_organizations io ON io.indicator_version_id=iv.id AND io.organization_id=$1
+       WHERE i.archived_at IS NULL AND i.code=ANY($2::text[])
+         AND (i.owner_organization_id=$1 OR io.organization_id=$1)`,
+      [organizationId, codes],
+    );
+    const identities = new Map(result.rows.map((item) => [item.code, item]));
+    const missing = codes.filter((code) => !identities.has(code));
+    if (missing.length) throw new ApiError(400, "VALIDATION_ERROR", `Indikator baseline tidak menjadi tugas OPD ini: ${missing.join(", ")}.`);
+    return { ...response, baseline_items: baseline.map((item) => {
+      const identity = identities.get(String(item.indicator_code).trim());
+      return identity ? { ...item, indicator_name: identity.name, unit: identity.unit } : item;
+    }) };
   }
 
   private assertScope(auth: AuthContext, organizationId: string): void {
@@ -139,7 +176,8 @@ export class OpdProfileService {
     this.assertWritable(auth, organizationId);
     const authoritative = await this.withAuthoritativePic(organizationId, response);
     if (!authoritative.pic) throw new ApiError(409, "CONFLICT", "PIC OPD belum terhubung. Daftarkan dan setujui akun PIC OPD terlebih dahulu.");
-    validateResponse(authoritative.response);
+    const normalizedResponse = await this.withAuthoritativeBaseline(organizationId, authoritative.response);
+    validateResponse(normalizedResponse);
     const existing = await this.db.query<{ id: string; technical_status: string; planning_status: string }>("SELECT id::text,technical_status,planning_status FROM sababuka.opd_digital_profiles WHERE organization_id=$1", [organizationId]);
     if (existing.rows[0] && !role(auth, administrationRoles) && (!["draft", "returned"].includes(existing.rows[0].technical_status) || !["draft", "returned"].includes(existing.rows[0].planning_status))) {
       throw new ApiError(409, "CONFLICT", "Profil yang sedang diperiksa tidak dapat diubah.");
@@ -150,8 +188,8 @@ export class OpdProfileService {
        ON CONFLICT (organization_id) DO UPDATE SET response_json=EXCLUDED.response_json,updated_by=EXCLUDED.updated_by,
          technical_status=CASE WHEN sababuka.opd_digital_profiles.technical_status='returned' THEN 'draft' ELSE sababuka.opd_digital_profiles.technical_status END,
          planning_status=CASE WHEN sababuka.opd_digital_profiles.planning_status='returned' THEN 'draft' ELSE sababuka.opd_digital_profiles.planning_status END
-       RETURNING id::text`, [organizationId, JSON.stringify(authoritative.response), auth.user.id]);
-    await recordAudit(this.db, { ...audit, eventType: "opd_profile.saved", entityType: "opd_digital_profile", entityId: result.rows[0]!.id, organizationId, afterData: { baseline_count: Array.isArray(authoritative.response.baseline_items) ? authoritative.response.baseline_items.length : 0, pic_source: "approved_registration" } });
+       RETURNING id::text`, [organizationId, JSON.stringify(normalizedResponse), auth.user.id]);
+    await recordAudit(this.db, { ...audit, eventType: "opd_profile.saved", entityType: "opd_digital_profile", entityId: result.rows[0]!.id, organizationId, afterData: { baseline_count: Array.isArray(normalizedResponse.baseline_items) ? normalizedResponse.baseline_items.length : 0, pic_source: "approved_registration" } });
     return this.get(auth, organizationId);
   }
 
