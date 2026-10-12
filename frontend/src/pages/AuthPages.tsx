@@ -22,6 +22,16 @@ function AuthBrand() {
   </aside>;
 }
 
+function AuthBackdrop() {
+  return <div className="login-illustration" aria-hidden="true">
+    <span className="login-orbit login-orbit-one" />
+    <span className="login-orbit login-orbit-two" />
+    <span className="login-dot login-dot-one" />
+    <span className="login-dot login-dot-two" />
+    <span className="login-dot login-dot-three" />
+  </div>;
+}
+
 export function LoginPage() {
   const { login } = useAuth();
   const [identifier, setIdentifier] = useState(() => window.localStorage.getItem("sababuka.demo.identifier") ?? "");
@@ -58,13 +68,7 @@ export function LoginPage() {
   }
 
   return <main className="login-page">
-    <div className="login-illustration" aria-hidden="true">
-      <span className="login-orbit login-orbit-one" />
-      <span className="login-orbit login-orbit-two" />
-      <span className="login-dot login-dot-one" />
-      <span className="login-dot login-dot-two" />
-      <span className="login-dot login-dot-three" />
-    </div>
+    <AuthBackdrop />
     <section className="login-panel">
       <form className="auth-card login-card" onSubmit={submit}>
         <div className="login-identity">
@@ -134,14 +138,12 @@ export function RegistrationPage() {
   const [organizations, setOrganizations] = useState<RegistrationOrganization[]>([]);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
   const [organizationId, setOrganizationId] = useState("");
   const [jobTitle, setJobTitle] = useState("");
-  const [employeeId, setEmployeeId] = useState("");
   const [contactPhone, setContactPhone] = useState("");
-  const [requestNote, setRequestNote] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [complete, setComplete] = useState(false);
@@ -159,10 +161,9 @@ export function RegistrationPage() {
     setBusy(true); setError(null);
     try {
       await api("/auth/register", { method: "POST", body: jsonBody({
-        email, username: username || null, full_name: fullName,
+        email, full_name: fullName,
         organization_id: organizationId, contact_phone: contactPhone,
-        job_title: jobTitle, employee_id: employeeId || null,
-        request_note: requestNote || null, password,
+        job_title: jobTitle, password,
       }) });
       setComplete(true);
     } catch (reason) {
@@ -170,32 +171,35 @@ export function RegistrationPage() {
     } finally { setBusy(false); }
   }
 
-  return <main className="auth-layout">
-    <AuthBrand />
-    <section className="auth-panel">
-      <div className="auth-card registration-card">
+  return <main className="login-page registration-page">
+    <AuthBackdrop />
+    <section className="login-panel registration-panel">
+      <div className="auth-card login-card registration-card">
         {complete ? <>
+          <div className="login-identity">
+            <div className="brand-logo login-logo"><img src="/logo-kapuas.png" alt="Lambang Kabupaten Kapuas" /></div>
+            <div><strong>SABABUKA</strong><small>Pemerintah Kabupaten Kapuas</small></div>
+          </div>
           <div className="success-symbol"><Check /></div>
-          <div className="auth-card-heading centered"><span className="eyebrow">Pendaftaran terkirim</span><h2>Menunggu persetujuan Pengelola Sistem</h2><p>OPD yang dipilih masih berupa pengajuan. Pengelola Sistem akan memeriksa identitas PIC lalu menetapkan OPD dan hak akses final.</p></div>
+          <div className="auth-card-heading centered"><span className="eyebrow">Pendaftaran terkirim</span><h2>Menunggu persetujuan</h2><p>Pengelola Sistem akan memeriksa identitas PIC dan OPD yang Anda wakili.</p></div>
           <button className="button primary full" onClick={() => navigate("/login")}>Kembali ke halaman masuk</button>
-        </> : <form className="form-stack" onSubmit={submit}>
-          <div className="auth-card-heading"><span className="eyebrow">Pendaftaran perwakilan OPD</span><h2>Ajukan akun SABABUKA</h2><p>Isi identitas PIC resmi. Pendaftaran ini belum memberi akses sampai diperiksa dan disetujui Pengelola Sistem.</p></div>
+        </> : <form className="registration-form" onSubmit={submit}>
+          <div className="login-identity">
+            <div className="brand-logo login-logo"><img src="/logo-kapuas.png" alt="Lambang Kabupaten Kapuas" /></div>
+            <div><strong>SABABUKA</strong><small>Pemerintah Kabupaten Kapuas</small></div>
+          </div>
+          <div className="auth-card-heading"><span className="eyebrow">Pendaftaran akun</span><h2>Daftar sebagai PIC OPD</h2><p>Gunakan identitas dan kontak aktif. Akun dapat digunakan setelah disetujui Pengelola Sistem.</p></div>
           {error && <Notice tone="error">{error}</Notice>}
-          <fieldset className="registration-section"><legend>Identitas PIC</legend>
-            <label className="field"><span>Nama lengkap</span><input autoFocus value={fullName} onChange={(event) => setFullName(event.target.value)} autoComplete="name" required /></label>
-            <label className="field"><span>Jabatan dalam OPD</span><input value={jobTitle} onChange={(event) => setJobTitle(event.target.value)} placeholder="Contoh: Pranata Komputer Ahli Muda" required /></label>
-            <label className="field"><span>NIP/NIK pegawai <small>(opsional)</small></span><input value={employeeId} onChange={(event) => setEmployeeId(event.target.value)} inputMode="numeric" placeholder="Untuk membantu verifikasi identitas" /></label>
-          </fieldset>
-          <fieldset className="registration-section"><legend>Kontak dan perwakilan</legend>
-            <label className="field"><span>Email aktif/dinas</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="nama@kapuaskab.go.id" required /><small>Dipakai untuk login dan komunikasi status akun.</small></label>
-            <label className="field"><span>Nomor HP/WhatsApp aktif</span><input value={contactPhone} onChange={(event) => setContactPhone(event.target.value)} autoComplete="tel" inputMode="tel" pattern="[0-9+(). -]+" minLength={8} placeholder="08xx xxxx xxxx" required /></label>
-            <label className="field"><span>OPD yang diwakili</span><select value={organizationId} onChange={(event) => setOrganizationId(event.target.value)} required><option value="">Pilih OPD</option>{organizations.map((item) => <option key={item.id} value={item.id}>{item.short_name ?? item.name}</option>)}</select><small>Setiap OPD memiliki satu akun PIC. BAPPERIDA dan Diskominfosantik dapat memiliki dua akun untuk memisahkan fungsi internal dan verifikasi/walidata.</small></label>
-            <label className="field"><span>Keterangan tambahan <small>(opsional)</small></span><textarea rows={3} value={requestNote} onChange={(event) => setRequestNote(event.target.value)} placeholder="Contoh: ditunjuk sebagai operator data RPJMD melalui surat tugas." /></label>
-          </fieldset>
-          <label className="field"><span>Username <small>(opsional)</small></span><input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" pattern="[A-Za-z0-9._-]+" minLength={3} /></label>
-          <label className="field"><span>Kata sandi</span><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={12} required /><small>Minimal 12 karakter.</small></label>
-          <label className="field"><span>Ulangi kata sandi</span><input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" minLength={12} required /></label>
-          <Notice tone="success">Pengelola Sistem memverifikasi akun dan menetapkan OPD serta peran final. BAPPERIDA memeriksa substansi indikator/capaian, bukan identitas akun.</Notice>
+          <div className="registration-form-grid">
+            <label className="field"><span>Nama lengkap PIC</span><input autoFocus value={fullName} onChange={(event) => setFullName(event.target.value)} autoComplete="name" placeholder="Nama lengkap" required /></label>
+            <label className="field"><span>Jabatan</span><input value={jobTitle} onChange={(event) => setJobTitle(event.target.value)} placeholder="Jabatan dalam OPD" required /></label>
+            <label className="field"><span>Email aktif/dinas</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="nama@kapuaskab.go.id" required /></label>
+            <label className="field"><span>Nomor WhatsApp aktif</span><input value={contactPhone} onChange={(event) => setContactPhone(event.target.value)} autoComplete="tel" inputMode="tel" pattern="[0-9+(). -]+" minLength={8} placeholder="08xx xxxx xxxx" required /></label>
+            <label className="field registration-span"><span>OPD yang diwakili</span><select value={organizationId} onChange={(event) => setOrganizationId(event.target.value)} required><option value="">Pilih OPD</option>{organizations.map((item) => <option key={item.id} value={item.id}>{item.short_name ?? item.name}</option>)}</select></label>
+            <label className="field"><span>Kata sandi</span><div className="password-field"><input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={12} placeholder="Minimal 12 karakter" required /><button type="button" aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
+            <label className="field"><span>Ulangi kata sandi</span><input type={showPassword ? "text" : "password"} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" minLength={12} placeholder="Ulangi kata sandi" required /></label>
+          </div>
+          <div className="security-note"><ShieldCheck size={17} /><span>Satu OPD hanya memiliki satu akun PIC aktif. Pendaftaran akan diperiksa sebelum akun dapat digunakan.</span></div>
           <button className="button primary full" disabled={busy || !organizationId}>{busy ? <Spinner label="Mendaftarkan" /> : <>Kirim pendaftaran <ArrowRight size={17} /></>}</button>
           <button className="text-button auth-back-link" type="button" onClick={() => navigate("/login")}>Sudah punya akun? Masuk</button>
         </form>}
