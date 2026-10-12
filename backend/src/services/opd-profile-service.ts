@@ -4,7 +4,8 @@ import type { AuthContext } from "../types/auth.js";
 import { recordAudit, type AuditContext } from "./audit-service.js";
 
 type JsonObject = Record<string, unknown>;
-interface ProfileRow extends QueryResultRow { id: string | null; organization_id: string; organization_code: string; organization_name: string; response_json: JsonObject; technical_status: string; planning_status: string; technical_notes: string | null; planning_notes: string | null; submitted_at: string | null; updated_at: string | null; active_account_count?: number; indicator_count?: number; issue_count?: number; issue_names?: string[]; focus_names?: string[] }
+interface PicIdentity { name: string; position: string; email: string; whatsapp: string }
+interface ProfileRow extends QueryResultRow { id: string | null; organization_id: string; organization_code: string; organization_name: string; response_json: JsonObject; pic_identity?: PicIdentity | null; technical_status: string; planning_status: string; technical_notes: string | null; planning_notes: string | null; submitted_at: string | null; updated_at: string | null; active_account_count?: number; indicator_count?: number; issue_count?: number; issue_names?: string[]; focus_names?: string[] }
 
 const reviewRoles = new Set(["superadmin", "bapperida", "kominfo"]);
 const administrationRoles = new Set(["superadmin"]);
@@ -39,6 +40,30 @@ function validateResponse(value: JsonObject): void {
 
 export class OpdProfileService {
   constructor(private readonly db: Database) {}
+
+  private async getPicIdentity(organizationId: string): Promise<PicIdentity | null> {
+    const result = await this.db.query<PicIdentity & QueryResultRow>(
+      `SELECT u.full_name AS name, rr.job_title AS position,
+              rr.contact_email::text AS email, rr.contact_phone AS whatsapp
+       FROM sababuka.user_registration_requests rr
+       JOIN sababuka.users u ON u.id=rr.user_id
+         AND u.status='active' AND u.archived_at IS NULL
+       JOIN sababuka.roles r ON r.id=rr.approved_role_id AND r.code='opd'
+       JOIN sababuka.user_role_assignments ura ON ura.user_id=u.id AND ura.ends_at IS NULL
+       JOIN sababuka.roles active_role ON active_role.id=ura.role_id AND active_role.code='opd'
+       JOIN sababuka.organization_memberships om ON om.user_id=u.id
+         AND om.organization_id=$1 AND om.ends_at IS NULL
+       WHERE rr.status='approved' AND rr.approved_organization_id=$1
+       ORDER BY om.is_primary DESC, rr.reviewed_at DESC NULLS LAST
+       LIMIT 1`, [organizationId],
+    );
+    return result.rows[0] ?? null;
+  }
+
+  private async withAuthoritativePic(organizationId: string, response: JsonObject): Promise<{ response: JsonObject; pic: PicIdentity | null }> {
+    const pic = await this.getPicIdentity(organizationId);
+    return { response: pic ? { ...response, pic } : { ...response, pic: {} }, pic };
+  }
 
   private assertScope(auth: AuthContext, organizationId: string): void {
     if (!hasOrganization(auth, organizationId) && !role(auth, reviewRoles)) throw new ApiError(403, "SCOPE_DENIED", "Anda tidak memiliki akses ke profil OPD ini.");
@@ -99,14 +124,22 @@ export class OpdProfileService {
       `SELECT p.id::text,p.organization_id::text,o.code AS organization_code,o.name AS organization_name,p.response_json,
               p.technical_status,p.planning_status,p.technical_notes,p.planning_notes,p.submitted_at::text,p.updated_at::text
        FROM sababuka.opd_digital_profiles p JOIN sababuka.organizations o ON o.id=p.organization_id WHERE p.organization_id=$1`, [organizationId]);
-    if (result.rows[0]) return result.rows[0];
+    if (result.rows[0]) {
+      const current = result.rows[0];
+      const authoritative = await this.withAuthoritativePic(organizationId, current.response_json);
+      return { ...current, response_json: authoritative.response, pic_identity: authoritative.pic };
+    }
     const org = await this.db.query<{ code: string; name: string }>("SELECT code,name FROM sababuka.organizations WHERE id=$1 AND is_active=true", [organizationId]);
     if (!org.rows[0]) throw new ApiError(404, "NOT_FOUND", "OPD tidak ditemukan.");
-    return { id: null, organization_id: organizationId, organization_code: org.rows[0].code, organization_name: org.rows[0].name, response_json: {}, technical_status: "draft", planning_status: "draft", technical_notes: null, planning_notes: null, submitted_at: null, updated_at: null };
+    const authoritative = await this.withAuthoritativePic(organizationId, {});
+    return { id: null, organization_id: organizationId, organization_code: org.rows[0].code, organization_name: org.rows[0].name, response_json: authoritative.response, pic_identity: authoritative.pic, technical_status: "draft", planning_status: "draft", technical_notes: null, planning_notes: null, submitted_at: null, updated_at: null };
   }
 
   async save(auth: AuthContext, organizationId: string, response: JsonObject, audit: AuditContext) {
-    this.assertWritable(auth, organizationId); validateResponse(response);
+    this.assertWritable(auth, organizationId);
+    const authoritative = await this.withAuthoritativePic(organizationId, response);
+    if (!authoritative.pic) throw new ApiError(409, "CONFLICT", "PIC OPD belum terhubung. Daftarkan dan setujui akun PIC OPD terlebih dahulu.");
+    validateResponse(authoritative.response);
     const existing = await this.db.query<{ id: string; technical_status: string; planning_status: string }>("SELECT id::text,technical_status,planning_status FROM sababuka.opd_digital_profiles WHERE organization_id=$1", [organizationId]);
     if (existing.rows[0] && !role(auth, administrationRoles) && (!["draft", "returned"].includes(existing.rows[0].technical_status) || !["draft", "returned"].includes(existing.rows[0].planning_status))) {
       throw new ApiError(409, "CONFLICT", "Profil yang sedang diperiksa tidak dapat diubah.");
@@ -117,8 +150,8 @@ export class OpdProfileService {
        ON CONFLICT (organization_id) DO UPDATE SET response_json=EXCLUDED.response_json,updated_by=EXCLUDED.updated_by,
          technical_status=CASE WHEN sababuka.opd_digital_profiles.technical_status='returned' THEN 'draft' ELSE sababuka.opd_digital_profiles.technical_status END,
          planning_status=CASE WHEN sababuka.opd_digital_profiles.planning_status='returned' THEN 'draft' ELSE sababuka.opd_digital_profiles.planning_status END
-       RETURNING id::text`, [organizationId, JSON.stringify(response), auth.user.id]);
-    await recordAudit(this.db, { ...audit, eventType: "opd_profile.saved", entityType: "opd_digital_profile", entityId: result.rows[0]!.id, organizationId, afterData: { baseline_count: Array.isArray(response.baseline_items) ? response.baseline_items.length : 0 } });
+       RETURNING id::text`, [organizationId, JSON.stringify(authoritative.response), auth.user.id]);
+    await recordAudit(this.db, { ...audit, eventType: "opd_profile.saved", entityType: "opd_digital_profile", entityId: result.rows[0]!.id, organizationId, afterData: { baseline_count: Array.isArray(authoritative.response.baseline_items) ? authoritative.response.baseline_items.length : 0, pic_source: "approved_registration" } });
     return this.get(auth, organizationId);
   }
 

@@ -16,7 +16,6 @@ export async function currentUserRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.get("/me/preview-options", async (request) => {
-    if (app.config.nodeEnv !== "development") throw new ApiError(404, "NOT_FOUND", "Endpoint tidak ditemukan.");
     requireSuperadmin(request);
     const result = await app.db.query(
       `SELECT id::text, code, name, short_name FROM sababuka.organizations

@@ -268,7 +268,6 @@ export class AuthService {
   }
 
   async getPreviewAuthContext(auth: AuthContext, roleCode: string, organizationId?: string): Promise<AuthContext> {
-    if (this.config.nodeEnv !== "development") throw new ApiError(403, "PERMISSION_DENIED", "Pratinjau peran hanya tersedia pada lingkungan lokal.");
     if (!auth.user.roles.some((role) => role.code === "superadmin" && role.scope_type === "global")) {
       throw new ApiError(403, "PERMISSION_DENIED", "Pratinjau peran hanya tersedia untuk Developer.");
     }

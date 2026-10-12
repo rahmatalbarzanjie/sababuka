@@ -35,6 +35,8 @@ Migration PostgreSQL/PostGIS untuk baseline MVP v1.
 | 033 | Pembersihan katalog dan artefak demo dari data operasional |
 | 034 | Navigasi pelaporan berbasis peran: Beranda Tugas, Pelaporan Realisasi, dan Verifikasi Pelaporan OPD |
 | 035 | Analisis keputusan, master geografi 17 kecamatan, serta menu Keuangan Daerah dan Layanan Publik |
+| 036–038 | Profil digital OPD, periode pelaporan dinamis, dan finalisasi model akun/peran |
+| 039 | Penguatan akses Profil Data OPD dan sumber identitas PIC dari registrasi yang disetujui |
 
 Semua migration menggunakan transaksi. Jangan mengubah file migration yang sudah diterapkan pada lingkungan bersama; buat migration baru.
 
