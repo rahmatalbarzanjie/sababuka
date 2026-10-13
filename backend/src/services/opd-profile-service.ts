@@ -150,7 +150,7 @@ export class OpdProfileService {
                WHERE i.archived_at IS NULL AND (i.owner_organization_id=o.id OR io.organization_id=o.id)), '{}') AS focus_names
        FROM sababuka.organizations o LEFT JOIN sababuka.opd_digital_profiles p ON p.organization_id=o.id
        WHERE o.is_active=true AND o.organization_type='opd' AND ($1::boolean OR o.id=ANY($2::uuid[]))
-       ORDER BY o.name`, [reviewer, organizationIds]);
+       ORDER BY p.updated_at DESC NULLS LAST, o.name, o.code`, [reviewer, organizationIds]);
     return { data: result.rows, can_review_technical: role(auth, technicalReviewRoles), can_review_planning: role(auth, planningReviewRoles) };
   }
 

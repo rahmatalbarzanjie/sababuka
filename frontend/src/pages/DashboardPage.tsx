@@ -15,7 +15,7 @@ interface DashboardData {
 
 export function DashboardPage() {
   const result = useAsync<DashboardData>(() => Promise.all([
-    api<PageResponse<Organization>>("/organizations?page_size=100"),
+    api<PageResponse<Organization>>("/organizations?page_size=100&sort_by=name&sort_order=asc"),
     api<PageResponse<UserSummary>>("/users?page_size=1"),
     api<PageResponse<{ id: string }>>("/categories?page_size=1"),
     api<PageResponse<{ id: string }>>("/indicators?page_size=1"),

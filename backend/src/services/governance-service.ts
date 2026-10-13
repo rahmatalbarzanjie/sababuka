@@ -173,8 +173,8 @@ export class GovernanceService {
 
   async listCategories(query: GovernancePageQuery & { policyFocusId?: string | undefined }) {
     const orderColumns: Record<string, string> = { hierarchy: "c.display_order", name: "c.name", focus: "pf.name", count: "indicator_count", status: "c.review_status", updated_at: "c.updated_at" };
-    const orderColumn = orderColumns[query.sortBy ?? "hierarchy"] ?? orderColumns.hierarchy!;
-    const orderDirection = query.sortOrder === "desc" ? "DESC" : "ASC";
+    const orderColumn = orderColumns[query.sortBy ?? "updated_at"] ?? orderColumns.updated_at!;
+    const orderDirection = query.sortOrder === "asc" ? "ASC" : "DESC";
     const result = await this.db.query<CountedRow & Record<string, unknown>>(
       `SELECT c.id::text, c.code, c.name, c.description, c.policy_focus_id::text,
               pf.name AS policy_focus_name, c.parent_id::text, c.display_order, c.is_active,
@@ -334,8 +334,8 @@ export class GovernanceService {
   async listIndicators(auth: AuthContext, query: GovernancePageQuery & { policyFocusId?: string | undefined; categoryId?: string | undefined; organizationId?: string | undefined; status?: string | undefined; completeness?: string | undefined }) {
     const scope = organizationScope(auth);
     const orderColumns: Record<string, string> = { hierarchy: "pf.display_order", name: "i.name", focus: "pf.name", owner: "owner.name", metadata: "metadata_complete", targets: "target_count", status: "iv.status", updated_at: "i.updated_at" };
-    const orderColumn = orderColumns[query.sortBy ?? "hierarchy"] ?? orderColumns.hierarchy!;
-    const orderDirection = query.sortOrder === "desc" ? "DESC" : "ASC";
+    const orderColumn = orderColumns[query.sortBy ?? "updated_at"] ?? orderColumns.updated_at!;
+    const orderDirection = query.sortOrder === "asc" ? "ASC" : "DESC";
     const result = await this.db.query<CountedRow & Record<string, unknown>>(
       `SELECT i.id::text, i.code, i.name, i.category_id::text, c.code AS category_code, c.name AS category_name,
               c.policy_focus_id::text, pf.code AS policy_focus_code, pf.name AS policy_focus_name,

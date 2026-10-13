@@ -33,13 +33,14 @@ export async function operationRoutes(app: FastifyInstance): Promise<void> {
                 count(b.id)::int AS total_forms,
                 count(b.id) FILTER (WHERE b.status IN ('submitted','under_review'))::int AS pending_review,
                 count(b.id) FILTER (WHERE b.status = 'returned')::int AS returned,
-                count(b.id) FILTER (WHERE b.status = 'approved')::int AS approved
+                count(b.id) FILTER (WHERE b.status = 'approved')::int AS approved,
+                max(b.updated_at)::text AS updated_at
          FROM sababuka.organizations o LEFT JOIN sababuka.data_batches b ON b.organization_id = o.id
            AND ($3::uuid IS NULL OR b.reporting_period_id = $3)
            AND EXISTS (SELECT 1 FROM sababuka.dataset_versions dv JOIN sababuka.datasets d ON d.id = dv.dataset_id
                        WHERE dv.id = b.dataset_version_id AND d.code = 'SABABUKA.CAPAIAN_MANUAL')
          WHERE o.archived_at IS NULL AND ($1::boolean OR o.id = ANY($2::uuid[]))
-         GROUP BY o.id ORDER BY pending_review DESC, organization_name, o.code, o.id LIMIT 50`, params),
+         GROUP BY o.id ORDER BY max(b.updated_at) DESC NULLS LAST, organization_name, o.code, o.id LIMIT 50`, params),
       app.db.query(
         `SELECT b.id::text, o.code AS organization_code, COALESCE(o.short_name,o.name) AS organization_name,
                 p.label AS period_label, b.status, b.row_count, b.updated_at::text

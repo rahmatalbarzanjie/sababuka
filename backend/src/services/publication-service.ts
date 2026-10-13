@@ -16,8 +16,8 @@ export class PublicationService {
 
   async list(auth: AuthContext, page: number, pageSize: number, status?: string, sortBy?: string, sortOrder?: "asc" | "desc") {
     const effectiveStatus = isPimpinanOnly(auth) ? "active" : status ?? null;
-    const orderColumns: Record<string, string> = { created_at: "p.created_at", title: "p.title", number: "p.publication_number", version: "p.version_number", items: "eligible_item_count", status: "p.status" };
-    const orderColumn = orderColumns[sortBy ?? "created_at"] ?? orderColumns.created_at!;
+    const orderColumns: Record<string, string> = { created_at: "p.created_at", updated_at: "p.updated_at", title: "p.title", number: "p.publication_number", version: "p.version_number", items: "eligible_item_count", status: "p.status" };
+    const orderColumn = orderColumns[sortBy ?? "updated_at"] ?? orderColumns.updated_at!;
     const orderDirection = sortOrder === "asc" ? "ASC" : "DESC";
     const result = await this.db.query<CountedRow & Record<string, unknown>>(
       `SELECT p.id::text, p.publication_key, p.version_number, p.publication_number, p.title,
@@ -50,7 +50,7 @@ export class PublicationService {
            JOIN sababuka.categories valid_c ON valid_c.id = valid_i.category_id AND valid_c.is_active = true AND valid_c.review_status = 'approved'
            WHERE valid_pi.publication_id = p.id
          ))
-       GROUP BY p.id ORDER BY ${orderColumn} ${orderDirection} NULLS LAST, p.created_at DESC, p.id DESC LIMIT $2 OFFSET $3`,
+       GROUP BY p.id ORDER BY ${orderColumn} ${orderDirection} NULLS LAST, p.updated_at DESC, p.created_at DESC, p.id DESC LIMIT $2 OFFSET $3`,
       [effectiveStatus, pageSize, (page - 1) * pageSize, isPimpinanOnly(auth)],
     );
     const total = Number(result.rows[0]?.total_count ?? 0);

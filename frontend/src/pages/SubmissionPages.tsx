@@ -36,7 +36,7 @@ export function SubmissionsPage({ review = false, guidance = false }: { review?:
   const submissions = useAsync(() => api<PageResponse<Submission>>(url), [url]);
   const changeSort = (column: string, direction: SortDirection) => { setSortBy(column); setSortOrder(direction); setPage(1); };
   const refs = useAsync(async () => {
-    const organizations = await api<PageResponse<Organization>>("/organizations?page_size=100&active=true");
+    const organizations = await api<PageResponse<Organization>>("/organizations?page_size=100&active=true&sort_by=name&sort_order=asc");
     return { organizations: organizations.data };
   }, []);
   const canCreate = !review && !guidance && writableOrganizationIds.length > 0 && (user?.permissions.includes("submission.create") ?? false);

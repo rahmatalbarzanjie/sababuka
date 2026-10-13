@@ -11,7 +11,7 @@ export async function publicationRoutes(app: FastifyInstance) {
     schema: { querystring: { type: "object", additionalProperties: false, properties: {
       page: { type: "integer", minimum: 1 }, page_size: { type: "integer", minimum: 1, maximum: 100 },
       status: { type: "string", enum: ["draft", "active", "replaced", "withdrawn"] },
-      sort_by: { type: "string", enum: ["created_at", "title", "number", "version", "items", "status"] },
+      sort_by: { type: "string", enum: ["created_at", "updated_at", "title", "number", "version", "items", "status"] },
       sort_order: { type: "string", enum: ["asc", "desc"] },
     } } },
   }, async (request) => { requirePermission(request, "publication.view"); return service(request).list(request.auth!, request.query.page ?? 1, request.query.page_size ?? 25, request.query.status, request.query.sort_by, request.query.sort_order); });

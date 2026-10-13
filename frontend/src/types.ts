@@ -83,6 +83,7 @@ export interface UserSummary {
   registration_created_at: string | null;
   last_login_at: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export interface Role {
@@ -169,6 +170,7 @@ export interface Category {
   decided_at: string | null;
   decision_notes: string | null;
   indicator_count: number;
+  updated_at: string;
 }
 
 export interface Unit {
@@ -219,6 +221,7 @@ export interface Indicator {
   owner_organization_id: string | null;
   owner_organization_name: string | null;
   is_active: boolean;
+  updated_at: string;
   version_id: string;
   version_number: number;
   definition: string;

@@ -188,8 +188,8 @@ export class AdminService {
     const offset = (query.page - 1) * query.pageSize;
     const scope = organizationScope(auth);
     const orderColumns: Record<string, string> = { name: "o.name", code: "o.code", type: "o.organization_type", status: "o.is_active", updated_at: "o.updated_at" };
-    const orderColumn = orderColumns[query.sortBy ?? "name"] ?? orderColumns.name!;
-    const orderDirection = query.sortOrder === "desc" ? "DESC" : "ASC";
+    const orderColumn = orderColumns[query.sortBy ?? "updated_at"] ?? orderColumns.updated_at!;
+    const orderDirection = query.sortOrder === "asc" ? "ASC" : "DESC";
     const result = await this.db.query<CountedRow & Record<string, unknown>>(
       `SELECT o.id::text, o.code, o.name, o.short_name, o.organization_type,
               o.parent_id::text, o.is_active, o.created_at::text, o.updated_at::text,
@@ -253,13 +253,13 @@ export class AdminService {
   async listUsers(auth: AuthContext, query: PageQuery & { organizationId?: string | undefined; status?: string | undefined }) {
     const offset = (query.page - 1) * query.pageSize;
     const scope = organizationScope(auth);
-    const orderColumns: Record<string, string> = { name: "u.full_name", organization: "COALESCE(po.name, ro.name)", status: "u.status", mfa: "u.mfa_required", last_login: "u.last_login_at", created_at: "COALESCE(rr.created_at, u.created_at)" };
-    const orderColumn = orderColumns[query.sortBy ?? "created_at"] ?? orderColumns.created_at!;
+    const orderColumns: Record<string, string> = { name: "u.full_name", organization: "COALESCE(po.name, ro.name)", status: "u.status", mfa: "u.mfa_required", last_login: "u.last_login_at", created_at: "COALESCE(rr.created_at, u.created_at)", updated_at: "u.updated_at" };
+    const orderColumn = orderColumns[query.sortBy ?? "updated_at"] ?? orderColumns.updated_at!;
     const orderDirection = query.sortOrder === "asc" ? "ASC" : "DESC";
     const result = await this.db.query<CountedRow & Record<string, unknown>>(
       `SELECT u.id::text, u.email::text, u.username::text, u.full_name, u.status,
               u.mfa_required, (u.password_hash IS NOT NULL) AS has_password,
-              u.last_login_at::text, u.created_at::text,
+              u.last_login_at::text, u.created_at::text, u.updated_at::text,
               po.id::text AS organization_id, po.code AS organization_code,
               po.name AS organization_name,
               rr.requested_organization_id::text, ro.code AS requested_organization_code,
