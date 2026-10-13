@@ -132,6 +132,7 @@ interface RegistrationOrganization {
   code: string;
   name: string;
   short_name: string | null;
+  organization_type: string;
 }
 
 export function RegistrationPage() {
@@ -151,7 +152,7 @@ export function RegistrationPage() {
   useEffect(() => {
     api<{ data: RegistrationOrganization[] }>("/auth/registration-organizations")
       .then((result) => setOrganizations(result.data))
-      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Daftar OPD gagal dimuat."))
+      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Daftar instansi gagal dimuat."))
       .finally(() => setBusy(false));
   }, []);
 
@@ -181,25 +182,25 @@ export function RegistrationPage() {
             <div><strong>SABABUKA</strong><small>Pemerintah Kabupaten Kapuas</small></div>
           </div>
           <div className="success-symbol"><Check /></div>
-          <div className="auth-card-heading centered"><span className="eyebrow">Pendaftaran terkirim</span><h2>Menunggu persetujuan</h2><p>Pengelola Sistem akan memeriksa identitas PIC dan OPD yang Anda wakili.</p></div>
+          <div className="auth-card-heading centered"><span className="eyebrow">Pendaftaran terkirim</span><h2>Menunggu persetujuan</h2><p>Pengelola Sistem akan memeriksa identitas PIC, instansi, dan paket peran yang sesuai.</p></div>
           <button className="button primary full" onClick={() => navigate("/login")}>Kembali ke halaman masuk</button>
         </> : <form className="registration-form" onSubmit={submit}>
           <div className="login-identity">
             <div className="brand-logo login-logo"><img src="/logo-kapuas.png" alt="Lambang Kabupaten Kapuas" /></div>
             <div><strong>SABABUKA</strong><small>Pemerintah Kabupaten Kapuas</small></div>
           </div>
-          <div className="auth-card-heading"><span className="eyebrow">Pendaftaran akun</span><h2>Daftar sebagai PIC OPD</h2><p>Gunakan identitas dan kontak aktif. Akun dapat digunakan setelah disetujui Pengelola Sistem.</p></div>
+          <div className="auth-card-heading"><span className="eyebrow">Pendaftaran akun</span><h2>Daftar sebagai PIC instansi</h2><p>Untuk OPD dan instansi vertikal yang telah terdaftar. Hak akses diberikan setelah identitas dan kedudukan instansi diperiksa.</p></div>
           {error && <Notice tone="error">{error}</Notice>}
           <div className="registration-form-grid">
             <label className="field"><span>Nama lengkap PIC</span><input autoFocus value={fullName} onChange={(event) => setFullName(event.target.value)} autoComplete="name" placeholder="Nama lengkap" required /></label>
-            <label className="field"><span>Jabatan</span><input value={jobTitle} onChange={(event) => setJobTitle(event.target.value)} placeholder="Jabatan dalam OPD" required /></label>
+            <label className="field"><span>Jabatan</span><input value={jobTitle} onChange={(event) => setJobTitle(event.target.value)} placeholder="Jabatan dalam instansi" required /></label>
             <label className="field"><span>Email aktif/dinas</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="nama@kapuaskab.go.id" required /></label>
             <label className="field"><span>Nomor WhatsApp aktif</span><input value={contactPhone} onChange={(event) => setContactPhone(event.target.value)} autoComplete="tel" inputMode="tel" pattern="[0-9+(). -]+" minLength={8} placeholder="08xx xxxx xxxx" required /></label>
-            <label className="field registration-span"><span>OPD yang diwakili</span><select value={organizationId} onChange={(event) => setOrganizationId(event.target.value)} required><option value="">Pilih OPD</option>{organizations.map((item) => <option key={item.id} value={item.id}>{item.short_name ?? item.name}</option>)}</select></label>
+            <label className="field registration-span"><span>Instansi yang diwakili</span><select value={organizationId} onChange={(event) => setOrganizationId(event.target.value)} required><option value="">Pilih instansi</option>{organizations.map((item) => <option key={item.id} value={item.id}>{item.short_name ?? item.name}{item.organization_type === "vertical_agency" ? " - Instansi vertikal" : ""}</option>)}</select></label>
             <label className="field"><span>Kata sandi</span><div className="password-field"><input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={12} placeholder="Minimal 12 karakter" required /><button type="button" aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
             <label className="field"><span>Ulangi kata sandi</span><input type={showPassword ? "text" : "password"} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" minLength={12} placeholder="Ulangi kata sandi" required /></label>
           </div>
-          <div className="security-note"><ShieldCheck size={17} /><span>Satu OPD hanya memiliki satu akun PIC aktif. Pendaftaran akan diperiksa sebelum akun dapat digunakan.</span></div>
+          <div className="security-note"><ShieldCheck size={17} /><span>Satu instansi hanya memiliki satu akun PIC aktif. Peran khusus seperti Pembina Data Statistik ditetapkan otomatis setelah instansi diverifikasi.</span></div>
           <button className="button primary full" disabled={busy || !organizationId}>{busy ? <Spinner label="Mendaftarkan" /> : <>Kirim pendaftaran <ArrowRight size={17} /></>}</button>
           <button className="text-button auth-back-link" type="button" onClick={() => navigate("/login")}>Sudah punya akun? Masuk</button>
         </form>}

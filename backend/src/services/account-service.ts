@@ -76,10 +76,10 @@ export class AccountService {
 
   async registrationOrganizations() {
     const result = await this.db.query<QueryResultRow & Record<string, unknown>>(
-      `SELECT id::text, code, name, short_name
+      `SELECT id::text, code, name, short_name, organization_type
        FROM sababuka.organizations
        WHERE is_active = true AND archived_at IS NULL
-         AND organization_type = 'opd'
+         AND organization_type IN ('opd', 'vertical_agency')
        ORDER BY name, code`,
     );
     return { data: result.rows };
@@ -93,6 +93,7 @@ export class AccountService {
       const organization = await client.query<{ id: string; code: string } & QueryResultRow>(
         `SELECT id::text, code FROM sababuka.organizations
          WHERE id = $1 AND is_active = true AND archived_at IS NULL
+           AND organization_type IN ('opd', 'vertical_agency')
          FOR SHARE`,
         [input.organization_id],
       );
@@ -160,7 +161,7 @@ export class AccountService {
       await notifyRole(client, "superadmin", {
         type: "user.registration_requested",
         title: "Pendaftaran PIC baru",
-        message: `${input.full_name.trim()} mendaftar sebagai perwakilan ${organization.rows[0]!.code}. Periksa identitas, OPD, dan perannya.`,
+        message: `${input.full_name.trim()} mendaftar sebagai perwakilan ${organization.rows[0]!.code}. Periksa identitas, instansi, dan perannya.`,
         entityType: "user",
         entityId: user.id as string,
       });
@@ -168,7 +169,7 @@ export class AccountService {
       return {
         email: user.email,
         status: "pending_approval",
-        message: "Pendaftaran berhasil. Superadmin akan memverifikasi identitas PIC, OPD, dan peran sebelum akun dapat digunakan.",
+        message: "Pendaftaran berhasil. Superadmin akan memverifikasi identitas PIC, instansi, dan peran sebelum akun dapat digunakan.",
       };
     } catch (error) {
       await client.query("ROLLBACK");

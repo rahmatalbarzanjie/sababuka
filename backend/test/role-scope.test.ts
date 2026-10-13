@@ -19,5 +19,6 @@ test("matriks role-scope mengikuti desain SABABUKA", () => {
 test("paket peran pendaftaran mengikuti instansi", () => {
   assert.deepEqual(registrationRoleCodesForOrganization("BAPPERIDA"), ["opd", "bapperida"]);
   assert.deepEqual(registrationRoleCodesForOrganization("DISKOMINFOSANTIK"), ["opd", "kominfo"]);
+  assert.deepEqual(registrationRoleCodesForOrganization("BPS_KAPUAS"), ["opd", "pembina_statistik"]);
   assert.deepEqual(registrationRoleCodesForOrganization("DINKES"), ["opd"]);
 });

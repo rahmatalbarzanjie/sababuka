@@ -16,7 +16,7 @@ interface AuthState {
   login(input: LoginInput): Promise<void>;
   logout(): Promise<void>;
   refresh(): Promise<void>;
-  startPreview(role: "bapperida" | "kominfo" | "opd" | "pimpinan", organizationId?: string): Promise<void>;
+  startPreview(role: "bapperida" | "kominfo" | "pembina_statistik" | "opd" | "pimpinan", organizationId?: string): Promise<void>;
   stopPreview(): Promise<void>;
 }
 
@@ -55,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(session.user);
     const effectiveMenu = await api<{ data: MenuItem[] }>("/me/menu");
     setMenu(effectiveMenu.data);
+    window.sessionStorage.setItem("sababuka.just_logged_in", "true");
   }, []);
 
   const logout = useCallback(async () => {
@@ -62,13 +63,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearRolePreview();
       await api<void>("/auth/logout", { method: "POST", mutation: true });
     } finally {
+      window.sessionStorage.removeItem("sababuka.just_logged_in");
       setCsrfToken(null);
       setUser(null);
       setMenu([]);
     }
   }, []);
 
-  const startPreview = useCallback(async (role: "bapperida" | "kominfo" | "opd" | "pimpinan", organizationId?: string) => {
+  const startPreview = useCallback(async (role: "bapperida" | "kominfo" | "pembina_statistik" | "opd" | "pimpinan", organizationId?: string) => {
     setRolePreview(role, organizationId);
     try { await refresh(); }
     catch (error) { clearRolePreview(); await refresh(); throw error; }

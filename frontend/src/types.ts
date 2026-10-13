@@ -29,7 +29,7 @@ export interface CurrentUser {
   organizations: Organization[];
   simulation?: {
     active: true;
-    role_code: "bapperida" | "kominfo" | "opd" | "pimpinan";
+    role_code: "bapperida" | "kominfo" | "pembina_statistik" | "opd" | "pimpinan";
     organization_id: string | null;
     organization_name: string | null;
     original_full_name: string;
@@ -121,6 +121,16 @@ export interface SystemSetting {
   value: unknown;
   description: string | null;
   updated_at: string;
+}
+
+export interface LoginAnnouncement {
+  enabled: boolean;
+  title?: string;
+  message?: string;
+  image_url?: string | null;
+  action_label?: string | null;
+  action_url?: string | null;
+  updated_at?: string | null;
 }
 
 export interface FeatureFlag {
@@ -291,6 +301,22 @@ export interface SubmissionEvidence {
   uploaded_by: string;
   uploaded_by_name: string;
   uploaded_at: string;
+}
+
+export interface StatisticalGuidanceNote {
+  id: string;
+  batch_id: string;
+  indicator_version_id: string | null;
+  indicator_name: string | null;
+  guidance_type: "standard" | "metadata" | "methodology" | "consistency";
+  notes: string;
+  created_by: string;
+  created_by_name: string;
+  created_at: string;
+  resolved_by: string | null;
+  resolved_by_name: string | null;
+  resolved_at: string | null;
+  resolution_notes: string | null;
 }
 
 export interface PublicationItem {

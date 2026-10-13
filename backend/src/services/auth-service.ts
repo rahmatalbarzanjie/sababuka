@@ -271,7 +271,7 @@ export class AuthService {
     if (!auth.user.roles.some((role) => role.code === "superadmin" && role.scope_type === "global")) {
       throw new ApiError(403, "PERMISSION_DENIED", "Pratinjau peran hanya tersedia untuk Developer.");
     }
-    const allowed = new Set(["bapperida", "kominfo", "opd", "pimpinan"]);
+    const allowed = new Set(["bapperida", "kominfo", "pembina_statistik", "opd", "pimpinan"]);
     if (!allowed.has(roleCode)) throw new ApiError(400, "VALIDATION_ERROR", "Peran pratinjau tidak valid.");
     if (roleCode === "opd" && !organizationId) throw new ApiError(400, "VALIDATION_ERROR", "Pilih OPD yang akan ditinjau.");
 
@@ -280,7 +280,7 @@ export class AuthService {
     );
     if (!role.rows[0]) throw new ApiError(404, "NOT_FOUND", "Peran pratinjau belum tersedia.");
     const scopeType: EffectiveRole["scope_type"] = roleCode === "opd" ? "organization" : roleCode === "pimpinan" ? "published" : "global";
-    const organizationCode = roleCode === "bapperida" ? "BAPPERIDA" : roleCode === "kominfo" ? "DISKOMINFOSANTIK" : roleCode === "pimpinan" ? "KAPUAS" : null;
+    const organizationCode = roleCode === "bapperida" ? "BAPPERIDA" : roleCode === "kominfo" ? "DISKOMINFOSANTIK" : roleCode === "pembina_statistik" ? "BPS_KAPUAS" : roleCode === "pimpinan" ? "KAPUAS" : null;
     const organization = await this.db.query<AuthOrganization & QueryResultRow>(
       `SELECT id::text, code, name, short_name, organization_type, parent_id::text,
               is_active, created_at::text, updated_at::text
@@ -296,7 +296,7 @@ export class AuthService {
        JOIN sababuka.permissions p ON p.id = rp.permission_id
        WHERE rp.role_id = $1 ORDER BY p.code`, [role.rows[0].id],
     );
-    const roleLabel = roleCode === "bapperida" ? "BAPPERIDA" : roleCode === "kominfo" ? "Walidata Diskominfosantik" : roleCode === "pimpinan" ? "Pimpinan" : `OPD ${organization.rows[0].short_name ?? organization.rows[0].name}`;
+    const roleLabel = roleCode === "bapperida" ? "BAPPERIDA" : roleCode === "kominfo" ? "Walidata Diskominfosantik" : roleCode === "pembina_statistik" ? "Pembina Data Statistik BPS" : roleCode === "pimpinan" ? "Pimpinan" : `OPD ${organization.rows[0].short_name ?? organization.rows[0].name}`;
     return {
       sessionId: auth.sessionId,
       csrfTokenHash: auth.csrfTokenHash,
@@ -309,7 +309,7 @@ export class AuthService {
         roles: [{ code: roleCode, scope_type: scopeType, organization_id: roleCode === "opd" ? organization.rows[0].id : null }],
         permissions: permissions.rows.map((row) => row.code),
         organizations: [organization.rows[0]],
-        simulation: { active: true, role_code: roleCode as "bapperida" | "kominfo" | "opd" | "pimpinan", organization_id: roleCode === "opd" ? organization.rows[0].id : null, organization_name: organization.rows[0].name, original_full_name: auth.user.full_name, original_email: auth.user.email },
+        simulation: { active: true, role_code: roleCode as "bapperida" | "kominfo" | "pembina_statistik" | "opd" | "pimpinan", organization_id: roleCode === "opd" ? organization.rows[0].id : null, organization_name: organization.rows[0].name, original_full_name: auth.user.full_name, original_email: auth.user.email },
       },
     };
   }

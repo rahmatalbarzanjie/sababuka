@@ -160,4 +160,35 @@ export async function submissionRoutes(app: FastifyInstance): Promise<void> {
         request.body?.notes ?? null, requestAuditContext(request));
     },
   );
+
+  app.get<{ Params: { submission_id: string } }>("/submissions/:submission_id/guidance", {
+    schema: { params: { type: "object", additionalProperties: false, required: ["submission_id"], properties: { submission_id: uuid } } },
+  }, async (request) => {
+    requirePermission(request, "submission.view");
+    return service(request).listGuidance(request.auth!, request.params.submission_id);
+  });
+
+  app.post<{ Params: { submission_id: string }; Body: { indicator_version_id?: string | null; guidance_type: "standard" | "metadata" | "methodology" | "consistency"; notes: string } }>("/submissions/:submission_id/guidance", {
+    schema: {
+      params: { type: "object", additionalProperties: false, required: ["submission_id"], properties: { submission_id: uuid } },
+      body: { type: "object", additionalProperties: false, required: ["guidance_type", "notes"], properties: {
+        indicator_version_id: { anyOf: [uuid, { type: "null" }] },
+        guidance_type: { type: "string", enum: ["standard", "metadata", "methodology", "consistency"] },
+        notes: { type: "string", minLength: 3, maxLength: 4000 },
+      } },
+    },
+  }, async (request, reply) => {
+    mutate(request, "statistical_guidance.comment");
+    return reply.code(201).send(await service(request).addGuidance(request.auth!, request.params.submission_id, request.body, requestAuditContext(request)));
+  });
+
+  app.post<{ Params: { submission_id: string; guidance_id: string }; Body?: { notes?: string | null } }>("/submissions/:submission_id/guidance/:guidance_id/resolve", {
+    schema: {
+      params: { type: "object", additionalProperties: false, required: ["submission_id", "guidance_id"], properties: { submission_id: uuid, guidance_id: uuid } },
+      body: { type: "object", additionalProperties: false, properties: { notes: { type: ["string", "null"], maxLength: 4000 } } },
+    },
+  }, async (request) => {
+    mutate(request, "submission.update");
+    return service(request).resolveGuidance(request.auth!, request.params.submission_id, request.params.guidance_id, request.body?.notes ?? null, requestAuditContext(request));
+  });
 }

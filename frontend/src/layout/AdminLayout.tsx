@@ -32,13 +32,16 @@ import {
   HeartHandshake,
   Eye,
   RotateCcw,
+  Megaphone,
+  BookCheck,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "../auth";
 import { navigate } from "../router";
-import type { MenuItem, NotificationItem } from "../types";
+import type { LoginAnnouncement, MenuItem, NotificationItem } from "../types";
 import { api } from "../api";
 import { notificationDestination } from "../notification-routing";
+import { Modal } from "../components";
 
 const iconByCode: Record<string, typeof LayoutDashboard> = {
   organizations: Building2,
@@ -61,9 +64,10 @@ const iconByCode: Record<string, typeof LayoutDashboard> = {
   analysis: MapPinned,
   finance: WalletCards,
   "public-services": HeartHandshake,
+  "statistical-guidance": BookCheck,
 };
 
-const supportedRoutes = new Set(["/admin", "/dashboard", "/executive", "/assistant", "/analysis", "/finance", "/public-services", "/notifications", "/audit", "/operations", "/opd-profile", "/admin/organizations", "/admin/opd-monitoring", "/admin/users", "/admin/roles", "/admin/menus", "/admin/system", "/governance/categories", "/governance/indicators", "/submissions", "/reviews", "/publications", "/connectors"]);
+const supportedRoutes = new Set(["/admin", "/dashboard", "/executive", "/assistant", "/analysis", "/finance", "/public-services", "/notifications", "/audit", "/operations", "/opd-profile", "/admin/organizations", "/admin/opd-monitoring", "/admin/users", "/admin/roles", "/admin/menus", "/admin/system", "/governance/categories", "/governance/indicators", "/submissions", "/reviews", "/guidance", "/publications", "/connectors"]);
 
 const navigationLabels: Record<string, string> = {
   categories: "Kelompok Isu",
@@ -79,6 +83,7 @@ const navigationLabels: Record<string, string> = {
   analysis: "Analisis dan Peta",
   finance: "Keuangan Daerah",
   "public-services": "Layanan Publik",
+  "statistical-guidance": "Pembinaan Statistik",
 };
 
 const roleLabels: Record<string, string> = {
@@ -86,6 +91,7 @@ const roleLabels: Record<string, string> = {
   pimpinan: "Pimpinan",
   bapperida: "Verifikator BAPPERIDA",
   kominfo: "Walidata Diskominfosantik",
+  pembina_statistik: "Pembina Data Statistik (BPS)",
   opd: "Admin/PIC OPD",
 };
 
@@ -107,8 +113,14 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
   const [previewOrganizationId, setPreviewOrganizationId] = useState("");
   const [previewBusy, setPreviewBusy] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState<LoginAnnouncement | null>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  const helpRef = useRef<HTMLElement>(null);
+  const helpTriggerRef = useRef<HTMLButtonElement>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
+  const mobileTriggerRef = useRef<HTMLButtonElement>(null);
   const governanceEntries = useMemo(() => sectionChildren(menu, "governance"), [menu]);
   const adminEntries = useMemo(() => sectionChildren(menu, "administration"), [menu]);
   const isSuperadmin = user?.roles.some((role) => role.code === "superadmin") ?? false;
@@ -140,8 +152,53 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     setHelpOpen(false);
     setNotificationOpen(false);
     window.scrollTo({ top: 0, left: 0 });
-    requestAnimationFrame(() => document.querySelector<HTMLElement>(".topbar-context strong")?.focus());
+    requestAnimationFrame(() => mainRef.current?.focus());
   }, [pathname]);
+  useEffect(() => {
+    const prepareScrollableTables = () => {
+      mainRef.current?.querySelectorAll<HTMLElement>(".table-scroll").forEach((container) => {
+        container.tabIndex = 0;
+        container.setAttribute("role", "region");
+        if (!container.hasAttribute("aria-label")) container.setAttribute("aria-label", "Tabel data; dapat digeser horizontal");
+      });
+    };
+    prepareScrollableTables();
+    const observer = new MutationObserver(prepareScrollableTables);
+    if (mainRef.current) observer.observe(mainRef.current, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [pathname]);
+  useEffect(() => {
+    if (!helpOpen) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    helpRef.current?.focus();
+    const trapFocus = (event: KeyboardEvent) => {
+      if (event.key !== "Tab" || !helpRef.current) return;
+      const focusable = Array.from(helpRef.current.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')).filter((element) => !element.hasAttribute("disabled"));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", trapFocus);
+    return () => { document.removeEventListener("keydown", trapFocus); (previousFocus ?? helpTriggerRef.current)?.focus(); };
+  }, [helpOpen]);
+  useEffect(() => {
+    if (!mobile) return;
+    sidebarRef.current?.querySelector<HTMLElement>("button")?.focus();
+    const trapSidebarFocus = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { setMobile(false); return; }
+      if (event.key !== "Tab" || !sidebarRef.current) return;
+      const focusable = Array.from(sidebarRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", trapSidebarFocus);
+    return () => { document.removeEventListener("keydown", trapSidebarFocus); mobileTriggerRef.current?.focus(); };
+  }, [mobile]);
   useEffect(() => {
     const close = (event: MouseEvent) => {
       if (!profileRef.current?.contains(event.target as Node)) setProfileOpen(false);
@@ -179,6 +236,14 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
       .catch(() => setPreviewOrganizations([]));
   }, [isSuperadmin]);
 
+  useEffect(() => {
+    if (!user || isRolePreview || window.sessionStorage.getItem("sababuka.just_logged_in") !== "true") return;
+    window.sessionStorage.removeItem("sababuka.just_logged_in");
+    api<LoginAnnouncement>("/me/announcement")
+      .then((result) => { if (result.enabled) setAnnouncement(result); })
+      .catch(() => undefined);
+  }, [user?.id, isRolePreview]);
+
   const go = (path: string) => { navigate(path); setMobile(false); setProfileOpen(false); };
   const openNotification = async (item: NotificationItem) => {
     if (!item.read_at) await api(`/notifications/${item.id}/read`, { method: "POST", mutation: true });
@@ -190,19 +255,20 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     await loadNotifications();
   };
   const notificationTime = (value: string) => new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
-  const enterPreview = async (role: "bapperida" | "kominfo" | "opd" | "pimpinan", organizationId?: string) => {
+  const enterPreview = async (role: "bapperida" | "kominfo" | "pembina_statistik" | "opd" | "pimpinan", organizationId?: string) => {
     setPreviewBusy(true); setPreviewError(null);
     try {
       await startPreview(role, organizationId);
       setProfileOpen(false);
-      navigate(role === "pimpinan" ? "/dashboard" : role === "kominfo" ? "/connectors" : "/operations");
+      navigate(role === "pimpinan" ? "/dashboard" : role === "kominfo" ? "/connectors" : role === "pembina_statistik" ? "/guidance" : "/operations");
     } catch (error) { setPreviewError(error instanceof Error ? error.message : "Mode pratinjau tidak dapat dibuka."); }
     finally { setPreviewBusy(false); }
   };
   const leavePreview = async () => { setPreviewBusy(true); await stopPreview(); setPreviewBusy(false); setProfileOpen(false); navigate("/admin"); };
   const doLogout = async () => { await logout(); navigate("/login"); };
   return <div className={`workspace ${collapsed ? "collapsed" : ""}`}>
-    <aside className={`sidebar ${mobile ? "mobile-open" : ""}`}>
+    <button className="skip-link" onClick={() => mainRef.current?.focus()}>Lewati navigasi ke konten utama</button>
+    <aside ref={sidebarRef} className={`sidebar ${mobile ? "mobile-open" : ""}`} aria-label="Navigasi utama">
       <div className="sidebar-brand"><div className="brand-logo"><img src="/logo-kapuas.png" alt="Lambang Kabupaten Kapuas" /></div><div className="sidebar-brand-copy"><strong>SABABUKA</strong></div><button className="mobile-close" aria-label="Tutup menu" onClick={() => setMobile(false)}><X /></button></div>
       <nav>
         {isSuperadmin && <button className={`nav-link ${pathname === "/admin" ? "active" : ""}`} aria-current={pathname === "/admin" ? "page" : undefined} title={collapsed ? "Beranda Administrasi" : undefined} onClick={() => go("/admin")}><LayoutDashboard /><span>Beranda Administrasi</span></button>}
@@ -230,17 +296,16 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
           return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : undefined} onClick={() => go(entry.route_name!)}><Icon /><span>{label}</span></button>;
         })}
       </nav>
-      <small className="sidebar-credit">Dikembangkan oleh<br /><strong>Tim Peneliti Kajian SABABUKA BERSINAR 2026</strong></small>
       <button className="collapse-button" title={collapsed ? "Perbesar sidebar" : undefined} onClick={() => setCollapsed((value) => !value)}>{collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}<span>{collapsed ? "Perbesar" : "Perkecil sidebar"}</span></button>
     </aside>
     {mobile && <button className="mobile-overlay" onClick={() => setMobile(false)} aria-label="Tutup menu" />}
     <section className="workspace-main">
       <header className="topbar">
-        <button className="icon-button mobile-trigger" aria-label="Buka menu" onClick={() => setMobile(true)}><Menu /></button>
+        <button ref={mobileTriggerRef} className="icon-button mobile-trigger" aria-label="Buka menu" aria-haspopup="true" aria-expanded={mobile} onClick={() => setMobile(true)}><Menu /></button>
         <nav className="topbar-context" aria-label="Lokasi halaman" title={subtitle}><span>{areaLabel}</span><i aria-hidden>/</i><strong tabIndex={-1}>{title}</strong></nav>
         <div className="topbar-actions">
           {actions}
-          <button className="icon-button" aria-label="Buka bantuan penggunaan" onClick={() => setHelpOpen(true)}><HelpCircle /></button>
+          <button ref={helpTriggerRef} className="icon-button" aria-label="Buka bantuan penggunaan" aria-haspopup="dialog" aria-expanded={helpOpen} onClick={() => setHelpOpen(true)}><HelpCircle /></button>
           {!isRolePreview && <div className="notification-wrap" ref={notificationRef}>
             <button className="icon-button notification" aria-label={`Buka notifikasi${unreadNotifications ? `, ${unreadNotifications} belum dibaca` : ""}`} aria-haspopup="dialog" aria-expanded={notificationOpen} onClick={() => { setNotificationOpen((value) => !value); setProfileOpen(false); if (!notificationOpen) void loadNotifications(); }}><Bell />{unreadNotifications > 0 && <span className="notification-count">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}</button>
             {notificationOpen && <section className="notification-popover" aria-label="Notifikasi terbaru">
@@ -257,17 +322,19 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
             <button className="profile-button" aria-haspopup="menu" aria-expanded={profileOpen} onClick={() => setProfileOpen((value) => !value)}><span className="avatar">{initials}</span><span><strong>{user?.full_name}</strong><small>{roleLabel}</small></span><ChevronDown /></button>
             {profileOpen && <div className="profile-popover"><div className="profile-identity"><UserRound /><span><strong>{user?.simulation?.original_email ?? user?.email}</strong><small>{isRolePreview ? `Pratinjau: ${roleLabels[user?.roles[0]?.code ?? ""] ?? "Peran"}` : user?.organizations[0]?.name ?? "Lingkup global"}</small></span></div>
               {isRolePreview ? <div className="profile-preview-return"><small>MODE PRATINJAU HANYA BACA</small><button disabled={previewBusy} onClick={() => void leavePreview()}><RotateCcw />Kembali ke Developer</button></div>
-                : isSuperadmin && <div className="profile-preview"><small>PRATINJAU TAMPILAN PERAN</small><p>Lihat menu dan data sesuai kewenangan tanpa login ulang.</p>{previewError && <span className="profile-preview-error">{previewError}</span>}<button disabled={previewBusy} onClick={() => void enterPreview("bapperida")}><Eye />BAPPERIDA</button><button disabled={previewBusy} onClick={() => void enterPreview("kominfo")}><Eye />Walidata Diskominfosantik</button><button disabled={previewBusy} onClick={() => void enterPreview("pimpinan")}><Eye />Pimpinan</button><label><span>Pratinjau OPD</span><select value={previewOrganizationId} onChange={(event) => setPreviewOrganizationId(event.target.value)}><option value="">Pilih OPD</option>{previewOrganizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.short_name ? `${organization.short_name} — ` : ""}{organization.name}</option>)}</select></label><button disabled={previewBusy || !previewOrganizationId} onClick={() => void enterPreview("opd", previewOrganizationId)}><Eye />Masuk sebagai OPD terpilih</button></div>}
+                : isSuperadmin && <div className="profile-preview"><small>PRATINJAU TAMPILAN PERAN</small><p>Lihat menu dan data sesuai kewenangan tanpa login ulang.</p>{previewError && <span className="profile-preview-error">{previewError}</span>}<button disabled={previewBusy} onClick={() => void enterPreview("bapperida")}><Eye />BAPPERIDA</button><button disabled={previewBusy} onClick={() => void enterPreview("kominfo")}><Eye />Walidata Diskominfosantik</button><button disabled={previewBusy} onClick={() => void enterPreview("pembina_statistik")}><Eye />Pembina Statistik BPS</button><button disabled={previewBusy} onClick={() => void enterPreview("pimpinan")}><Eye />Pimpinan</button><label><span>Pratinjau OPD</span><select value={previewOrganizationId} onChange={(event) => setPreviewOrganizationId(event.target.value)}><option value="">Pilih OPD</option>{previewOrganizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.short_name ? `${organization.short_name} - ` : ""}{organization.name}</option>)}</select></label><button disabled={previewBusy || !previewOrganizationId} onClick={() => void enterPreview("opd", previewOrganizationId)}><Eye />Masuk sebagai OPD terpilih</button></div>}
               {!isRolePreview && <button onClick={() => go("/admin/profile")}><ShieldCheck />Keamanan akun</button>}<button className="danger-text" onClick={doLogout}><LogOut />Keluar</button></div>}
           </div>
         </div>
       </header>
-      {isRolePreview && <div className="role-preview-banner"><Eye /><span><strong>Mode pratinjau hanya baca</strong><small>Anda sedang melihat SABABUKA sebagai {roleLabels[user?.roles[0]?.code ?? ""] ?? "pengguna"}{user?.simulation?.organization_name ? ` — ${user.simulation.organization_name}` : ""}.</small></span><button disabled={previewBusy} onClick={() => void leavePreview()}><RotateCcw />Kembali ke Developer</button></div>}
-      <main className="page-shell">
+      {isRolePreview && <div className="role-preview-banner"><Eye /><span><strong>Mode pratinjau hanya baca</strong><small>Anda sedang melihat SABABUKA sebagai {roleLabels[user?.roles[0]?.code ?? ""] ?? "pengguna"}{user?.simulation?.organization_name ? ` - ${user.simulation.organization_name}` : ""}.</small></span><button disabled={previewBusy} onClick={() => void leavePreview()}><RotateCcw />Kembali ke Developer</button></div>}
+      <main id="main-content" ref={mainRef} className="page-shell" tabIndex={-1} aria-label={`${title}. ${subtitle}`}>
         {children}
       </main>
+      <footer className="workspace-footer"><span>Dikembangkan oleh</span><strong>Tim Peneliti Kajian SABABUKA BERSINAR 2026</strong></footer>
     </section>
-    {helpOpen && <><button className="help-overlay" aria-label="Tutup bantuan" onClick={() => setHelpOpen(false)} /><aside className="help-drawer" aria-label="Bantuan SABABUKA"><header><div><span className="eyebrow">BANTUAN SESUAI PERAN</span><h2>{help.title}</h2></div><button className="icon-button" aria-label="Tutup bantuan" onClick={() => setHelpOpen(false)}><X /></button></header><p>{help.intro}</p><ol>{help.steps.map((step) => <li key={step}><span>{help.steps.indexOf(step) + 1}</span><p>{step}</p></li>)}</ol><section><strong>Istilah penting</strong><dl><div><dt>Target</dt><dd>Sasaran RPJMD untuk tahun pelaporan.</dd></div><div><dt>Realisasi</dt><dd>Nilai yang benar-benar dicapai OPD.</dd></div><div><dt>Dipublikasikan</dt><dd>Sudah diperiksa, dikurasi, dan boleh dilihat pimpinan.</dd></div></dl></section><footer><small>Jika tugas atau data tidak sesuai, catat nama indikator, periode, dan OPD lalu hubungi Pengelola Sistem.</small><button className="button primary" onClick={() => setHelpOpen(false)}>Saya mengerti</button></footer></aside></>}
+    {helpOpen && <><button className="help-overlay" aria-label="Tutup bantuan" onClick={() => setHelpOpen(false)} /><aside ref={helpRef} tabIndex={-1} className="help-drawer" role="dialog" aria-modal="true" aria-labelledby="help-drawer-title"><header><div><span className="eyebrow">BANTUAN SESUAI PERAN</span><h2 id="help-drawer-title">{help.title}</h2></div><button type="button" className="icon-button" aria-label="Tutup bantuan" onClick={() => setHelpOpen(false)}><X /></button></header><p>{help.intro}</p><ol>{help.steps.map((step) => <li key={step}><span>{help.steps.indexOf(step) + 1}</span><p>{step}</p></li>)}</ol><section><strong>Istilah penting</strong><dl><div><dt>Target</dt><dd>Sasaran RPJMD untuk tahun pelaporan.</dd></div><div><dt>Realisasi</dt><dd>Nilai yang benar-benar dicapai OPD.</dd></div><div><dt>Dipublikasikan</dt><dd>Sudah diperiksa, dikurasi, dan boleh dilihat pimpinan.</dd></div></dl></section><footer><small>Jika tugas atau data tidak sesuai, catat nama indikator, periode, dan OPD lalu hubungi Pengelola Sistem.</small><button type="button" className="button primary" onClick={() => setHelpOpen(false)}>Saya mengerti</button></footer></aside></>}
+    {announcement?.enabled && <Modal title={announcement.title ?? "Pemberitahuan"} onClose={() => setAnnouncement(null)}><article className="login-announcement"><span className="announcement-icon"><Megaphone /></span>{announcement.image_url && <img src={announcement.image_url} alt="Ilustrasi pemberitahuan" />}<p>{announcement.message}</p><footer className="modal-actions">{announcement.action_url && <a className="button secondary" href={announcement.action_url} target={announcement.action_url.startsWith("http") ? "_blank" : undefined} rel="noreferrer">{announcement.action_label ?? "Buka informasi"}</a>}<button type="button" className="button primary" onClick={() => setAnnouncement(null)}>Tutup</button></footer></article></Modal>}
   </div>;
 }
 
@@ -276,6 +343,7 @@ const roleHelp: Record<string, { title: string; intro: string; steps: string[] }
   bapperida: { title: "Panduan BAPPERIDA", intro: "Mulai dari Beranda Tugas untuk melihat keputusan yang menunggu Anda.", steps: ["Finalisasi kelompok isu dan indikator RPJMD.", "Verifikasi pelaporan yang dikirim OPD dan beri koreksi yang spesifik.", "Kurasi hanya capaian yang layak sebelum diterbitkan kepada pimpinan."] },
   opd: { title: "Panduan Operator OPD", intro: "Kartu Tugas Saya menunjukkan pekerjaan yang perlu Anda selesaikan lebih dahulu.", steps: ["Verifikasi indikator yang menjadi tanggung jawab OPD.", "Mulai pelaporan untuk periode berjalan dan isi realisasi.", "Lampirkan dokumen pendukung, simpan perubahan, lalu kirim ke BAPPERIDA."] },
   kominfo: { title: "Panduan Walidata", intro: "Diskominfosantik menjaga kualitas teknis dan aliran data lintas OPD.", steps: ["Daftarkan profil sumber data OPD.", "Petakan kolom sumber ke indikator yang sudah aktif.", "Periksa preview dan hasil validasi sebelum mengimpor atau menjadwalkan sinkronisasi."] },
+  pembina_statistik: { title: "Panduan Pembina Data Statistik", intro: "BPS membina standar dan kualitas statistik tanpa mengambil alih data milik OPD.", steps: ["Telaah standar, metadata, metodologi, dan konsistensi data.", "Berikan rekomendasi yang dapat ditindaklanjuti PIC instansi.", "Masukkan data hanya untuk indikator yang memang ditugaskan kepada BPS Kabupaten Kapuas."] },
   pimpinan: { title: "Panduan Pimpinan", intro: "Informasi di ruang ini hanya berasal dari data yang sudah diterbitkan.", steps: ["Gunakan filter untuk memilih kelompok isu atau OPD.", "Buka Rilis Data untuk melihat paket resmi dan sumbernya.", "Gunakan Asisten Data untuk bertanya berdasarkan data yang tersedia."] },
 };
 

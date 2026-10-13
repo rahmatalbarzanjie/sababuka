@@ -43,6 +43,7 @@ const pageMeta: Record<string, { title: string; subtitle: string; permission?: s
   "/governance/indicators": { title: "Matriks Indikator", subtitle: "Finalisasi definisi, sumber, target tahunan, serta OPD penanggung jawab indikator pembangunan.", permission: "indicator.view" },
   "/submissions": { title: "Pelaporan Realisasi", subtitle: "Isi, simpan, dan kirim realisasi indikator OPD untuk periode pelaporan.", permission: "submission.view" },
   "/reviews": { title: "Verifikasi Pelaporan OPD", subtitle: "Periksa, kembalikan, atau setujui pelaporan yang dikirim perangkat daerah.", permission: "submission.review" },
+  "/guidance": { title: "Pembinaan Data Statistik", subtitle: "Telaah standar, metadata, metodologi, dan konsistensi tanpa mengubah data milik produsen.", permission: "statistical_guidance.view" },
   "/publications": { title: "Kurasi dan Publikasi", subtitle: "Pilih capaian yang disetujui sebelum diterbitkan ke dashboard pimpinan.", permission: "publication.view" },
   "/connectors": { title: "Ruang Walidata", subtitle: "Kelola kualitas teknis, metadata, interoperabilitas, dan kesehatan aliran data daerah.", permission: "connector.view" },
   "/opd-profile": { title: "Profil Data OPD", subtitle: "Konfirmasi PIC, sumber data, dokumen acuan, dan baseline OPD.", permission: "submission.view" },
@@ -58,6 +59,7 @@ function ProtectedApp() {
       const landing = user.roles.some((role) => role.code === "superadmin") ? "/admin"
         : user.roles.some((role) => role.code === "pimpinan") ? "/dashboard"
         : user.roles.some((role) => role.code === "kominfo") ? "/connectors"
+        : user.roles.some((role) => role.code === "pembina_statistik") ? "/guidance"
         : user.permissions.includes("submission.view") ? "/operations" : "/dashboard";
       navigate(landing);
     }
@@ -90,6 +92,7 @@ function ProtectedApp() {
   else if (pathname === "/governance/indicators") content = <IndicatorsPage />;
   else if (pathname === "/submissions") content = <SubmissionsPage />;
   else if (pathname === "/reviews") content = <SubmissionsPage review />;
+  else if (pathname === "/guidance") content = <SubmissionsPage guidance />;
   else if (pathname === "/dashboard" || pathname === "/executive") content = <ExecutivePage />;
   else if (pathname === "/publications") content = <PublicationsPage />;
   else if (pathname === "/assistant") content = <AssistantPage />;

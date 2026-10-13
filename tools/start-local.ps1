@@ -79,6 +79,19 @@ $evidencePath = Join-Path $backendRoot "tmp\evidence"
 New-Item -ItemType Directory -Force -Path $evidencePath | Out-Null
 $env:EVIDENCE_STORAGE_PATH = $evidencePath
 
+# Selalu samakan skema dan konfigurasi menu lokal dengan migration repository
+# sebelum backend dinyalakan. Migration bersifat idempoten dan melewati versi
+# yang sudah tercatat, sehingga update source tidak meninggalkan database lokal.
+Push-Location $backendRoot
+try {
+  & $nodeCommand.Source "node_modules/tsx/dist/cli.mjs" "src/scripts/migrate.ts"
+  if ($LASTEXITCODE -ne 0) {
+    throw "Sinkronisasi migration database lokal gagal."
+  }
+} finally {
+  Pop-Location
+}
+
 if (-not (Test-ListeningPort 3001)) {
   Start-Process -FilePath $nodeCommand.Source `
     -ArgumentList "node_modules/tsx/dist/cli.mjs", "src/server.ts" `
@@ -114,4 +127,4 @@ Write-Host ""
 Write-Host "SABABUKA lokal siap." -ForegroundColor Green
 Write-Host "Buka: http://127.0.0.1:5173/login"
 Write-Host "Login Developer: developer@sababuka.com"
-Write-Host "Script ini tidak menjalankan migrasi, seed, atau mengubah data."
+Write-Host "Skema lokal sudah disinkronkan melalui migration repository; data produksi tidak disentuh."

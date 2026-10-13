@@ -27,7 +27,7 @@ export interface CurrentUser {
   organizations: AuthOrganization[];
   simulation?: {
     active: true;
-    role_code: "bapperida" | "kominfo" | "opd" | "pimpinan";
+    role_code: "bapperida" | "kominfo" | "pembina_statistik" | "opd" | "pimpinan";
     organization_id: string | null;
     organization_name: string | null;
     original_full_name: string;

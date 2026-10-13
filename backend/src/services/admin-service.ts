@@ -62,6 +62,7 @@ export const ROLE_SCOPE_RULES: Readonly<Record<string, readonly RoleScope[]>> = 
   superadmin: ["global"],
   bapperida: ["global"],
   kominfo: ["global"],
+  pembina_statistik: ["global"],
   opd: ["organization"],
   pimpinan: ["published"],
 };
@@ -83,6 +84,7 @@ export function assertRoleScope(roleCode: string, scopeType: RoleScope, organiza
 export function registrationRoleCodesForOrganization(organizationCode: string): string[] {
   if (organizationCode === "BAPPERIDA") return ["opd", "bapperida"];
   if (organizationCode === "DISKOMINFOSANTIK") return ["opd", "kominfo"];
+  if (organizationCode === "BPS_KAPUAS") return ["opd", "pembina_statistik"];
   return ["opd"];
 }
 
@@ -579,7 +581,7 @@ export class AdminService {
       if (!role.rows[0]) throw new ApiError(404, "NOT_FOUND", "Peran tidak ditemukan.");
       assertRoleScope(role.rows[0].code, input.scope_type, input.organization_id);
       if (role.rows[0].code !== "opd" || input.scope_type !== "organization" || !input.organization_id) {
-        throw new ApiError(400, "VALIDATION_ERROR", "Pendaftaran PIC harus disetujui untuk satu OPD. Peran tambahan BAPPERIDA atau Walidata diberikan otomatis sesuai instansi.");
+        throw new ApiError(400, "VALIDATION_ERROR", "Pendaftaran PIC harus disetujui untuk satu instansi. Peran khusus BAPPERIDA, Walidata, atau Pembina Data Statistik diberikan otomatis sesuai instansi.");
       }
       await assertOrganizationAccountLimit(client, userId, role.rows[0].code, input.organization_id);
       const organization = await client.query<{ code: string } & QueryResultRow>(
@@ -731,6 +733,7 @@ export class AdminService {
                 WHEN 'superadmin' THEN 'Pengelola Sistem'
                 WHEN 'bapperida' THEN 'Verifikator BAPPERIDA'
                 WHEN 'kominfo' THEN 'Walidata Diskominfosantik'
+                WHEN 'pembina_statistik' THEN 'Pembina Data Statistik (BPS)'
                 WHEN 'opd' THEN 'Admin/PIC OPD'
                 WHEN 'pimpinan' THEN 'Pimpinan'
                 ELSE r.name

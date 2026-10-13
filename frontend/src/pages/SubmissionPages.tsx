@@ -1,10 +1,10 @@
-import { BadgeCheck, CheckCircle2, ClipboardList, Download, FileCheck2, Plus, Save, Send, Trash2, Undo2, Upload } from "lucide-react";
+import { BadgeCheck, BookCheck, CheckCircle2, ClipboardList, Download, FileCheck2, Plus, Save, Send, Trash2, Undo2, Upload } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { api, apiPath, jsonBody } from "../api";
 import { useAuth } from "../auth";
 import { Badge, capaianStatusLabel, EmptyState, Modal, Notice, PageSizeControl, Pagination, SortableHeader, Spinner, useAsync, type SortDirection } from "../components";
 import { navigate } from "../router";
-import type { Organization, PageResponse, Period, Submission, SubmissionEvidence, SubmissionObservation } from "../types";
+import type { Organization, PageResponse, Period, StatisticalGuidanceNote, Submission, SubmissionEvidence, SubmissionObservation } from "../types";
 
 function formatIndicatorValue(value: string | number | null | undefined, dataType: string, unit?: string | null) {
   if (value === null || value === undefined || value === "") return "-";
@@ -21,7 +21,7 @@ function formatIndicatorValue(value: string | number | null | undefined, dataTyp
 interface AvailablePeriod extends Period { indicator_count: number; submission_id: string | null; submission_status: Submission["status"] | null }
 const frequencyLabel = (value: string) => ({ annual: "Tahunan", semester: "Semesteran", quarter: "Triwulanan", monthly: "Bulanan", weekly: "Mingguan", custom: "Insidental" }[value] ?? value);
 
-export function SubmissionsPage({ review = false }: { review?: boolean }) {
+export function SubmissionsPage({ review = false, guidance = false }: { review?: boolean; guidance?: boolean }) {
   const { user } = useAuth();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -30,31 +30,34 @@ export function SubmissionsPage({ review = false }: { review?: boolean }) {
   const [selectedId, setSelectedId] = useState<string | null>(() => new URLSearchParams(window.location.search).get("id"));
   const [sortBy, setSortBy] = useState("updated_at");
   const [sortOrder, setSortOrder] = useState<SortDirection>("desc");
-  const url = `/submissions?page=${page}&page_size=${pageSize}&sort_by=${sortBy}&sort_order=${sortOrder}${status ? `&status=${status}` : ""}`;
+  const writableOrganizationIds = (user?.roles ?? []).filter((role) => role.scope_type === "organization" && role.organization_id).map((role) => role.organization_id!);
+  const ownOrganizationId = writableOrganizationIds[0] ?? "";
+  const url = `/submissions?page=${page}&page_size=${pageSize}&sort_by=${sortBy}&sort_order=${sortOrder}${status ? `&status=${status}` : ""}${!review && !guidance && ownOrganizationId ? `&organization_id=${ownOrganizationId}` : ""}`;
   const submissions = useAsync(() => api<PageResponse<Submission>>(url), [url]);
   const changeSort = (column: string, direction: SortDirection) => { setSortBy(column); setSortOrder(direction); setPage(1); };
   const refs = useAsync(async () => {
     const organizations = await api<PageResponse<Organization>>("/organizations?page_size=100&active=true");
     return { organizations: organizations.data };
   }, []);
-  const canCreate = !review && (user?.permissions.includes("submission.create") ?? false);
+  const canCreate = !review && !guidance && writableOrganizationIds.length > 0 && (user?.permissions.includes("submission.create") ?? false);
 
   return <>
     {review && <section className="review-guidance"><span><ClipboardList /></span><div><strong>Antrean pemeriksaan BAPPERIDA</strong><p>Buka capaian, periksa nilai dan dokumen pendukung, lalu pilih setujui atau kembalikan dengan catatan yang spesifik.</p></div></section>}
+    {guidance && <section className="review-guidance statistical-guidance-banner"><span><BookCheck /></span><div><strong>Ruang Pembina Data Statistik BPS</strong><p>Telaah standar, metadata, metodologi, dan konsistensi. Rekomendasi tidak mengubah nilai atau status pelaporan; perbaikan tetap dilakukan PIC instansi pemilik.</p></div></section>}
     <div className="toolbar data-toolbar">
       <div className="status-filter" role="group" aria-label="Filter status capaian">
         {[
           ["", review ? "Semua" : "Semua"],
-          ...(review ? [["submitted", "Baru masuk"], ["under_review", "Sedang diperiksa"], ["returned", "Dikembalikan"], ["approved", "Disetujui"]] : [["draft", "Perlu diisi"], ["returned", "Perlu diperbaiki"], ["submitted", "Menunggu pemeriksaan"], ["approved", "Selesai"]]),
+          ...(review || guidance ? [["submitted", "Dikirim"], ["under_review", "Sedang diperiksa"], ["returned", "Dikembalikan"], ["approved", "Disetujui"]] : [["draft", "Perlu diisi"], ["returned", "Perlu diperbaiki"], ["submitted", "Menunggu pemeriksaan"], ["approved", "Selesai"]]),
         ].map(([value, label]) => <button key={value} className={status === value ? "active" : ""} onClick={() => { setStatus(value); setPage(1); }}>{label}</button>)}
       </div>
       <PageSizeControl value={pageSize} onChange={(size) => { setPageSize(size); setPage(1); }} />
       {canCreate && <button className="button primary" onClick={() => setCreateOpen(true)}><Plus />Mulai pelaporan</button>}
     </div>
-    <Notice tone="success">Setiap formulir hanya memuat indikator aktif yang frekuensinya sesuai periode—tahunan, semesteran, triwulanan, bulanan, mingguan, atau insidental.</Notice>
+    <Notice tone="success">Setiap formulir hanya memuat indikator aktif yang frekuensinya sesuai periode-tahunan, semesteran, triwulanan, bulanan, mingguan, atau insidental.</Notice>
     <section className="panel table-panel governance-table">
       {submissions.loading ? <div className="panel-loading"><Spinner /></div>
-        : !submissions.data?.data.length ? <EmptyState title={`Tidak ada capaian berstatus ${status ? capaianStatusLabel(status) : "pada daftar ini"}`}>{status ? "Pilih status lain untuk melihat pekerjaan yang sudah atau belum diproses." : review ? "Pengiriman OPD akan tampil setelah diajukan." : "Mulai pelaporan berdasarkan OPD dan periode."}</EmptyState>
+        : !submissions.data?.data.length ? <EmptyState title={`Tidak ada capaian berstatus ${status ? capaianStatusLabel(status) : "pada daftar ini"}`}>{status ? "Pilih status lain untuk melihat pekerjaan yang sudah atau belum diproses." : review ? "Pengiriman OPD akan tampil setelah diajukan." : guidance ? "Pelaporan instansi akan tampil untuk pembinaan setelah tersedia." : "Mulai pelaporan berdasarkan instansi dan periode."}</EmptyState>
         : <><div className="table-scroll submission-desktop-table"><table><thead><tr><SortableHeader label="OPD" column="organization" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /><SortableHeader label="Periode" column="period" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /><SortableHeader label="Kelengkapan" column="row_count" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /><SortableHeader label="Diperbarui" column="updated_at" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /><SortableHeader label="Status" column="status" sortBy={sortBy} direction={sortOrder} onSort={changeSort} /></tr></thead><tbody>
           {submissions.data.data.map((item) => <tr key={item.id} className="clickable-row" tabIndex={0} aria-label={`Buka capaian ${item.organization_name}`} onClick={() => setSelectedId(item.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedId(item.id); } }}>
             <td><div className="identity-cell"><span className="table-icon"><ClipboardList /></span><span><strong>{item.organization_name}</strong><small>{item.organization_code}</small></span></div></td>
@@ -62,11 +65,11 @@ export function SubmissionsPage({ review = false }: { review?: boolean }) {
             <td>{new Date(item.updated_at).toLocaleDateString("id-ID")}</td>
             <td><Badge tone={item.status === "approved" ? "success" : item.status === "returned" ? "warning" : "neutral"}>{capaianStatusLabel(item.status)}</Badge></td>
           </tr>)}
-        </tbody></table></div><div className="submission-mobile-list">{submissions.data.data.map((item) => <button key={item.id} onClick={() => setSelectedId(item.id)}><header><span><strong>{item.organization_name}</strong><small>{item.organization_code}</small></span><Badge tone={item.status === "approved" ? "success" : item.status === "returned" ? "warning" : "neutral"}>{capaianStatusLabel(item.status)}</Badge></header><dl><div><dt>Periode</dt><dd>{item.period_label ?? "-"} · {frequencyLabel(item.period_type)}</dd></div><div><dt>Kelengkapan</dt><dd>{item.row_count}/{item.indicator_count ?? 0} indikator</dd></div><div><dt>Diperbarui</dt><dd>{new Date(item.updated_at).toLocaleDateString("id-ID")}</dd></div></dl><span className="mobile-card-action">{review ? "Periksa capaian" : ["draft", "returned"].includes(item.status) ? "Lanjutkan pengisian" : "Lihat rincian"}</span></button>)}</div></>}
+        </tbody></table></div><div className="submission-mobile-list">{submissions.data.data.map((item) => <button key={item.id} onClick={() => setSelectedId(item.id)}><header><span><strong>{item.organization_name}</strong><small>{item.organization_code}</small></span><Badge tone={item.status === "approved" ? "success" : item.status === "returned" ? "warning" : "neutral"}>{capaianStatusLabel(item.status)}</Badge></header><dl><div><dt>Periode</dt><dd>{item.period_label ?? "-"} · {frequencyLabel(item.period_type)}</dd></div><div><dt>Kelengkapan</dt><dd>{item.row_count}/{item.indicator_count ?? 0} indikator</dd></div><div><dt>Diperbarui</dt><dd>{new Date(item.updated_at).toLocaleDateString("id-ID")}</dd></div></dl><span className="mobile-card-action">{review ? "Periksa capaian" : guidance ? "Telaah statistik" : ["draft", "returned"].includes(item.status) ? "Lanjutkan pengisian" : "Lihat rincian"}</span></button>)}</div></>}
       {submissions.data && <Pagination page={submissions.data.meta.page} pageSize={submissions.data.meta.page_size} totalItems={submissions.data.meta.total_items} totalPages={submissions.data.meta.total_pages} sortLabel={`${({ updated_at: "Diperbarui", organization: "OPD", period: "Periode", row_count: "Jumlah indikator", status: "Status" } as Record<string, string>)[sortBy] ?? "Diperbarui"} ${sortBy === "updated_at" ? (sortOrder === "desc" ? "terbaru" : "terlama") : (sortOrder === "desc" ? "menurun" : "menaik")}`} onChange={setPage} showPageSize={false} />}
     </section>
-    {createOpen && refs.data && <CreateSubmission organizations={refs.data.organizations} preferredOrganizationId={user?.organizations[0]?.id} onClose={() => setCreateOpen(false)} onCreated={(id) => { setCreateOpen(false); submissions.reload(); setSelectedId(id); }} />}
-    {selectedId && <SubmissionDetailModal id={selectedId} review={review} permissions={user?.permissions ?? []} onClose={() => setSelectedId(null)} onChanged={() => submissions.reload()} />}
+    {createOpen && refs.data && <CreateSubmission organizations={refs.data.organizations.filter((organization) => writableOrganizationIds.includes(organization.id))} preferredOrganizationId={ownOrganizationId} onClose={() => setCreateOpen(false)} onCreated={(id) => { setCreateOpen(false); submissions.reload(); setSelectedId(id); }} />}
+    {selectedId && <SubmissionDetailModal id={selectedId} review={review} guidance={guidance} permissions={user?.permissions ?? []} writableOrganizationIds={writableOrganizationIds} onClose={() => setSelectedId(null)} onChanged={() => submissions.reload()} />}
   </>;
 }
 
@@ -104,18 +107,40 @@ function CreateSubmission({ organizations, preferredOrganizationId, onClose, onC
   </Modal>;
 }
 
-function SubmissionDetailModal({ id, review, permissions, onClose, onChanged }: { id: string; review: boolean; permissions: string[]; onClose(): void; onChanged(): void }) {
+function SubmissionDetailModal({ id, review, guidance, permissions, writableOrganizationIds, onClose, onChanged }: { id: string; review: boolean; guidance: boolean; permissions: string[]; writableOrganizationIds: string[]; onClose(): void; onChanged(): void }) {
   const detail = useAsync(() => api<Submission>(`/submissions/${id}`), [id]);
   const evidence = useAsync(() => api<{ data: SubmissionEvidence[] }>(`/submissions/${id}/evidence`), [id]);
+  const guidanceNotes = useAsync(() => api<{ data: StatisticalGuidanceNote[] }>(`/submissions/${id}/guidance`), [id]);
   const [values, setValues] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [reviewNotes, setReviewNotes] = useState("");
+  const [guidanceType, setGuidanceType] = useState<StatisticalGuidanceNote["guidance_type"]>("methodology");
+  const [guidanceIndicatorId, setGuidanceIndicatorId] = useState("");
+  const [guidanceText, setGuidanceText] = useState("");
   const [checks, setChecks] = useState({ values: false, evidence: false });
   const [affected, setAffected] = useState<Set<string>>(new Set());
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
   const currentValue = (item: SubmissionObservation) => values[item.indicator_version_id] ?? String(item.numeric_value ?? item.text_value ?? "");
-  const editable = detail.data ? ["draft", "returned"].includes(detail.data.status) && permissions.includes("submission.update") : false;
+  const ownsSubmission = detail.data ? writableOrganizationIds.includes(detail.data.organization_id) : false;
+  const editable = detail.data ? !review && !guidance && ownsSubmission && ["draft", "returned"].includes(detail.data.status) && permissions.includes("submission.update") : false;
+
+  const addGuidance = async () => {
+    if (!guidanceText.trim()) return;
+    setBusy(true); setError("");
+    try {
+      await api(`/submissions/${id}/guidance`, { method: "POST", mutation: true, body: jsonBody({ indicator_version_id: guidanceIndicatorId || null, guidance_type: guidanceType, notes: guidanceText.trim() }) });
+      setGuidanceText(""); setGuidanceIndicatorId(""); guidanceNotes.reload();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Rekomendasi gagal disimpan."); }
+    finally { setBusy(false); }
+  };
+
+  const resolveGuidance = async (guidanceId: string) => {
+    setBusy(true); setError("");
+    try { await api(`/submissions/${id}/guidance/${guidanceId}/resolve`, { method: "POST", mutation: true, body: jsonBody({ notes: "Telah ditindaklanjuti oleh PIC instansi." }) }); guidanceNotes.reload(); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Tindak lanjut gagal disimpan."); }
+    finally { setBusy(false); }
+  };
 
   const persist = async (item: SubmissionObservation) => {
     const raw = currentValue(item); const value = ["text", "boolean"].includes(item.data_type) ? raw : Number(raw);
@@ -158,10 +183,10 @@ function SubmissionDetailModal({ id, review, permissions, onClose, onChanged }: 
     catch (cause) { setError(cause instanceof Error ? cause.message : "Status gagal diubah."); }
     finally { setBusy(false); }
   };
-  const action = detail.data?.status === "draft" || detail.data?.status === "returned"
+  const action = (detail.data?.status === "draft" || detail.data?.status === "returned") && ownsSubmission
     ? (permissions.includes("submission.submit") ? "submit" : null)
-    : detail.data?.status === "submitted" && permissions.includes("submission.review") ? "start-review"
-    : detail.data?.status === "under_review" && permissions.includes("submission.approve") ? "approve" : null;
+    : review && detail.data?.status === "submitted" && permissions.includes("submission.review") ? "start-review"
+    : review && detail.data?.status === "under_review" && permissions.includes("submission.approve") ? "approve" : null;
 
   const staleTarget = detail.error?.message.toLowerCase().includes("tidak ditemukan") ?? false;
   return <Modal title="Rincian capaian indikator" onClose={onClose} wide>
@@ -178,8 +203,12 @@ function SubmissionDetailModal({ id, review, permissions, onClose, onChanged }: 
           {editable && <div className="realization-actions"><button className="button secondary compact" disabled={busy || !currentValue(item)} onClick={() => save(item)}><Save />Simpan indikator</button><label className="button secondary compact upload-button"><Upload />Bukti dukung<input type="file" accept=".pdf,.jpg,.jpeg,.png,.xlsx" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file, item.indicator_version_id); event.target.value = ""; }} /></label></div>}
           {editable && numericDeviation(item, currentValue(item)) && <Notice tone="warning">Nilai berbeda lebih dari 50% terhadap target. Periksa kembali satuan dan angka, lalu jelaskan penyebabnya pada catatan jika memang benar.</Notice>}
         </section>)}</div></>}
-      <section className="evidence-panel"><h3><FileCheck2 />Dokumen pendukung internal</h3><p>Lampirkan sumber perhitungan, rekap, atau dokumen pengesahan bila tersedia. PDF, JPG, PNG, atau XLSX; maksimum 10 MB. Dokumen hanya dapat dilihat OPD terkait dan petugas BAPPERIDA yang berwenang.</p>
+      <section className="evidence-panel"><h3><FileCheck2 />Dokumen pendukung internal</h3><p>Lampirkan sumber perhitungan, rekap, atau dokumen pengesahan bila tersedia. PDF, JPG, PNG, atau XLSX; maksimum 10 MB. Dokumen hanya dapat dilihat instansi terkait serta petugas pemeriksaan dan pembinaan yang berwenang.</p>
         {evidence.loading ? <Spinner /> : !evidence.data?.data.length ? <small>Belum ada bukti dukung.</small> : <div className="evidence-list">{evidence.data.data.map((item) => <div key={item.id}><span><strong>{item.original_filename}</strong><small>{item.indicator_code ?? "Umum"} - {(Number(item.byte_size) / 1024).toLocaleString("id-ID", { maximumFractionDigits: 1 })} KB</small></span><span><a className="icon-button" aria-label="Unduh bukti" href={apiPath(`/submissions/${id}/evidence/${item.id}/download`)}><Download /></a>{editable && <button className="icon-button danger-text" aria-label="Hapus bukti" onClick={() => removeEvidence(item.id)}><Trash2 /></button>}</span></div>)}</div>}
+      </section>
+      <section className="evidence-panel statistical-guidance-panel"><h3><BookCheck />Rekomendasi Pembina Data Statistik</h3><p>Catatan BPS bersifat pembinaan. Nilai tidak berubah otomatis dan status pelaporan tetap diputuskan melalui alur daerah.</p>
+        {guidanceNotes.loading ? <Spinner /> : guidanceNotes.error ? <Notice tone="error">{guidanceNotes.error.message}</Notice> : !guidanceNotes.data?.data.length ? <small>Belum ada rekomendasi statistik.</small> : <div className="guidance-note-list">{guidanceNotes.data.data.map((item) => <article key={item.id} className={item.resolved_at ? "resolved" : ""}><header><span><Badge tone={item.resolved_at ? "success" : "warning"}>{item.resolved_at ? "Ditindaklanjuti" : "Perlu ditinjau"}</Badge><strong>{({ standard: "Standar data", metadata: "Metadata", methodology: "Metodologi", consistency: "Konsistensi" } as const)[item.guidance_type]}</strong></span><small>{new Date(item.created_at).toLocaleDateString("id-ID")} - {item.created_by_name}</small></header>{item.indicator_name && <small>Indikator: {item.indicator_name}</small>}<p>{item.notes}</p>{item.resolution_notes && <small>Tindak lanjut: {item.resolution_notes}</small>}{ownsSubmission && !item.resolved_at && <button className="button secondary compact" disabled={busy} onClick={() => void resolveGuidance(item.id)}><CheckCircle2 />Tandai sudah ditindaklanjuti</button>}</article>)}</div>}
+        {guidance && permissions.includes("statistical_guidance.comment") && <div className="guidance-form"><div className="form-grid"><label className="field"><span>Jenis pembinaan</span><select value={guidanceType} onChange={(event) => setGuidanceType(event.target.value as StatisticalGuidanceNote["guidance_type"])}><option value="standard">Standar data</option><option value="metadata">Metadata</option><option value="methodology">Metodologi</option><option value="consistency">Konsistensi</option></select></label><label className="field"><span>Indikator <small>(opsional)</small></span><select value={guidanceIndicatorId} onChange={(event) => setGuidanceIndicatorId(event.target.value)}><option value="">Seluruh pelaporan</option>{detail.data.observations.map((item) => <option key={item.indicator_version_id} value={item.indicator_version_id}>{item.indicator_name}</option>)}</select></label></div><label className="field"><span>Rekomendasi perbaikan</span><textarea rows={4} value={guidanceText} onChange={(event) => setGuidanceText(event.target.value)} placeholder="Jelaskan standar atau metode yang perlu diperbaiki. Jangan mengubah nilai atas nama produsen data." /></label><button className="button primary" disabled={busy || guidanceText.trim().length < 3} onClick={() => void addGuidance()}><BookCheck />Simpan rekomendasi</button></div>}
       </section>
       {review && detail.data.status === "under_review" && <section className="review-decision-panel"><header><span><CheckCircle2 /></span><div><h3>Keputusan pemeriksaan</h3><p>Gunakan checklist singkat ini agar keputusan mudah dipahami OPD dan dapat dipertanggungjawabkan.</p></div></header><label className="review-check"><input type="checkbox" checked={checks.values} onChange={(event) => setChecks((current) => ({ ...current, values: event.target.checked }))} /><span><strong>Nilai dan satuan sudah diperiksa</strong><small>Angka sesuai periode, target, dan konteks indikator.</small></span></label><label className="review-check"><input type="checkbox" checked={checks.evidence} onChange={(event) => setChecks((current) => ({ ...current, evidence: event.target.checked }))} /><span><strong>Sumber dan dokumen pendukung sudah diperiksa</strong><small>Catatan atau bukti cukup untuk menjelaskan asal data.</small></span></label><fieldset className="affected-indicators"><legend>Indikator yang perlu diperbaiki <small>(pilih untuk pengembalian)</small></legend>{detail.data.observations.map((item) => <label key={item.indicator_version_id}><input type="checkbox" checked={affected.has(item.indicator_version_id)} onChange={(event) => setAffected((current) => { const next = new Set(current); if (event.target.checked) next.add(item.indicator_version_id); else next.delete(item.indicator_version_id); return next; })} /><span>{item.indicator_name}</span></label>)}</fieldset><label className="field"><span>Catatan keputusan</span><textarea rows={4} value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} placeholder="Jelaskan nilai, sumber, dokumen, atau bagian yang perlu diperbaiki." /></label><footer><button className="button secondary" disabled={busy || !reviewNotes.trim() || !affected.size} onClick={() => void act("return", reviewNotes.trim())}><Undo2 />Kembalikan indikator terpilih</button><button className="button primary" disabled={busy || !checks.values || !checks.evidence} onClick={() => void act("approve", reviewNotes.trim() || null)}><BadgeCheck />Setujui capaian</button></footer></section>}
       <footer className="detail-actions">

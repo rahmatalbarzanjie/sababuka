@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, MapPinned, Newspaper, Search, TrendingUp } from "lucide-react";
+import { AlertTriangle, MapPinned, Newspaper, Search, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { api } from "../api";
 import { Badge, EmptyState, formatDate, Notice, PageLoading, useAsync } from "../components";
@@ -77,9 +77,9 @@ export function ExecutivePage() {
         const latest = series.points.at(-1); const unit = series.unit_symbol ?? series.unit;
         const tone = series.performance === "improving" ? "success" : series.performance === "worsening" ? "danger" : "warning";
         const status = series.performance === "improving" ? "Membaik" : series.performance === "worsening" ? "Memburuk" : series.performance === "stable" ? "Stabil" : "Data awal";
-        return <article key={series.indicator_id}><small>{series.category_name}</small><Badge tone={tone}>{status}</Badge><h3>{series.indicator_name}</h3><strong>{latest ? valueLabel(latest.value, unit) : "-"}</strong><div className="executive-change"><span>Perubahan</span><b>{changeLabel(series)}</b><small>{series.points.length > 1 ? `${series.points[0].period_label}–${latest?.period_label}` : latest?.period_label}</small></div><footer>{series.geography_name} · {series.points.length} periode</footer></article>;
+        return <article key={series.indicator_id}><small>{series.category_name}</small><Badge tone={tone}>{status}</Badge><h3>{series.indicator_name}</h3><strong>{latest ? valueLabel(latest.value, unit) : "-"}</strong><div className="executive-change"><span>Perubahan</span><b>{changeLabel(series)}</b><small>{series.points.length > 1 ? `${series.points[0].period_label}-${latest?.period_label}` : latest?.period_label}</small></div><footer>{series.geography_name} · {series.points.length} periode</footer></article>;
       })}</div>}
     </section>
-    {districtCoverage === 0 && <Notice tone="success"><CheckCircle2 /> Peta kecamatan tidak ditampilkan pada ringkasan ini karena data yang tersedia masih tingkat kabupaten. Peta akan aktif otomatis saat sumber resmi memiliki kode kecamatan.</Notice>}
+    {districtCoverage === 0 && <Notice tone="success">Peta kecamatan tidak ditampilkan pada ringkasan ini karena data yang tersedia masih tingkat kabupaten. Peta akan aktif otomatis saat sumber resmi memiliki kode kecamatan.</Notice>}
   </div>;
 }

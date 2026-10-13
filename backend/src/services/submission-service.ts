@@ -44,6 +44,10 @@ function isGlobal(auth: AuthContext): boolean {
   return auth.user.roles.some((role) => role.scope_type === "global");
 }
 
+function isStatisticalCoach(auth: AuthContext): boolean {
+  return auth.user.roles.some((role) => role.code === "pembina_statistik");
+}
+
 function organizationScope(auth: AuthContext): string[] {
   return [...new Set([
     ...auth.user.organizations.map((organization) => organization.id),
@@ -54,6 +58,13 @@ function organizationScope(auth: AuthContext): string[] {
 function assertOrganizationScope(auth: AuthContext, organizationId: string): void {
   if (!isGlobal(auth) && !organizationScope(auth).includes(organizationId)) {
     throw new ApiError(403, "SCOPE_DENIED", "OPD berada di luar scope pengguna.");
+  }
+}
+
+function assertWritableOrganizationScope(auth: AuthContext, organizationId: string): void {
+  const writable = auth.user.roles.some((role) => role.scope_type === "organization" && role.organization_id === organizationId);
+  if (!writable) {
+    throw new ApiError(403, "SCOPE_DENIED", "Data hanya dapat diubah oleh PIC instansi pemilik.");
   }
 }
 
@@ -101,18 +112,19 @@ export class SubmissionService {
        JOIN sababuka.datasets d ON d.id = dv.dataset_id
        WHERE d.code = 'SABABUKA.CAPAIAN_MANUAL'
          AND ($1::boolean OR b.organization_id = ANY($2::uuid[]))
+         AND ($8::boolean OR b.status <> 'draft' OR b.organization_id = ANY($2::uuid[]))
          AND ($3::uuid IS NULL OR b.organization_id = $3)
          AND ($4::uuid IS NULL OR b.reporting_period_id = $4)
          AND ($5::text IS NULL OR b.status = $5)
        ORDER BY ${orderColumn} ${orderDirection} NULLS LAST, b.updated_at DESC, b.id DESC LIMIT $6 OFFSET $7`,
       [isGlobal(auth), scope, query.organizationId ?? null, query.periodId ?? null, query.status ?? null,
-       query.pageSize, (query.page - 1) * query.pageSize],
+       query.pageSize, (query.page - 1) * query.pageSize, !isStatisticalCoach(auth)],
     );
     return pageEnvelope(result.rows, query.page, query.pageSize);
   }
 
   async availablePeriods(auth: AuthContext, organizationId: string) {
-    assertOrganizationScope(auth, organizationId);
+    assertWritableOrganizationScope(auth, organizationId);
     const result = await this.db.query<QueryResultRow & Record<string, unknown>>(
       `SELECT p.id::text,p.code,p.label,p.period_type,p.starts_on::text,p.ends_on::text,
               count(DISTINCT iv.id)::int AS indicator_count,
@@ -137,7 +149,7 @@ export class SubmissionService {
   }
 
   async create(auth: AuthContext, input: { organization_id: string; period_id: string }, audit: AuditContext) {
-    assertOrganizationScope(auth, input.organization_id);
+    assertWritableOrganizationScope(auth, input.organization_id);
     const eligible = await this.db.query<{ indicator_count: number }>(
       `SELECT count(DISTINCT iv.id)::int AS indicator_count
        FROM sababuka.periods p
@@ -195,6 +207,9 @@ export class SubmissionService {
     const batch = batchResult.rows[0];
     if (!batch) throw new ApiError(404, "NOT_FOUND", "Form capaian tidak ditemukan.");
     assertOrganizationScope(auth, batch.organization_id as string);
+    if (isStatisticalCoach(auth) && batch.status === "draft" && !organizationScope(auth).includes(batch.organization_id as string)) {
+      throw new ApiError(403, "SCOPE_DENIED", "Draf instansi lain belum dapat ditelaah oleh Pembina Data Statistik.");
+    }
     const observations = await this.db.query<QueryResultRow & Record<string, unknown>>(
       `SELECT iv.id::text AS indicator_version_id, i.code AS indicator_code, i.name AS indicator_name,
               iv.data_type,iv.frequency,u.name AS unit_name,u.symbol AS unit_symbol,
@@ -227,6 +242,7 @@ export class SubmissionService {
 
   async saveObservation(auth: AuthContext, batchId: string, indicatorVersionId: string, input: ObservationInput, audit: AuditContext) {
     const detail = await this.get(auth, batchId);
+    assertWritableOrganizationScope(auth, detail.organization_id);
     if (!['draft', 'returned'].includes(detail.status as string)) {
       throw new ApiError(409, "CONFLICT", "Capaian hanya dapat diubah saat berstatus draft atau dikembalikan.");
     }
@@ -288,6 +304,7 @@ export class SubmissionService {
 
   async prepareEvidence(auth: AuthContext, batchId: string, indicatorVersionId?: string | null) {
     const detail = await this.get(auth, batchId);
+    assertWritableOrganizationScope(auth, detail.organization_id);
     if (!["draft", "returned"].includes(detail.status)) {
       throw new ApiError(409, "CONFLICT", "Bukti dukung hanya dapat ditambah saat capaian berstatus draft atau dikembalikan.");
     }
@@ -344,6 +361,7 @@ export class SubmissionService {
 
   async transition(auth: AuthContext, id: string, action: SubmissionAction, notes: string | null, audit: AuditContext) {
     const detail = await this.get(auth, id);
+    if (action === "submit") assertWritableOrganizationScope(auth, detail.organization_id);
     const from = detail.status as string;
     const transitions: Record<SubmissionAction, { from: string[]; to: string }> = {
       submit: { from: ["draft", "returned"], to: "submitted" },
@@ -385,5 +403,63 @@ export class SubmissionService {
         message: `Capaian ${detail.period_label} telah disetujui Bapperida.` }, auth.user.id);
     }
     return this.get(auth, id);
+  }
+
+  async listGuidance(auth: AuthContext, batchId: string) {
+    await this.get(auth, batchId);
+    const result = await this.db.query<QueryResultRow & Record<string, unknown>>(
+      `SELECT g.id::text, g.batch_id::text, g.indicator_version_id::text,
+              i.name AS indicator_name, g.guidance_type, g.notes,
+              g.created_by::text, creator.full_name AS created_by_name, g.created_at::text,
+              g.resolved_by::text, resolver.full_name AS resolved_by_name,
+              g.resolved_at::text, g.resolution_notes
+       FROM sababuka.submission_guidance_notes g
+       LEFT JOIN sababuka.indicator_versions iv ON iv.id = g.indicator_version_id
+       LEFT JOIN sababuka.indicators i ON i.id = iv.indicator_id
+       JOIN sababuka.users creator ON creator.id = g.created_by
+       LEFT JOIN sababuka.users resolver ON resolver.id = g.resolved_by
+       WHERE g.batch_id = $1
+       ORDER BY (g.resolved_at IS NULL) DESC, g.created_at DESC`, [batchId],
+    );
+    return { data: result.rows };
+  }
+
+  async addGuidance(auth: AuthContext, batchId: string, input: { indicator_version_id?: string | null; guidance_type: string; notes: string }, audit: AuditContext) {
+    const detail = await this.get(auth, batchId);
+    if (input.indicator_version_id && !(detail.observations as Record<string, unknown>[]).some((item) => item.indicator_version_id === input.indicator_version_id)) {
+      throw new ApiError(400, "VALIDATION_ERROR", "Indikator tidak termasuk dalam pelaporan ini.");
+    }
+    const result = await this.db.query<QueryResultRow & Record<string, unknown>>(
+      `INSERT INTO sababuka.submission_guidance_notes
+         (batch_id, indicator_version_id, guidance_type, notes, created_by)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id::text, batch_id::text, indicator_version_id::text,
+                 guidance_type, notes, created_by::text, created_at::text`,
+      [batchId, input.indicator_version_id ?? null, input.guidance_type, input.notes.trim(), auth.user.id],
+    );
+    const guidance = result.rows[0]!;
+    await recordAudit(this.db, { ...audit, eventType: "submission.statistical_guidance_added", entityType: "data_batch",
+      entityId: batchId, organizationId: detail.organization_id, afterData: guidance as Record<string, unknown> });
+    await notifyOrganization(this.db, detail.organization_id, { entityType: "data_batch", entityId: batchId,
+      type: "submission.statistical_guidance_added", title: "Rekomendasi Pembina Data Statistik",
+      message: `BPS memberikan rekomendasi ${input.guidance_type} untuk capaian ${detail.period_label}. Data tidak diubah otomatis.` }, auth.user.id);
+    return guidance;
+  }
+
+  async resolveGuidance(auth: AuthContext, batchId: string, guidanceId: string, notes: string | null, audit: AuditContext) {
+    const detail = await this.get(auth, batchId);
+    assertWritableOrganizationScope(auth, detail.organization_id);
+    const result = await this.db.query<QueryResultRow & Record<string, unknown>>(
+      `UPDATE sababuka.submission_guidance_notes
+       SET resolved_by = $3, resolved_at = now(), resolution_notes = $4
+       WHERE id = $1 AND batch_id = $2 AND resolved_at IS NULL
+       RETURNING id::text, resolved_by::text, resolved_at::text, resolution_notes`,
+      [guidanceId, batchId, auth.user.id, notes?.trim() || null],
+    );
+    if (!result.rows[0]) throw new ApiError(404, "NOT_FOUND", "Rekomendasi tidak ditemukan atau sudah ditindaklanjuti.");
+    await recordAudit(this.db, { ...audit, eventType: "submission.statistical_guidance_resolved", entityType: "data_batch",
+      entityId: batchId, organizationId: detail.organization_id, afterData: result.rows[0] as Record<string, unknown>,
+      metadata: { guidance_id: guidanceId } });
+    return result.rows[0];
   }
 }

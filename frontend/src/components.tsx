@@ -1,8 +1,8 @@
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight, LoaderCircle, X } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 export function Spinner({ label = "Memuat" }: { label?: string }) {
-  return <span className="spinner"><LoaderCircle size={17} aria-hidden /> {label}</span>;
+  return <span className="spinner" role="status" aria-live="polite"><LoaderCircle size={17} aria-hidden /> {label}</span>;
 }
 
 export function LoadingScreen() {
@@ -14,7 +14,7 @@ export function PageLoading({ label = "Memuat data" }: { label?: string }) {
 }
 
 export function EmptyState({ title, children }: { title: string; children: ReactNode }) {
-  return <div className="empty-state"><div className="empty-icon">◇</div><h3>{title}</h3><p>{children}</p></div>;
+  return <div className="empty-state" role="status"><div className="empty-icon" aria-hidden>◇</div><h3>{title}</h3><p>{children}</p></div>;
 }
 
 export function Badge({ tone = "neutral", children }: { tone?: "success" | "warning" | "danger" | "info" | "neutral"; children: ReactNode }) {
@@ -30,7 +30,7 @@ export function SortableHeader({ label, column, sortBy, direction, onSort, class
   const active = sortBy === column;
   const nextDirection: SortDirection = active && direction === "asc" ? "desc" : "asc";
   const Icon = !active ? ArrowUpDown : direction === "asc" ? ArrowUp : ArrowDown;
-  return <th className={className} aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : "none"}>
+  return <th scope="col" className={className} aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : "none"}>
     <button type="button" className={`sortable-header${active ? " active" : ""}`} onClick={() => onSort(column, nextDirection)} title={`Urutkan ${label} ${nextDirection === "asc" ? "menaik" : "menurun"}`}>
       <span>{label}</span><Icon aria-hidden />
     </button>
@@ -39,6 +39,7 @@ export function SortableHeader({ label, column, sortBy, direction, onSort, class
 
 export function Modal({ title, onClose, children, wide = false, className = "" }: { title: string; onClose(): void; children: ReactNode; wide?: boolean; className?: string }) {
   const modalRef = useRef<HTMLElement>(null);
+  const titleId = useId();
   useEffect(() => {
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
@@ -62,14 +63,14 @@ export function Modal({ title, onClose, children, wide = false, className = "" }
     };
   }, [onClose]);
   return <div className="modal-backdrop" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}>
-    <section ref={modalRef} tabIndex={-1} className={`modal ${wide ? "wide" : ""} ${className}`.trim()} role="dialog" aria-modal="true" aria-label={title}>
-      <header><div><span className="eyebrow">SABABUKA BERSINAR</span><h2>{title}</h2></div><button className="icon-button" onClick={onClose} aria-label="Tutup"><X size={20} /></button></header>
+    <section ref={modalRef} tabIndex={-1} className={`modal ${wide ? "wide" : ""} ${className}`.trim()} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <header><div><span className="eyebrow">SABABUKA BERSINAR</span><h2 id={titleId}>{title}</h2></div><button type="button" className="icon-button" onClick={onClose} aria-label="Tutup dialog"><X size={20} aria-hidden /></button></header>
       <div className="modal-content">{children}</div>
     </section>
   </div>;
 }
 
-export function Notice({ tone, children }: { tone: "error" | "success" | "warning"; children: ReactNode | Error }) {
+export function Notice({ tone, children }: { tone: "error" | "success" | "warning" | "info"; children: ReactNode | Error }) {
   const Icon = tone === "success" ? CheckCircle2 : AlertTriangle;
   return <div className={`notice ${tone}`} role={tone === "error" ? "alert" : "status"} aria-live="polite"><Icon size={18} aria-hidden /><div>{children instanceof Error ? children.message : children}</div></div>;
 }
@@ -96,7 +97,7 @@ export function Pagination({ page, totalPages, totalItems, pageSize, sortLabel, 
     {totalItems !== undefined && <span className="pagination-summary"><span>Menampilkan <strong>{firstItem}-{lastItem}</strong> dari <strong>{totalItems}</strong> data</span>{sortLabel ? <span className="pagination-sort"> · Urutan: <strong>{sortLabel}</strong></span> : null}</span>}
     {showPageSize && onPageSizeChange && <PageSizeControl value={safePageSize} onChange={onPageSizeChange} />}
     <div className="pagination-nav"><button className="button secondary pagination-button" aria-label="Halaman sebelumnya" disabled={page <= 1} onClick={() => onChange(page - 1)}><ChevronLeft size={16} /><span>Sebelumnya</span></button>
-      <span className="pagination-page-label">Halaman <strong>{page}</strong> dari <strong>{Math.max(totalPages, 1)}</strong></span>
+      <span className="pagination-page-label">{`Halaman ${page} dari ${Math.max(totalPages, 1)}`}</span>
       <button className="button secondary pagination-button" aria-label="Halaman berikutnya" disabled={page >= totalPages} onClick={() => onChange(page + 1)}><span>Berikutnya</span><ChevronRight size={16} /></button></div>
   </div>;
 }
