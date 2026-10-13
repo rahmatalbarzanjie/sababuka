@@ -1638,6 +1638,51 @@ small, .metric-card small, .executive-panel > header > small,
   .readiness-filter-primary .search-box {
     min-width: 0;
   }
+  .readiness-desktop-table {
+    overflow-x: hidden;
+  }
+  .readiness-table {
+    min-width: 0;
+    table-layout: fixed;
+  }
+  .readiness-table th,
+  .readiness-table td {
+    min-width: 0;
+    padding: 12px 9px;
+    overflow-wrap: anywhere;
+  }
+  .readiness-table th:nth-child(1) { width: 4%; }
+  .readiness-table th:nth-child(2) { width: 23%; }
+  .readiness-table th:nth-child(3) { width: 17%; }
+  .readiness-table th:nth-child(4) { width: 16%; }
+  .readiness-table th:nth-child(5) { width: 11%; }
+  .readiness-table th:nth-child(6) { width: 10%; }
+  .readiness-table th:nth-child(7) { width: 9%; }
+  .readiness-table th:nth-child(8) { width: 10%; }
+  .readiness-table .sortable-header {
+    gap: 4px;
+    white-space: normal;
+    line-height: 1.3;
+  }
+  .readiness-table .identity-cell {
+    min-width: 0;
+    gap: 8px;
+  }
+  .readiness-table .identity-cell > span:last-child {
+    min-width: 0;
+  }
+  .readiness-table .identity-cell small {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .readiness-table .badge,
+  .readiness-table .readiness-state {
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+  }
 }
 
 @media (max-width: 1100px) {
