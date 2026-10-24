@@ -1,5 +1,7 @@
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight, Inbox, LoaderCircle, RefreshCw, X } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+export { capaianStatusLabel, statusLabel } from "./utils/status-label";
+export type { StatusViewpoint } from "./utils/status-label";
 
 export function Spinner({ label = "Memuat" }: { label?: string }) {
   return <span className="spinner" role="status" aria-live="polite"><LoaderCircle size={17} aria-hidden /> {label}</span>;
@@ -130,28 +132,6 @@ export function formatDateOnly(value: string | null | undefined): string {
   return new Intl.DateTimeFormat("id-ID", {
     day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta",
   }).format(new Date(value));
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  active: "Aktif", inactive: "Nonaktif", draft: "Draf", submitted: "Dikirim",
-  verified: "Terverifikasi", rejected: "Ditolak", published: "Terbit",
-  replaced: "Digantikan", pending: "Menunggu", approved: "Disetujui",
-  in_review: "Menunggu keputusan BAPPERIDA", opd_verification: "Menunggu verifikasi OPD",
-  archived: "Diarsipkan", open: "Terbuka", closed: "Selesai",
-};
-
-export function statusLabel(value: string | null | undefined): string {
-  if (!value) return "-";
-  return STATUS_LABELS[value.toLowerCase()] ?? value.replaceAll("_", " ");
-}
-
-export function capaianStatusLabel(value: string | null | undefined): string {
-  const labels: Record<string, string> = {
-    draft: "Draf capaian", submitted: "Capaian dikirim", under_review: "Capaian sedang diperiksa",
-    returned: "Capaian perlu perbaikan", approved: "Capaian disetujui",
-  };
-  if (!value) return "-";
-  return labels[value.toLowerCase()] ?? statusLabel(value);
 }
 
 export function formatCategoryCode(value: string | null | undefined): string {
