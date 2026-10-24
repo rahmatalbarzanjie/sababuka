@@ -4,6 +4,8 @@ SABABUKA BERSINAR adalah rancangan Sistem Analisis Big Data Kabupaten Kapuas. Si
 
 Repository ini telah memasuki tahap implementasi MVP lokal. Kontrak OpenAPI v1 dan migration PostgreSQL/PostGIS menjadi baseline; backend TypeScript/Fastify serta frontend React/TypeScript sudah mencakup administrasi akses dan master indikator pilot.
 
+Repository pribadi `rahmatalbarzanjie/sababuka` menjadi sumber utama pengembangan. Repository organisasi `sababuka-id/pre-sababuka` dipertahankan sebagai mirror sampai tata kelola organisasi difinalkan. Panduan lintas-agen berada di `AGENTS.md` dan `CLAUDE.md`; keduanya harus dijaga selaras.
+
 ## Prinsip kerja
 
 Keputusan proyek dinilai dengan urutan berikut:
@@ -76,6 +78,7 @@ Tipe hasil generate berada di `frontend/src/generated/api-schema.d.ts` dan dipak
 - [Matriks role dan permission](docs/14-matriks-role-permission.md)
 - [Workflow MVP v1](docs/15-workflow-mvp-v1.md)
 - [Laporan QA lintas role dan gerbang kesiapan](docs/16-qa-lintas-role-dan-kesiapan-dev.md)
+- [Spesifikasi redesign UI/UX lintas agen](docs/SABABUKA_REDESIGN_SPEC.md)
 - [Dokumentasi API](docs/api/README.md)
 - [OpenAPI v1](docs/api/openapi.yaml)
 - [Backend API](backend/README.md)
