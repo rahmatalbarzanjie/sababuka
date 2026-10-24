@@ -42,6 +42,7 @@ import type { LoginAnnouncement, MenuItem, NotificationItem } from "../types";
 import { api } from "../api";
 import { notificationDestination } from "../notification-routing";
 import { formatTanggal, Modal } from "../components";
+import { SababukaLockup } from "../branding/SababukaBrand";
 
 const iconByCode: Record<string, typeof LayoutDashboard> = {
   organizations: Building2,
@@ -268,7 +269,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
   return <div className={`workspace ${collapsed ? "collapsed" : ""}`}>
     <button className="skip-link" onClick={() => { mainRef.current?.focus({ preventScroll: true }); mainRef.current?.scrollIntoView({ block: "start" }); }}>Lewati navigasi ke konten utama</button>
     <aside ref={sidebarRef} className={`sidebar ${mobile ? "mobile-open" : ""}`} aria-label="Navigasi utama">
-      <div className="sidebar-brand"><div className="brand-logo"><img src="/logo-kapuas.png" alt="Lambang Kabupaten Kapuas" /></div><div className="sidebar-brand-copy"><strong>SABABUKA</strong></div><button className="mobile-close" aria-label="Tutup menu" onClick={() => setMobile(false)}><X /></button></div>
+      <div className="sidebar-brand"><SababukaLockup className="sidebar-lockup" /><button className="mobile-close" aria-label="Tutup menu" onClick={() => setMobile(false)}><X /></button></div>
       <nav>
         {isSuperadmin && <button className={`nav-link ${pathname === "/admin" ? "active" : ""}`} aria-current={pathname === "/admin" ? "page" : undefined} title={collapsed ? "Beranda Administrasi" : undefined} onClick={() => go("/admin")}><LayoutDashboard /><span>Beranda Administrasi</span></button>}
         {isSuperadmin && <button className={`nav-link ${pathname === "/admin/opd-monitoring" ? "active" : ""}`} aria-current={pathname === "/admin/opd-monitoring" ? "page" : undefined} title={collapsed ? "Kesiapan OPD" : undefined} onClick={() => go("/admin/opd-monitoring")}><Building2 /><span>Kesiapan OPD</span></button>}

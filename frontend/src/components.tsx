@@ -1,5 +1,6 @@
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight, Inbox, LoaderCircle, RefreshCw, X } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { SababukaMark } from "./branding/SababukaBrand";
 import { formatTanggal } from "./utils/date";
 
 export { formatTanggal } from "./utils/date";
@@ -9,7 +10,10 @@ export function Spinner({ label = "Memuat" }: { label?: string }) {
 }
 
 export function LoadingScreen() {
-  return <div className="loading-screen"><div className="brand-symbol">S</div><Spinner label="Menyiapkan ruang kerja" /></div>;
+  return <div className="loading-screen" aria-busy="true">
+    <SababukaMark className="loading-brand-mark" label="SABABUKA sedang menyiapkan ruang kerja" />
+    <span className="loading-brand-label" role="status" aria-live="polite">Menyiapkan ruang kerja</span>
+  </div>;
 }
 
 export function PageLoading({ label = "Memuat data" }: { label?: string }) {
