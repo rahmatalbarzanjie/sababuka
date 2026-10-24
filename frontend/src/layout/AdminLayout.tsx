@@ -129,10 +129,19 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
   const isOpd = user?.roles.some((role) => role.code === "opd") ?? false;
   const operationalEntries = useMemo(() => menu.filter((item) => ["operations", "opd-profile", "submissions", "reviews", "publications"].includes(item.code) && item.route_name && supportedRoutes.has(item.route_name) && !(!isSuperadmin && isBapperida && !isOpd && item.code === "submissions")), [menu, isSuperadmin, isBapperida, isOpd]);
   const sourceEntries = useMemo(() => menu.filter((item) => item.code === "connectors" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
-  const primaryEntries = useMemo(() => menu.filter((item) => ["dashboard", "assistant"].includes(item.code) && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
+  const primaryEntries = useMemo(() => menu.filter((item) => item.code === "dashboard" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const analysisEntries = useMemo(() => menu.filter((item) => ["analysis", "finance", "public-services"].includes(item.code) && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const auditEntries = useMemo(() => menu.filter((item) => item.code === "audit" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const isPimpinan = user?.roles.some((role) => role.code === "pimpinan") ?? false;
+  const navigationSections = useMemo(() => [
+    { code: "primary", label: "Ruang pimpinan", entries: primaryEntries },
+    { code: "analysis", label: "Analisis keputusan", entries: analysisEntries },
+    { code: "governance", label: "Tata kelola data", entries: governanceEntries },
+    { code: "sources", label: "Walidata", entries: sourceEntries },
+    { code: "operations", label: isBapperida && !isSuperadmin ? "Pelaporan dan publikasi" : "Pelaporan capaian", entries: operationalEntries },
+    { code: "audit", label: "Pengawasan", entries: auditEntries },
+    { code: "administration", label: "Konfigurasi internal", entries: adminEntries },
+  ].filter((section) => section.entries.length > 0).sort((a, b) => Math.min(...a.entries.map((entry) => entry.display_order)) - Math.min(...b.entries.map((entry) => entry.display_order))), [adminEntries, analysisEntries, auditEntries, governanceEntries, isBapperida, isSuperadmin, operationalEntries, primaryEntries, sourceEntries]);
   const areaLabel = pathname.startsWith("/admin") ? "Konfigurasi Internal"
     : ["/dashboard", "/executive", "/assistant"].includes(pathname) ? "Ruang Pimpinan"
     : ["/analysis", "/finance", "/public-services"].includes(pathname) ? "Analisis Keputusan"
@@ -272,28 +281,11 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
       <nav>
         {isSuperadmin && <button className={`nav-link ${pathname === "/admin" ? "active" : ""}`} aria-current={pathname === "/admin" ? "page" : undefined} title={collapsed ? "Beranda Administrasi" : undefined} onClick={() => go("/admin")}><LayoutDashboard /><span>Beranda Administrasi</span></button>}
         {isSuperadmin && <button className={`nav-link ${pathname === "/admin/opd-monitoring" ? "active" : ""}`} aria-current={pathname === "/admin/opd-monitoring" ? "page" : undefined} title={collapsed ? "Kesiapan OPD" : undefined} onClick={() => go("/admin/opd-monitoring")}><Building2 /><span>Kesiapan OPD</span></button>}
-        {primaryEntries.length > 0 && <div className="nav-label">Ruang pimpinan</div>}
-        {primaryEntries.map((entry) => { const Icon = iconByCode[entry.code] ?? LayoutDashboard; const label = navigationLabels[entry.code] ?? entry.label; return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : undefined} onClick={() => go(entry.route_name!)}><Icon /><span>{label}</span></button>; })}
-        {analysisEntries.length > 0 && <div className="nav-label">Analisis keputusan</div>}
-        {analysisEntries.map((entry) => { const Icon = iconByCode[entry.code] ?? ChartNoAxesCombined; const label = navigationLabels[entry.code] ?? entry.label; return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : undefined} onClick={() => go(entry.route_name!)}><Icon /><span>{label}</span></button>; })}
-        {governanceEntries.length > 0 && <div className="nav-label">Tata kelola data</div>}
-        {governanceEntries.map((entry) => {
+        {navigationSections.map((section) => <div className="nav-section" key={section.code}><div className="nav-label">{section.label}</div>{section.entries.map((entry) => {
           const Icon = iconByCode[entry.code] ?? Settings2;
-          const label = navigationLabels[entry.code] ?? entry.label;
+          const label = isPimpinan && entry.code === "publications" ? "Rilis Data" : navigationLabels[entry.code] ?? entry.label;
           return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : entry.navigation_disabled ? `${label} — ${entry.badge ?? "Belum tersedia"}` : undefined} disabled={entry.navigation_disabled} aria-disabled={entry.navigation_disabled} onClick={() => { if (!entry.navigation_disabled) go(entry.route_name!); }}><Icon /><span>{label}</span>{entry.badge && <small className="nav-badge">{entry.badge}</small>}</button>;
-        })}
-        {sourceEntries.length > 0 && <div className="nav-label">Walidata</div>}
-        {sourceEntries.map((entry) => { const Icon = iconByCode[entry.code] ?? Plug; const label = navigationLabels[entry.code] ?? entry.label; return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : undefined} onClick={() => go(entry.route_name!)}><Icon /><span>{label}</span></button>; })}
-        {operationalEntries.length > 0 && <div className="nav-label">{isBapperida && !isSuperadmin ? "Pelaporan dan publikasi" : "Pelaporan capaian"}</div>}
-        {operationalEntries.map((entry) => { const Icon = iconByCode[entry.code] ?? ClipboardList; const label = isPimpinan && entry.code === "publications" ? "Rilis Data" : navigationLabels[entry.code] ?? entry.label; return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : undefined} onClick={() => go(entry.route_name!)}><Icon /><span>{label}</span></button>; })}
-        {auditEntries.length > 0 && <div className="nav-label">Pengawasan</div>}
-        {auditEntries.map((entry) => <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? entry.label : undefined} onClick={() => go(entry.route_name!)}><ScrollText /><span>{entry.label}</span></button>)}
-        {adminEntries.length > 0 && <div className="nav-label">Konfigurasi internal</div>}
-        {adminEntries.map((entry) => {
-          const Icon = iconByCode[entry.code] ?? Settings2;
-          const label = navigationLabels[entry.code] ?? entry.label;
-          return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : entry.navigation_disabled ? `${label} — ${entry.badge ?? "Belum tersedia"}` : undefined} disabled={entry.navigation_disabled} aria-disabled={entry.navigation_disabled} onClick={() => { if (!entry.navigation_disabled) go(entry.route_name!); }}><Icon /><span>{label}</span>{entry.badge && <small className="nav-badge">{entry.badge}</small>}</button>;
-        })}
+        })}</div>)}
       </nav>
       <button className="collapse-button" title={collapsed ? "Perbesar sidebar" : undefined} onClick={() => setCollapsed((value) => !value)}>{collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}<span>{collapsed ? "Perbesar" : "Perkecil sidebar"}</span></button>
     </aside>
@@ -333,6 +325,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
       </main>
       <footer className="workspace-footer"><span>Dikembangkan oleh</span><strong>Tim Peneliti Kajian SABABUKA BERSINAR 2026</strong></footer>
     </section>
+    {isPimpinan && <button type="button" className="assistant-floating-button" onClick={() => go("/assistant")} aria-label="Buka Asisten AI, juga tersedia di WhatsApp"><span className="assistant-floating-icon"><Bot /><i aria-hidden /></span><span><strong>Asisten AI</strong><small>juga di WhatsApp</small></span></button>}
     {helpOpen && <><button className="help-overlay" aria-label="Tutup bantuan" onClick={() => setHelpOpen(false)} /><aside ref={helpRef} tabIndex={-1} className="help-drawer" role="dialog" aria-modal="true" aria-labelledby="help-drawer-title"><header><div><h2 id="help-drawer-title">{help.title}</h2></div><button type="button" className="icon-button" aria-label="Tutup bantuan" onClick={() => setHelpOpen(false)}><X /></button></header><p>{help.intro}</p><ol>{help.steps.map((step) => <li key={step}><span>{help.steps.indexOf(step) + 1}</span><p>{step}</p></li>)}</ol><section><strong>Istilah penting</strong><dl><div><dt>Target</dt><dd>Sasaran RPJMD untuk tahun pelaporan.</dd></div><div><dt>Realisasi</dt><dd>Nilai yang benar-benar dicapai OPD.</dd></div><div><dt>Dipublikasikan</dt><dd>Sudah diperiksa, dikurasi, dan boleh dilihat pimpinan.</dd></div></dl></section><footer><small>Jika tugas atau data tidak sesuai, catat nama indikator, periode, dan OPD lalu hubungi Pengelola Sistem.</small><button type="button" className="button primary" onClick={() => setHelpOpen(false)}>Saya mengerti</button></footer></aside></>}
     {announcement?.enabled && <Modal title={announcement.title ?? "Pemberitahuan"} onClose={() => setAnnouncement(null)}><article className="login-announcement"><span className="announcement-icon"><Megaphone /></span>{announcement.image_url && <img src={announcement.image_url} alt="Ilustrasi pemberitahuan" />}<p>{announcement.message}</p><footer className="modal-actions">{announcement.action_url && <a className="button secondary" href={announcement.action_url} target={announcement.action_url.startsWith("http") ? "_blank" : undefined} rel="noreferrer">{announcement.action_label ?? "Buka informasi"}</a>}<button type="button" className="button primary" onClick={() => setAnnouncement(null)}>Tutup</button></footer></article></Modal>}
   </div>;
