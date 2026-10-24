@@ -1033,6 +1033,59 @@ td small { color: var(--muted); margin-top: 3px; }
   .connector-results .button { width: 100%; }
 }
 
+/* Dashboard sistem dan pipeline sinkronisasi: data operasional, bukan kartu kesiapan statis. */
+.system-health-banner { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; margin-bottom: 14px; padding: 18px 20px; border: 1px solid #b9d7cb; border-left: 5px solid var(--teal-700); border-radius: 8px; background: var(--ui-surface, var(--white)); }
+.system-health-banner.attention { border-color: #ead09b; border-left-color: var(--gold-600); }
+.system-health-banner > span:first-child { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; color: var(--teal-700); background: var(--teal-100); }
+.system-health-banner.attention > span:first-child { color: var(--gold-600); background: var(--gold-100); }
+.system-health-banner h2 { margin: 0; color: var(--ink); font-size: 20px; }
+.system-health-banner p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.system-metric-grid .metric-card p { margin: 4px 0 0; color: var(--muted); font-size: 11px; }
+.system-dashboard-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.system-attention-panel:first-child { grid-column: 1 / -1; }
+.system-attention-panel > header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; }
+.system-attention-panel > header > span { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 7px; color: var(--navy-700); background: var(--blue-100); }
+.system-attention-panel > header h2 { margin: 0; font-size: 17px; }
+.system-attention-panel > header p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+.system-attention-panel > header > strong { font-size: 26px; font-variant-numeric: tabular-nums; }
+.system-attention-list { margin-top: 12px; border-top: 1px solid var(--line); }
+.system-attention-list > button { width: 100%; min-height: 58px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 2px; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); text-align: left; }
+.system-attention-list > button:hover { color: var(--navy-700); }
+.system-attention-list > button span { min-width: 0; display: grid; gap: 2px; }
+.system-attention-list > button small { color: var(--muted); overflow-wrap: anywhere; }
+.system-attention-panel > footer { display: flex; justify-content: flex-end; margin-top: 12px; }
+.sync-pipeline { margin-bottom: 14px; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--ui-surface, var(--white)); }
+.sync-pipeline > header { margin-bottom: 14px; }
+.sync-pipeline h2 { margin: 0; color: var(--ink); font-size: 19px; }
+.sync-pipeline p { max-width: 720px; margin: 4px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.sync-pipeline > div { display: grid; grid-template-columns: repeat(5, minmax(100px, 1fr) auto) minmax(100px, 1fr); align-items: center; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.sync-pipeline > div > svg { width: 16px; color: var(--muted); }
+.sync-pipeline > div > div { min-width: 110px; display: grid; gap: 4px; padding: 12px; border-top: 3px solid var(--navy-700); background: var(--soft); }
+.sync-pipeline > div > div > span { color: var(--navy-700); }
+.sync-pipeline > div > div strong { font-size: 13px; }
+.sync-pipeline > div > div small { color: var(--muted); font-size: 10px; }
+.lineage-track { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; margin: 14px 0; padding: 0; list-style: none; border: 1px solid var(--line); }
+.lineage-track li { position: relative; min-width: 0; display: grid; gap: 3px; padding: 12px 14px; border-right: 1px solid var(--line); }
+.lineage-track li:last-child { border-right: 0; }
+.lineage-track small, .lineage-track span { color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+.lineage-track strong { font-size: 12px; overflow-wrap: anywhere; }
+.raw-data-preview { min-width: 150px; }
+.raw-data-preview summary { cursor: pointer; color: var(--navy-700); font-size: 11px; font-weight: 700; }
+.raw-data-preview pre { max-width: 360px; max-height: 220px; overflow: auto; margin: 8px 0 0; padding: 10px; border: 1px solid var(--line); background: var(--soft); color: var(--ink); font-size: 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+@media (max-width: 800px) {
+  .system-dashboard-grid { grid-template-columns: 1fr; }
+  .system-attention-panel:first-child { grid-column: auto; }
+  .lineage-track { grid-template-columns: 1fr; }
+  .lineage-track li { border-right: 0; border-bottom: 1px solid var(--line); }
+  .lineage-track li:last-child { border-bottom: 0; }
+}
+
+@media (max-width: 560px) {
+  .system-health-banner { grid-template-columns: auto minmax(0, 1fr); padding: 14px; }
+  .system-health-banner > .badge { grid-column: 2; justify-self: start; }
+}
+
 /* OPD digital profile and planning baseline */
 .opd-profile-page { display: grid; gap: 16px; padding-bottom: 84px; }
 .opd-monitoring-page { display: grid; gap: 16px; }

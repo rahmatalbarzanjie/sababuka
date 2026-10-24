@@ -177,6 +177,17 @@ test(
       assert.equal(configuration.statusCode, 200, configuration.body);
       assert.ok(configuration.json().settings.some((item: { key: string }) => item.key === "dashboard.refresh_seconds"));
 
+      const dashboard = await app.inject({
+        method: "GET",
+        url: "/api/v1/system/dashboard",
+        headers: { cookie },
+      });
+      assert.equal(dashboard.statusCode, 200, dashboard.body);
+      assert.equal(dashboard.json().health.database, "healthy");
+      assert.ok(Array.isArray(dashboard.json().organizations_without_pic.data));
+      assert.ok(Array.isArray(dashboard.json().problematic_indicators.data));
+      assert.ok(Array.isArray(dashboard.json().empty_categories.data));
+
       const audit = await db.query<{ event_type: string }>(
         `SELECT event_type FROM sababuka.audit_events
          WHERE actor_id = $1 AND event_type IN (

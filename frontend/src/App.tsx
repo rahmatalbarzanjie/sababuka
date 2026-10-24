@@ -32,7 +32,7 @@ const OpdProfilePage = lazy(() => import("./pages/OpdProfilePage").then((module)
 const OpdMonitoringPage = lazy(() => import("./pages/OpdMonitoringPage").then((module) => ({ default: module.OpdMonitoringPage })));
 
 const pageMeta: Record<string, { title: string; subtitle: string; permission?: string }> = {
-  "/admin": { title: "Beranda Administrasi", subtitle: "Ringkasan konfigurasi, akses pengguna, dan kesiapan sistem.", permission: "system.configure" },
+  "/admin": { title: "Dashboard Sistem", subtitle: "Kesehatan layanan dan pekerjaan administrasi yang perlu ditindaklanjuti.", permission: "system.configure" },
   "/dashboard": { title: "Beranda SABABUKA", subtitle: "Ringkasan data yang aman untuk pembacaan pimpinan.", permission: "executive_dashboard.view" },
   "/executive": { title: "Ringkasan Pimpinan", subtitle: "Capaian terkurasi dari data yang telah disetujui dan dipublikasikan.", permission: "executive_dashboard.view" },
   "/assistant": { title: "Asisten Data", subtitle: "Asisten pimpinan berbasis data SABABUKA yang telah dipublikasikan.", permission: "assistant.use" },
@@ -58,7 +58,7 @@ const pageMeta: Record<string, { title: string; subtitle: string; permission?: s
   "/reviews": { title: "Verifikasi Pelaporan OPD", subtitle: "Periksa, kembalikan, atau setujui pelaporan yang dikirim perangkat daerah.", permission: "submission.review" },
   "/guidance": { title: "Pembinaan Data Statistik", subtitle: "Telaah standar, metadata, metodologi, dan konsistensi tanpa mengubah data milik produsen.", permission: "statistical_guidance.view" },
   "/publications": { title: "Kurasi dan Publikasi", subtitle: "Pilih capaian yang disetujui sebelum diterbitkan ke dashboard pimpinan.", permission: "publication.view" },
-  "/connectors": { title: "Ruang Walidata", subtitle: "Kelola kualitas teknis, metadata, interoperabilitas, dan kesehatan aliran data daerah.", permission: "connector.view" },
+  "/connectors": { title: "Pusat Sinkronisasi Data", subtitle: "Telusuri sumber, staging mentah, transformasi, indikator, dan capaian dalam satu pipeline.", permission: "connector.view" },
   "/opd-profile": { title: "Profil Data OPD", subtitle: "Konfirmasi PIC, sumber data, dokumen acuan, dan baseline OPD.", permission: "submission.view" },
 };
 
