@@ -5,5 +5,6 @@ import "@fontsource/source-sans-3/latin-400.css";
 import "@fontsource/source-sans-3/latin-600.css";
 import "@fontsource/source-sans-3/latin-700.css";
 import "./styles.css";
+import "./ui-system.css";
 
 createRoot(document.getElementById("root")!).render(<StrictMode><App /></StrictMode>);

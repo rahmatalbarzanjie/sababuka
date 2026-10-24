@@ -22,6 +22,8 @@ node_modules/
 dist/
 build/
 .next/
+**/test-results/
+**/playwright-report/
 
 # Generated report previews and local caches
 research/rendered-report/

@@ -10,7 +10,7 @@ import { inspectPublicWebsite } from "./website-scraper.js";
 import { notifyRole } from "./notification-service.js";
 
 interface SourceRow extends QueryResultRow { id: string; code: string; name: string; source_type: string; base_url: string | null; connection_config: Record<string, unknown>; credential_reference: string | null; last_checked_at: string | null }
-interface MappingRow extends QueryResultRow { id: string; indicator_version_id: string; indicator_code: string; indicator_name: string; source_id: string; source_code: string; source_type: string; external_dataset_id: string; external_resource_id: string | null; resource_url: string | null; geography_field: string | null; geography_code: string; year_field: string; value_field: string; unit_field: string | null; expected_unit: string | null; frequency: string; transform_json: Record<string, unknown>; source_priority: number; relation_type: string; status: string; dataset_version_id: string | null; created_at: string; updated_at: string }
+interface MappingRow extends QueryResultRow { id: string; indicator_version_id: string; indicator_code: string; indicator_name: string; indicator_status: string; source_id: string; source_code: string; source_type: string; external_dataset_id: string; external_resource_id: string | null; resource_url: string | null; geography_field: string | null; geography_code: string; year_field: string; value_field: string; unit_field: string | null; expected_unit: string | null; frequency: string; transform_json: Record<string, unknown>; source_priority: number; relation_type: string; status: string; dataset_version_id: string | null; created_at: string; updated_at: string }
 type JsonObject = Record<string, unknown>;
 
 export interface ConnectionProfile {
@@ -44,6 +44,30 @@ const YEARS = new Set([2025, 2026, 2027, 2028, 2029]);
 
 function hash(value: string): string { return createHash("sha256").update(value, "utf8").digest("hex"); }
 function asText(value: unknown): string { return value === null || value === undefined ? "" : String(value).trim(); }
+
+export function buildBpsDomainUrl(baseUrl: string, apiKey: string): string {
+  const url = new URL(`${baseUrl.replace(/\/$/u, "")}/domain`);
+  url.searchParams.set("type", "kab");
+  url.searchParams.set("key", apiKey);
+  return url.toString();
+}
+
+export function extractBpsDomains(payload: JsonObject): JsonObject[] {
+  const data = Array.isArray(payload.data) ? payload.data : [];
+  return data.flatMap((item) => Array.isArray(item)
+    ? item.filter((row): row is JsonObject => Boolean(row) && typeof row === "object" && !Array.isArray(row))
+    : []);
+}
+
+function validateBpsDomainPayload(payload: JsonObject, domainCode: string): JsonObject[] {
+  const status = asText(payload.status).toUpperCase();
+  if (status === "ERROR") throw new Error("BPS_RESPONSE_ERROR");
+  if (status && status !== "OK") throw new Error("BPS_RESPONSE_INVALID");
+  const domains = extractBpsDomains(payload);
+  const requestedDomain = domains.find((item) => asText(item.domain_id ?? item.id ?? item.code) === domainCode);
+  if (!requestedDomain) throw new Error("BPS_DOMAIN_NOT_FOUND");
+  return domains;
+}
 function asNumber(value: unknown): number | null {
   if (value && typeof value === "object" && "result" in value) return asNumber((value as { result?: unknown }).result);
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -242,11 +266,14 @@ export class ConnectorService {
     const secret = await this.resolveBpsSecret();
     if (!secret) throw new ApiError(409, "CONNECTOR_WAITING_KEY", "API key BPS belum dikonfigurasi.");
     const domain = asText(source.connection_config.domain_code) || "6203";
-    const url = `${source.base_url!.replace(/\/$/u, "")}/domain/type/adminkab/${encodeURIComponent(domain)}?key=${encodeURIComponent(secret.value)}`;
+    const url = buildBpsDomainUrl(source.base_url!, secret.value);
     const response = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    if (response.status === 401 || response.status === 403) throw new ApiError(502, "SOURCE_UNAVAILABLE", "API key ditolak oleh WebAPI BPS.");
     if (!response.ok) throw new Error(`BPS HTTP ${response.status}`);
+    const payload = await response.json() as JsonObject;
+    validateBpsDomainPayload(payload, domain);
     await this.db.query(`UPDATE sababuka.data_sources SET last_checked_at = now(), updated_at = now() WHERE id = $1`, [source.id]);
-    return await response.json() as JsonObject;
+    return payload;
   }
 
   async searchCkan(query: string | undefined, rows: number) {
@@ -365,12 +392,13 @@ export class ConnectorService {
       const secret = override ? { value: override } : await this.resolveBpsSecret();
       if (!secret) return this.failedProfile(source.code, started, new Error("API key BPS belum dikonfigurasi."));
       const domain = asText(source.connection_config.domain_code) || "6203";
-      const url = `${source.base_url!.replace(/\/$/u, "")}/domain/type/adminkab/${encodeURIComponent(domain)}?key=${encodeURIComponent(secret.value)}`;
+      const url = buildBpsDomainUrl(source.base_url!, secret.value);
       const response = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+      if (response.status === 401 || response.status === 403) throw new Error("BPS_KEY_REJECTED");
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const payload = await response.json() as JsonObject;
-      const values = Array.isArray(payload.data) ? payload.data : [];
-      const titles = values.map((item) => typeof item === "object" && item ? asText((item as JsonObject).name ?? (item as JsonObject).title ?? (item as JsonObject).var) : "").filter(Boolean);
+      const values = validateBpsDomainPayload(payload, domain);
+      const titles = values.map((item) => asText(item.domain_name ?? item.name ?? item.title ?? item.var)).filter(Boolean);
       return { source_code: source.code, reachable: true, response_ms: Date.now() - started, platform: "BPS WebAPI", dataset_count: values.length || 1, resource_count: values.length, publishers: ["BPS Kabupaten Kapuas"], years: [2025, 2026, 2027, 2028, 2029], checked_at: new Date().toISOString(), error: null, candidate_summary: await this.matchCandidates(titles, source.id) };
     } catch (error) {
       return this.failedProfile(source.code, started, error);
@@ -378,7 +406,18 @@ export class ConnectorService {
   }
 
   private failedProfile(sourceCode: string, started: number, error: unknown): ConnectionProfile {
-    const message = error instanceof Error && error.message.startsWith("API key") ? error.message : "Sumber tidak dapat dijangkau atau responsnya tidak valid.";
+    const errorCode = error instanceof Error ? error.message : "";
+    const message = errorCode.startsWith("API key")
+      ? errorCode
+      : errorCode === "BPS_KEY_REJECTED"
+        ? "API key ditolak oleh WebAPI BPS. Periksa kembali key yang dimasukkan."
+        : errorCode === "BPS_DOMAIN_NOT_FOUND"
+          ? "Koneksi ke BPS berhasil, tetapi domain Kabupaten Kapuas (6203) tidak ditemukan."
+          : errorCode === "BPS_RESPONSE_ERROR"
+            ? "BPS menerima koneksi, tetapi menolak permintaan. Periksa API key, aplikasi yang terdaftar, dan parameter endpoint di portal BPS."
+          : errorCode === "BPS_RESPONSE_INVALID"
+            ? "WebAPI BPS merespons, tetapi format responsnya tidak valid."
+            : "Sumber tidak dapat dijangkau atau responsnya tidak valid.";
     return { source_code: sourceCode, reachable: false, response_ms: Date.now() - started, platform: null, dataset_count: null, resource_count: null, publishers: [], years: [], checked_at: new Date().toISOString(), error: message, candidate_summary: { candidate_count: 0, mapped_count: 0, unmapped_count: 0, ambiguous_count: 0, candidates: [], annual_series_count: 0, structured_series_count: 0, series_candidates: [] } };
   }
 
@@ -387,7 +426,7 @@ export class ConnectorService {
   }
 
   private async matchCandidates(titles: string[], sourceId: string): Promise<CandidateSummary> {
-    const result = await this.db.query<QueryResultRow & Record<string, unknown>>(`SELECT 'category' AS type, c.code, c.name, NULL::text AS indicator_version_id FROM sababuka.categories c WHERE c.is_active=true AND c.review_status='approved' UNION ALL SELECT 'indicator' AS type, i.code, i.name, iv.id::text AS indicator_version_id FROM sababuka.indicators i JOIN sababuka.categories c ON c.id=i.category_id JOIN sababuka.indicator_versions iv ON iv.indicator_id=i.id WHERE i.is_active=true AND c.is_active=true AND c.review_status='approved' AND iv.status IN ('approved','active')`);
+    const result = await this.db.query<QueryResultRow & Record<string, unknown>>(`SELECT 'category' AS type, c.code, c.name, NULL::text AS indicator_version_id FROM sababuka.categories c WHERE c.is_active=true AND c.review_status='approved' UNION ALL SELECT 'indicator' AS type, i.code, i.name, iv.id::text AS indicator_version_id FROM sababuka.indicators i JOIN sababuka.categories c ON c.id=i.category_id JOIN sababuka.indicator_versions iv ON iv.indicator_id=i.id WHERE i.is_active=true AND c.is_active=true AND c.review_status='approved' AND iv.status IN ('opd_verification','approved','active')`);
     const mapped = await this.db.query<{ indicator_code: string }>(`SELECT i.code AS indicator_code FROM sababuka.indicator_source_mappings m JOIN sababuka.indicator_versions iv ON iv.id=m.indicator_version_id JOIN sababuka.indicators i ON i.id=iv.indicator_id WHERE m.source_id=$1 AND m.status IN ('approved','active')`, [sourceId]);
     const mappedCodes = new Set(mapped.rows.map((row) => row.indicator_code));
     const candidates: CandidateSummary["candidates"] = [];
@@ -408,8 +447,24 @@ export class ConnectorService {
     return { candidate_count: candidates.length, mapped_count: candidates.filter((item) => item.status === "mapped").length, unmapped_count: candidates.filter((item) => item.status === "unmapped").length, ambiguous_count: candidates.filter((item) => item.status === "ambiguous").length, candidates };
   }
 
+  private async pruneExpiredStaging(): Promise<void> {
+    await this.db.query(`WITH expired AS (
+      SELECT id FROM sababuka.connector_runs
+      WHERE staging_expires_at <= now() AND staging_purged_at IS NULL
+    ), removed AS (
+      DELETE FROM sababuka.connector_staging_values v
+      USING expired e WHERE v.run_id=e.id RETURNING v.run_id
+    )
+    UPDATE sababuka.connector_runs r
+    SET staging_purged_at=now(),
+        preview_json=r.preview_json || '{"staging_purged":true}'::jsonb,
+        updated_at=now()
+    FROM expired e WHERE r.id=e.id`);
+  }
+
   async listMappings() {
-    const result = await this.db.query<MappingRow>(`SELECT m.id::text, m.indicator_version_id::text, i.code AS indicator_code, i.name AS indicator_name,
+    await this.pruneExpiredStaging();
+    const result = await this.db.query<MappingRow>(`SELECT m.id::text, m.indicator_version_id::text, i.code AS indicator_code, i.name AS indicator_name, iv.status AS indicator_status,
       m.source_id::text, s.code AS source_code, s.source_type, m.external_dataset_id, m.external_resource_id, m.resource_url,
       m.geography_field, m.geography_code, m.year_field, m.value_field, m.unit_field, m.expected_unit, m.frequency,
       m.transform_json, m.source_priority, m.relation_type, m.status, m.dataset_version_id::text, m.created_at::text, m.updated_at::text
@@ -424,7 +479,7 @@ export class ConnectorService {
     const indicator = await this.db.query<QueryResultRow & Record<string, unknown>>(`SELECT iv.id::text, iv.frequency, iv.data_type, iv.status, i.code, i.owner_organization_id::text, i.is_active AS indicator_is_active, c.review_status, c.is_active AS category_is_active FROM sababuka.indicator_versions iv JOIN sababuka.indicators i ON i.id=iv.indicator_id JOIN sababuka.categories c ON c.id=i.category_id WHERE iv.id=$1`, [input.indicator_version_id]);
     if (!indicator.rows[0]) throw new ApiError(404, "NOT_FOUND", "Versi indikator tidak ditemukan.");
     if (indicator.rows[0].frequency !== "annual") throw new ApiError(400, "VALIDATION_ERROR", "Konektor ini hanya menerima indikator tahunan.");
-    if (!indicator.rows[0].indicator_is_active || !indicator.rows[0].category_is_active || indicator.rows[0].review_status !== "approved" || !["approved", "active"].includes(String(indicator.rows[0].status))) throw new ApiError(409, "CONFLICT", "Mapping hanya dapat dibuat untuk indikator dan kategori yang telah disetujui/aktif.");
+    if (!indicator.rows[0].indicator_is_active || !indicator.rows[0].category_is_active || indicator.rows[0].review_status !== "approved" || !["opd_verification", "approved", "active"].includes(String(indicator.rows[0].status))) throw new ApiError(409, "CONFLICT", "Mapping kandidat hanya dapat dibuat untuk indikator yang sedang diverifikasi OPD, disetujui, atau aktif pada kategori yang telah disetujui.");
     const result = await this.db.query<QueryResultRow & Record<string, unknown>>(`INSERT INTO sababuka.indicator_source_mappings
       (indicator_version_id, source_id, external_dataset_id, external_resource_id, resource_url, geography_field, geography_code,
        year_field, value_field, unit_field, expected_unit, frequency, source_priority, relation_type, effective_from, created_by)
@@ -438,9 +493,10 @@ export class ConnectorService {
   }
 
   async transitionMapping(auth: AuthContext, id: string, action: "approve" | "activate" | "retire", audit: AuditContext) {
-    const current = await this.db.query<QueryResultRow & Record<string, unknown>>(`SELECT id::text, status FROM sababuka.indicator_source_mappings WHERE id=$1`, [id]);
+    const current = await this.db.query<QueryResultRow & Record<string, unknown>>(`SELECT m.id::text, m.status, iv.status AS indicator_status, i.is_active AS indicator_is_active, c.is_active AS category_is_active, c.review_status FROM sababuka.indicator_source_mappings m JOIN sababuka.indicator_versions iv ON iv.id=m.indicator_version_id JOIN sababuka.indicators i ON i.id=iv.indicator_id JOIN sababuka.categories c ON c.id=i.category_id WHERE m.id=$1`, [id]);
     if (!current.rows[0]) throw new ApiError(404, "NOT_FOUND", "Mapping sumber tidak ditemukan.");
     const next = action === "approve" ? "approved" : action === "activate" ? "active" : "retired";
+    if (["approve", "activate"].includes(action) && (!current.rows[0].indicator_is_active || !current.rows[0].category_is_active || current.rows[0].review_status !== "approved" || !["approved", "active"].includes(String(current.rows[0].indicator_status)))) throw new ApiError(409, "CONFLICT", "Mapping kandidat belum dapat disetujui atau diaktifkan sebelum indikator selesai diverifikasi OPD dan disetujui.");
     if (action === "approve" && current.rows[0].status !== "draft") throw new ApiError(409, "CONFLICT", "Mapping hanya dapat disetujui dari draf.");
     if (action === "activate" && !["approved", "active"].includes(current.rows[0].status as string)) throw new ApiError(409, "CONFLICT", "Mapping harus disetujui sebelum diaktifkan.");
     await this.db.query(`UPDATE sababuka.indicator_source_mappings SET status=$2, approved_by=CASE WHEN $2 IN ('approved','active') THEN $3 ELSE approved_by END, approved_at=CASE WHEN $2 IN ('approved','active') THEN now() ELSE approved_at END, updated_at=now() WHERE id=$1`, [id, next, auth.user.id]);
@@ -449,7 +505,7 @@ export class ConnectorService {
   }
 
   private async getMapping(id: string): Promise<MappingRow> {
-    const result = await this.db.query<MappingRow>(`SELECT m.id::text, m.indicator_version_id::text, i.code AS indicator_code, i.name AS indicator_name,
+    const result = await this.db.query<MappingRow>(`SELECT m.id::text, m.indicator_version_id::text, i.code AS indicator_code, i.name AS indicator_name, iv.status AS indicator_status,
       m.source_id::text, s.code AS source_code, s.source_type, m.external_dataset_id, m.external_resource_id, m.resource_url,
       m.geography_field, m.geography_code, m.year_field, m.value_field, m.unit_field, m.expected_unit, m.frequency,
       m.transform_json, m.source_priority, m.relation_type, m.status, m.dataset_version_id::text, m.created_at::text, m.updated_at::text
@@ -460,8 +516,9 @@ export class ConnectorService {
   }
 
   async sync(auth: AuthContext, mappingId: string, audit: AuditContext) {
+    await this.pruneExpiredStaging();
     const mapping = await this.getMapping(mappingId);
-    if (!['approved', 'active'].includes(mapping.status)) throw new ApiError(409, "CONFLICT", "Mapping harus disetujui sebelum sinkronisasi.");
+    if (!['draft', 'approved', 'active'].includes(mapping.status)) throw new ApiError(409, "CONFLICT", "Mapping sudah tidak tersedia untuk preview sinkronisasi.");
     const source = await this.source(mapping.source_code);
     if (source.source_type === "bps" && !(await this.resolveBpsSecret())) throw new ApiError(409, "CONNECTOR_WAITING_KEY", "API key BPS belum dikonfigurasi.");
     const resource = source.source_type === "ckan"
@@ -500,7 +557,7 @@ export class ConnectorService {
     await this.db.query(`UPDATE sababuka.connector_runs SET status=$2, preview_json=$3::jsonb, updated_at=now() WHERE id=$1`, [runId, status, JSON.stringify({ rows_seen: rows.length, valid_rows: valid, invalid_rows: invalid, warning_count: warnings.length, warnings, years: [...new Set(rows.map((row) => Number.parseInt(asText(row[mapping.year_field]), 10)).filter((year) => YEARS.has(year)))].sort() })]);
     await recordAudit(this.db, { ...audit, eventType: "connector.sync_staged", entityType: "connector_run", entityId: runId, afterData: { status, valid_rows: valid, invalid_rows: invalid }, metadata: { mapping_id: mapping.id, source_url: resource.public_url, checksum: fetched.checksum } });
     if (status === "failed" || invalid > 0) {
-      await notifyRole(this.db, "kominfo", {
+      await notifyRole(this.db, "superadmin", {
         type: status === "failed" ? "connector.sync_failed" : "connector.reconciliation_required",
         title: status === "failed" ? "Sinkronisasi sumber gagal" : "Data perlu direkonsiliasi",
         message: status === "failed" ? `${mapping.indicator_name}: tidak ada baris sumber yang lolos validasi.` : `${mapping.indicator_name}: ${invalid} baris perlu diperiksa sebelum data diimpor.`,
@@ -568,6 +625,7 @@ export class ConnectorService {
   }
 
   async runDueSchedules(): Promise<{ profiles: number; succeeded: number; failed: number }> {
+    await this.pruneExpiredStaging();
     const due = await this.db.query<QueryResultRow & { id: string; source_id: string; actor_id: string; sync_interval_minutes: number; verification_mode: string }>(
       `UPDATE sababuka.data_source_integrations p
        SET last_sync_status='running',
@@ -638,16 +696,17 @@ export class ConnectorService {
   }
 
   async getRun(id: string) {
-    const run = await this.db.query<QueryResultRow & Record<string, unknown>>(`SELECT r.id::text, r.mapping_id::text, r.status, r.dry_run, r.source_url, r.source_identifier, r.response_checksum, r.fetched_at::text, r.preview_json, r.error_text, r.imported_batch_id::text, r.created_at::text FROM sababuka.connector_runs r WHERE r.id=$1`, [id]);
+    await this.pruneExpiredStaging();
+    const run = await this.db.query<QueryResultRow & Record<string, unknown>>(`SELECT r.id::text, r.mapping_id::text, r.status, r.dry_run, r.source_url, r.source_identifier, r.response_checksum, r.fetched_at::text, r.preview_json, r.error_text, r.imported_batch_id::text, r.staging_expires_at::text, r.staging_purged_at::text, r.created_at::text, m.status AS mapping_status, iv.status AS indicator_status, (r.status='ready' AND m.status IN ('approved','active') AND iv.status IN ('approved','active')) AS can_import FROM sababuka.connector_runs r JOIN sababuka.indicator_source_mappings m ON m.id=r.mapping_id JOIN sababuka.indicator_versions iv ON iv.id=m.indicator_version_id WHERE r.id=$1`, [id]);
     if (!run.rows[0]) throw new ApiError(404, "NOT_FOUND", "Riwayat sinkronisasi tidak ditemukan.");
     const values = await this.db.query<QueryResultRow & Record<string, unknown>>(`SELECT id::text, year, geography_code, numeric_value, text_value, unit_value, validation_status, validation_errors, raw_data, source_url, source_retrieved_at::text FROM sababuka.connector_staging_values WHERE run_id=$1 ORDER BY year, id`, [id]);
     return { ...run.rows[0], values: values.rows };
   }
 
   async importRun(auth: AuthContext, runId: string, audit: AuditContext) {
-    const run = await this.db.query<QueryResultRow & Record<string, unknown>>(`SELECT r.id::text, r.status, r.mapping_id::text, r.source_url, r.response_checksum, m.dataset_version_id::text, m.indicator_version_id::text, m.source_id::text, m.external_dataset_id, m.external_resource_id, m.status AS mapping_status, s.name AS source_name, i.owner_organization_id::text AS organization_id FROM sababuka.connector_runs r JOIN sababuka.indicator_source_mappings m ON m.id=r.mapping_id JOIN sababuka.data_sources s ON s.id=m.source_id JOIN sababuka.indicator_versions iv ON iv.id=m.indicator_version_id JOIN sababuka.indicators i ON i.id=iv.indicator_id WHERE r.id=$1`, [runId]);
+    const run = await this.db.query<QueryResultRow & Record<string, unknown>>(`SELECT r.id::text, r.status, r.mapping_id::text, r.source_url, r.response_checksum, m.dataset_version_id::text, m.indicator_version_id::text, m.source_id::text, m.external_dataset_id, m.external_resource_id, m.status AS mapping_status, iv.status AS indicator_status, s.name AS source_name, i.owner_organization_id::text AS organization_id FROM sababuka.connector_runs r JOIN sababuka.indicator_source_mappings m ON m.id=r.mapping_id JOIN sababuka.data_sources s ON s.id=m.source_id JOIN sababuka.indicator_versions iv ON iv.id=m.indicator_version_id JOIN sababuka.indicators i ON i.id=iv.indicator_id WHERE r.id=$1`, [runId]);
     const row = run.rows[0]; if (!row) throw new ApiError(404, "NOT_FOUND", "Riwayat sinkronisasi tidak ditemukan.");
-    if (row.status !== "ready" || !["approved", "active"].includes(row.mapping_status as string)) throw new ApiError(409, "CONFLICT", "Preview belum siap diimpor atau mapping belum disetujui.");
+    if (row.status !== "ready" || !["approved", "active"].includes(row.mapping_status as string) || !["approved", "active"].includes(row.indicator_status as string)) throw new ApiError(409, "CONFLICT", "Preview belum siap diimpor, mapping belum disetujui, atau indikator masih menunggu verifikasi OPD.");
     const staging = await this.db.query<QueryResultRow & Record<string, unknown>>(`SELECT year, geography_code, numeric_value, text_value, unit_value, validation_errors, source_url, source_retrieved_at::text FROM sababuka.connector_staging_values WHERE run_id=$1 AND validation_status='valid' ORDER BY year`, [runId]);
     if (!staging.rows.length) throw new ApiError(409, "CONFLICT", "Tidak ada baris valid untuk diimpor.");
     const datasetVersionId = row.dataset_version_id as string ?? await this.ensureDatasetVersion(row, auth.user.id);

@@ -719,6 +719,59 @@ paths:
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
         "409": {$ref: "#/components/responses/Conflict"}
+  /opd-indicator-proposals:
+    post:
+      tags: [Governance]
+      operationId: createOpdIndicatorProposal
+      summary: Membuat satu usulan indikator OPD secara manual
+      description: Membutuhkan `indicator.propose`; OPD pemilik dipaksa mengikuti scope akun. Endpoint ini tidak menyediakan impor atau ekstraksi dokumen.
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/OpdIndicatorProposalInput"}
+      responses:
+        "201": {description: Usulan disimpan sebagai draft}
+        "400": {$ref: "#/components/responses/ValidationError"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /opd-indicator-proposals/{indicator_id}:
+    patch:
+      tags: [Governance]
+      operationId: updateOpdIndicatorProposal
+      summary: Mengubah draf usulan indikator manual milik OPD
+      description: Membutuhkan `indicator.propose`; hanya OPD pengusul dan hanya selama berstatus draft.
+      parameters:
+        - name: indicator_id
+          in: path
+          required: true
+          schema: {$ref: "#/components/schemas/Uuid"}
+        - $ref: "#/components/parameters/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/OpdIndicatorProposalInput"}
+      responses:
+        "200": {description: Draf usulan diperbarui}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /opd-indicator-proposals/{version_id}/submit:
+    post:
+      tags: [Governance]
+      operationId: submitOpdIndicatorProposal
+      summary: Mengajukan usulan indikator manual kepada BAPPERIDA
+      description: Membutuhkan `indicator.propose`; metadata dan lima target tahunan harus lengkap.
+      parameters:
+        - $ref: "#/components/parameters/VersionId"
+        - $ref: "#/components/parameters/CsrfToken"
+      responses:
+        "200": {description: Usulan masuk pemeriksaan BAPPERIDA}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
   /indicator-versions/{version_id}/actions/{action}:
     post:
       tags: [Governance]
@@ -1503,12 +1556,13 @@ components:
             status: {type: string, const: active}
     CurrentUser:
       type: object
-      required: [id, email, full_name, mfa_required, roles, permissions, organizations]
+      required: [id, email, full_name, mfa_required, must_change_password, roles, permissions, organizations]
       properties:
         id: {$ref: "#/components/schemas/Uuid"}
         email: {type: string, format: email}
         full_name: {type: string}
         mfa_required: {type: boolean}
+        must_change_password: {type: boolean}
         roles:
           type: array
           items: {$ref: "#/components/schemas/EffectiveRole"}
@@ -1519,6 +1573,19 @@ components:
         organizations:
           type: array
           items: {$ref: "#/components/schemas/Organization"}
+        simulation:
+          type: object
+          required: [active, role_code, organization_id, organization_name, original_full_name, original_email]
+          properties:
+            active: {type: boolean, const: true}
+            role_code: {type: string, enum: [bapperida, kominfo, pembina_statistik, opd, pimpinan]}
+            organization_id:
+              oneOf:
+                - $ref: "#/components/schemas/Uuid"
+                - type: "null"
+            organization_name: {type: [string, "null"]}
+            original_full_name: {type: string}
+            original_email: {type: string, format: email}
     EffectiveRole:
       type: object
       required: [code, scope_type]
@@ -1818,7 +1885,7 @@ components:
         ends_on: {type: string, format: date}
     IndicatorStatus:
       type: string
-      enum: [draft, in_review, approved, active, retired]
+      enum: [draft, in_review, opd_verification, approved, active, retired]
     IndicatorCreateInput:
       type: object
       additionalProperties: false
@@ -1831,7 +1898,7 @@ components:
         definition: {type: string, minLength: 1}
         formula: {type: [string, "null"]}
         unit_id: {$ref: "#/components/schemas/Uuid"}
-        frequency: {type: string, enum: [annual, semester, quarter, monthly, event, custom]}
+        frequency: {type: string, enum: [annual, semester, quarter, monthly, weekly, event, custom]}
         data_type: {type: string, enum: [number, integer, percentage, currency, text, boolean]}
         direction:
           type: [string, "null"]
@@ -1840,6 +1907,10 @@ components:
         dimension_schema: {type: object, additionalProperties: true}
         access_level: {type: string, enum: [public, internal, restricted], default: internal}
         effective_from: {type: string, format: date}
+        planning_document_type:
+          type: string
+          enum: [renstra, renja, other]
+        planning_document_reference: {type: string, minLength: 3, maxLength: 1000}
         organizations:
           type: array
           items:
@@ -1860,6 +1931,19 @@ components:
               numeric_value: {type: [number, "null"]}
               text_value: {type: [string, "null"]}
               notes: {type: [string, "null"]}
+    OpdIndicatorProposalInput:
+      allOf:
+        - $ref: "#/components/schemas/IndicatorCreateInput"
+        - type: object
+          required: [owner_organization_id, planning_document_type, planning_document_reference]
+          properties:
+            planning_document_type:
+              type: string
+              enum: [renstra, renja, other]
+            planning_document_reference:
+              type: string
+              minLength: 3
+              maxLength: 1000
     IndicatorVersion:
       type: object
       required: [id, version_number, definition, unit_id, frequency, data_type, status, effective_from]
@@ -1893,6 +1977,13 @@ components:
             - type: "null"
         category_name: {type: string}
         owner_organization_name: {type: [string, "null"]}
+        origin_type: {type: string, enum: [rpjmd_master, opd_manual]}
+        planning_document_type: {type: [string, "null"], enum: [renstra, renja, other, null]}
+        planning_document_reference: {type: [string, "null"]}
+        proposed_by_organization_id:
+          oneOf:
+            - $ref: "#/components/schemas/Uuid"
+            - type: "null"
         version_id: {$ref: "#/components/schemas/Uuid"}
         version_number: {type: integer, minimum: 1}
         definition: {type: string}

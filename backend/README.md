@@ -54,6 +54,8 @@ Endpoint yang sudah aktif:
 | GET | `/api/v1/units`, `/api/v1/periods` | Referensi satuan dan periode |
 | GET, POST | `/api/v1/indicators` | Daftar dan pembuatan indikator draft beserta target dan OPD |
 | PATCH | `/api/v1/indicators/{indicator_id}` | Perubahan metadata, target, dan OPD pada versi draft |
+| POST, PATCH | `/api/v1/opd-indicator-proposals` | Input satu per satu dan perubahan draf usulan indikator OPD; tanpa impor/ekstraksi otomatis |
+| POST | `/api/v1/opd-indicator-proposals/{version_id}/submit` | Ajukan usulan indikator manual OPD kepada BAPPERIDA |
 | POST | `/api/v1/indicator-versions/{version_id}/actions/{action}` | Submit, approve, activate, atau retire versi indikator |
 | GET, POST | `/api/v1/submissions` | Daftar dan pembuatan form capaian OPD per periode |
 | GET | `/api/v1/submissions/{submission_id}` | Rincian indikator aktif dan realisasi pada form |

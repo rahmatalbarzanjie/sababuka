@@ -1,0 +1,131 @@
+name: SABABUKA CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend, OpenAPI types, and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: |
+            frontend/pnpm-lock.yaml
+            tools/openapi-generator/pnpm-lock.yaml
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+      - name: Install isolated OpenAPI generator
+        working-directory: tools/openapi-generator
+        run: pnpm install --frozen-lockfile
+      - name: Verify generated API types are current
+        working-directory: frontend
+        run: pnpm api:types:check
+      - name: Build frontend
+        working-directory: frontend
+        run: pnpm build
+
+  backend:
+    name: Backend type-check and tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:18-3.6
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sababuka
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sababuka"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sababuka
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: backend/pnpm-lock.yaml
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pnpm install --frozen-lockfile
+      - name: Type-check and run backend tests
+        working-directory: backend
+        run: pnpm check
+      - name: Apply database migrations
+        working-directory: backend
+        run: pnpm db:migrate
+      - name: Create isolated integration accounts
+        working-directory: backend
+        env:
+          DEMO_PASSWORD: github-actions-integration-password
+        run: pnpm dev:seed-users
+      - name: Run backend integration tests
+        working-directory: backend
+        env:
+          INTEGRATION_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sababuka
+          INTEGRATION_ADMIN_EMAIL: developer@sababuka.com
+          INTEGRATION_ADMIN_PASSWORD: github-actions-integration-password
+        run: pnpm test:integration
+
+  e2e:
+    name: Playwright browser smoke tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: |
+            backend/pnpm-lock.yaml
+            frontend/pnpm-lock.yaml
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pnpm install --frozen-lockfile
+      - name: Install Playwright Chromium
+        working-directory: backend
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run browser smoke tests
+        working-directory: backend
+        run: pnpm test:e2e
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: backend/test-results/
+          if-no-files-found: ignore
+          retention-days: 7

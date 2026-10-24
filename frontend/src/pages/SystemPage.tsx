@@ -2,7 +2,7 @@ import { Check, Copy, Eye, Flag, Image as ImageIcon, KeyRound, Megaphone, Plus, 
 import { useState, type FormEvent } from "react";
 import { api, jsonBody } from "../api";
 import { useAuth } from "../auth";
-import { Badge, formatDate, Modal, Notice, Spinner, useAsync } from "../components";
+import { Badge, ErrorState, formatDate, Modal, Notice, Spinner, useAsync } from "../components";
 import type { FeatureFlag, LoginAnnouncement, SystemSetting } from "../types";
 
 interface Configuration {
@@ -43,6 +43,7 @@ export function SystemPage() {
   const [bpsKey, setBpsKey] = useState("");
   const [bpsEditing, setBpsEditing] = useState(false);
   const [bpsBusy, setBpsBusy] = useState(false);
+  const [bpsFeedback, setBpsFeedback] = useState<{ tone: "error" | "success"; text: string } | null>(null);
   async function toggleFlag(flag: FeatureFlag) {
     setBusyCode(flag.code); setMessage(null);
     try {
@@ -53,29 +54,29 @@ export function SystemPage() {
     finally { setBusyCode(null); }
   }
   async function saveBpsKey() {
-    setBpsBusy(true); setMessage(null);
+    setBpsBusy(true); setMessage(null); setBpsFeedback(null);
     try {
       await api<BpsSecretStatus>("/connectors/bps/secret", { method: "PUT", mutation: true, body: jsonBody({ api_key: bpsKey }) });
       setBpsKey(""); setBpsEditing(false); bps.reload();
-      setMessage({ tone: "success", text: "API key BPS tersimpan terenkripsi dan koneksi berhasil diuji." });
-    } catch (reason) { setMessage({ tone: "error", text: reason instanceof Error ? reason.message : "API key BPS gagal disimpan." }); }
+      setBpsFeedback({ tone: "success", text: "API key BPS tersimpan terenkripsi dan koneksi berhasil diuji." });
+    } catch (reason) { setBpsFeedback({ tone: "error", text: reason instanceof Error ? reason.message : "API key BPS gagal disimpan." }); }
     finally { setBpsBusy(false); }
   }
   async function testBps() {
-    setBpsBusy(true); setMessage(null);
-    try { await api("/connectors/BPS_KAPUAS/test", { method: "POST", mutation: true }); bps.reload(); setMessage({ tone: "success", text: "Koneksi BPS berhasil diuji." }); }
-    catch (reason) { setMessage({ tone: "error", text: reason instanceof Error ? reason.message : "Uji koneksi BPS gagal." }); }
+    setBpsBusy(true); setMessage(null); setBpsFeedback(null);
+    try { await api("/connectors/BPS_KAPUAS/test", { method: "POST", mutation: true }); bps.reload(); setBpsFeedback({ tone: "success", text: "Koneksi BPS berhasil diuji." }); }
+    catch (reason) { setBpsFeedback({ tone: "error", text: reason instanceof Error ? reason.message : "Uji koneksi BPS gagal." }); }
     finally { setBpsBusy(false); }
   }
   async function removeBpsKey() {
-    setBpsBusy(true); setMessage(null);
-    try { await api("/connectors/bps/secret", { method: "DELETE", mutation: true }); bps.reload(); setMessage({ tone: "success", text: "API key BPS dihapus dari penyimpanan terenkripsi." }); }
-    catch (reason) { setMessage({ tone: "error", text: reason instanceof Error ? reason.message : "API key BPS gagal dihapus." }); }
+    setBpsBusy(true); setMessage(null); setBpsFeedback(null);
+    try { await api("/connectors/bps/secret", { method: "DELETE", mutation: true }); bps.reload(); setBpsFeedback({ tone: "success", text: "API key BPS dihapus dari penyimpanan terenkripsi." }); }
+    catch (reason) { setBpsFeedback({ tone: "error", text: reason instanceof Error ? reason.message : "API key BPS gagal dihapus." }); }
     finally { setBpsBusy(false); }
   }
   if (result.loading) return <div className="panel-loading"><Spinner /></div>;
-  if (result.error || !result.data) return <Notice tone="error">{result.error?.message ?? "Konfigurasi tidak dapat dimuat."}</Notice>;
-  return <div className="settings-layout">{message && <Notice tone={message.tone}>{message.text}</Notice>}
+  if (result.error || !result.data) return <ErrorState title="Konfigurasi sistem belum dapat dimuat" onRetry={result.reload}>{result.error?.message ?? "Periksa koneksi lalu coba lagi."}</ErrorState>;
+  return <div className="settings-layout">{message && <Notice tone={message.tone}>{message.text}</Notice>}{bpsFeedback && <div className="bps-feedback-toast" role="status" aria-live="polite"><Notice tone={bpsFeedback.tone}>{bpsFeedback.text}</Notice></div>}
     <section className="panel feature-settings"><header className="panel-heading"><div><span className="eyebrow">Kendali fitur</span><h2>Aktif/nonaktifkan modul</h2><p>Atur modul yang tersedia bagi pengguna.</p></div><Flag /></header><div className="flag-list">{result.data.feature_flags.map((flag) => <div key={flag.code}><span className={`flag-icon ${flag.is_enabled ? "on" : ""}`}><Flag /></span><span><strong>{flag.name}</strong><small>{flag.description || featureImpact(flag)}</small></span><span className="flag-state"><Badge tone={flag.is_enabled ? "success" : "neutral"}>{flag.is_enabled ? "Aktif" : "Nonaktif"}</Badge><label className="switch"><input aria-label={`Aktifkan ${flag.name}`} type="checkbox" checked={flag.is_enabled} disabled={busyCode === flag.code} onChange={() => toggleFlag(flag)} /><i /></label></span></div>)}</div></section>
     {isSuperadmin && <AnnouncementSettings key={result.data.settings.find((item) => item.key === "dashboard.login_announcement")?.updated_at ?? "new"} setting={result.data.settings.find((item) => item.key === "dashboard.login_announcement")} onSaved={result.reload} />}
     <section className="panel advanced-settings"><header className="panel-heading"><div><span className="eyebrow">Pengaturan lanjutan</span><h2>Parameter nonrahasia</h2><p>Untuk nilai perilaku aplikasi seperti interval penyegaran, batas tampilan, atau mode bawaan. Password, token, dan API key disimpan pada bagian Secret Konektor-bukan di sini.</p></div><button className="button secondary" onClick={() => setSettingOpen(true)}><Plus />Tambah parameter</button></header>{result.data.settings.length ? <div className="setting-list">{result.data.settings.map((setting) => <div key={setting.key}><span className="setting-icon"><Settings2 /></span><span><strong>{setting.description || setting.key}</strong><small>Kode: {setting.key}</small></span><code>{JSON.stringify(setting.value)}</code><small>{formatDate(setting.updated_at)}</small></div>)}</div> : <div className="empty-inline"><strong>Tidak ada parameter khusus.</strong><span>Aplikasi sedang memakai nilai bawaan yang aman; bagian ini boleh dibiarkan kosong.</span></div>}</section>

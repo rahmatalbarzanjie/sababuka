@@ -1,8 +1,6 @@
-export interface EffectiveRole {
-  code: string;
-  scope_type: "global" | "organization" | "self" | "published";
-  organization_id: string | null;
-}
+import type { components } from "./generated/api-schema";
+
+export type EffectiveRole = components["schemas"]["EffectiveRole"];
 
 export interface Organization {
   id: string;
@@ -18,33 +16,8 @@ export interface Organization {
   category_count?: number;
 }
 
-export interface CurrentUser {
-  id: string;
-  email: string;
-  full_name: string;
-  mfa_required: boolean;
-  must_change_password: boolean;
-  roles: EffectiveRole[];
-  permissions: string[];
-  organizations: Organization[];
-  simulation?: {
-    active: true;
-    role_code: "bapperida" | "kominfo" | "pembina_statistik" | "opd" | "pimpinan";
-    organization_id: string | null;
-    organization_name: string | null;
-    original_full_name: string;
-    original_email: string;
-  };
-}
-
-export interface MenuItem {
-  code: string;
-  label: string;
-  icon: string | null;
-  route_name: string | null;
-  display_order: number;
-  children: MenuItem[];
-}
+export type CurrentUser = components["schemas"]["CurrentUser"];
+export type MenuItem = components["schemas"]["MenuItem"];
 
 export interface PageMeta {
   page: number;
@@ -220,6 +193,10 @@ export interface Indicator {
   category_review_status: "draft" | "in_review" | "approved" | "rejected";
   owner_organization_id: string | null;
   owner_organization_name: string | null;
+  origin_type: "rpjmd_master" | "opd_manual";
+  planning_document_type: "renstra" | "renja" | "other" | null;
+  planning_document_reference: string | null;
+  proposed_by_organization_id: string | null;
   is_active: boolean;
   updated_at: string;
   version_id: string;

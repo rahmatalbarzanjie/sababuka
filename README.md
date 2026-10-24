@@ -50,6 +50,19 @@ Backend API menjadi jalur data tunggal bagi seluruh kanal. Data mentah, data has
 - QA lintas-role dan dashboard operasional telah tersedia; kesiapan deployment development dinilai melalui dokumen audit sebelum VPS/domain disentuh.
 - Environment lokal memakai katalog RPJMD sebagai master indikator; paket kategori dan indikator demo tidak ditanamkan saat startup.
 
+## Pemeriksaan kualitas kode
+
+GitHub Actions menjalankan pemeriksaan kontrak OpenAPI dan build frontend, type-check serta test backend, dan smoke test browser Playwright pada setiap pull request serta push ke `main`.
+
+Jika kontrak API berubah, dari folder `frontend` jalankan:
+
+```bash
+pnpm api:types
+pnpm check
+```
+
+Tipe hasil generate berada di `frontend/src/generated/api-schema.d.ts` dan dipakai oleh tipe identitas/menu frontend. Generator OpenAPI diisolasi di `tools/openapi-generator` dengan TypeScript 5.9 agar tidak mengubah compiler TypeScript 7 aplikasi. Untuk tes browser lokal, pasang dependency kedua paket, pasang Chromium lewat `pnpm exec playwright install chromium` dari folder `backend`, lalu jalankan `pnpm test:e2e` dari folder tersebut. E2E saat ini menguji proteksi halaman dan respons form login memakai API mock; ini bukan pengganti UAT/integration test pada database staging.
+
 ## Peta dokumentasi
 
 - [Blueprint teknis](docs/01-blueprint-teknis.md)

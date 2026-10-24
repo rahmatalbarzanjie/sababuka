@@ -1,0 +1,14 @@
+{
+  "name": "@sababuka/openapi-generator",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "type": "module",
+  "scripts": {
+    "generate": "openapi-typescript ../../docs/api/openapi.yaml -o ../../frontend/src/generated/api-schema.d.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight, LoaderCircle, X } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight, Inbox, LoaderCircle, RefreshCw, X } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 export function Spinner({ label = "Memuat" }: { label?: string }) {
@@ -10,11 +10,26 @@ export function LoadingScreen() {
 }
 
 export function PageLoading({ label = "Memuat data" }: { label?: string }) {
-  return <div className="page-loading" role="status" aria-live="polite"><Spinner label={label} /></div>;
+  return <div className="page-state page-state-loading" role="status" aria-live="polite" aria-busy="true">
+    <span className="sr-only">{label}</span>
+    <div className="state-skeleton-heading" aria-hidden><span /><span /></div>
+    <div className="state-skeleton-row" aria-hidden><span /><span /><span /></div>
+    <div className="state-skeleton-row" aria-hidden><span /><span /><span /></div>
+    <div className="state-skeleton-row" aria-hidden><span /><span /><span /></div>
+  </div>;
 }
 
-export function EmptyState({ title, children }: { title: string; children: ReactNode }) {
-  return <div className="empty-state" role="status"><div className="empty-icon" aria-hidden>◇</div><h3>{title}</h3><p>{children}</p></div>;
+export function EmptyState({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
+  return <div className="page-state empty-state" role="status"><Inbox className="page-state-icon" aria-hidden /><h3>{title}</h3><p>{children}</p>{action && <div className="page-state-actions">{action}</div>}</div>;
+}
+
+export function ErrorState({ title = "Data belum dapat dimuat", children, onRetry }: { title?: string; children: ReactNode | Error; onRetry?(): void }) {
+  return <div className="page-state error-state" role="alert">
+    <AlertTriangle className="page-state-icon" aria-hidden />
+    <h3>{title}</h3>
+    <p>{children instanceof Error ? children.message : children}</p>
+    {onRetry && <div className="page-state-actions"><button type="button" className="button secondary" onClick={onRetry}><RefreshCw aria-hidden />Coba lagi</button></div>}
+  </div>;
 }
 
 export function Badge({ tone = "neutral", children }: { tone?: "success" | "warning" | "danger" | "info" | "neutral"; children: ReactNode }) {
@@ -64,7 +79,7 @@ export function Modal({ title, onClose, children, wide = false, className = "" }
   }, [onClose]);
   return <div className="modal-backdrop" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}>
     <section ref={modalRef} tabIndex={-1} className={`modal ${wide ? "wide" : ""} ${className}`.trim()} role="dialog" aria-modal="true" aria-labelledby={titleId}>
-      <header><div><span className="eyebrow">SABABUKA BERSINAR</span><h2 id={titleId}>{title}</h2></div><button type="button" className="icon-button" onClick={onClose} aria-label="Tutup dialog"><X size={20} aria-hidden /></button></header>
+      <header><div><h2 id={titleId}>{title}</h2></div><button type="button" className="icon-button" onClick={onClose} aria-label="Tutup dialog"><X size={20} aria-hidden /></button></header>
       <div className="modal-content">{children}</div>
     </section>
   </div>;
@@ -104,7 +119,17 @@ export function Pagination({ page, totalPages, totalItems, pageSize, sortLabel, 
 
 export function formatDate(value: string | null | undefined): string {
   if (!value) return "-";
-  return new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Jakarta" }).format(new Date(value));
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+    timeZone: "Asia/Jakarta",
+  }).format(new Date(value));
+}
+
+export function formatDateOnly(value: string | null | undefined): string {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta",
+  }).format(new Date(value));
 }
 
 const STATUS_LABELS: Record<string, string> = {

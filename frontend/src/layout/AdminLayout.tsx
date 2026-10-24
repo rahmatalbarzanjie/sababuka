@@ -152,7 +152,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     setHelpOpen(false);
     setNotificationOpen(false);
     window.scrollTo({ top: 0, left: 0 });
-    requestAnimationFrame(() => mainRef.current?.focus());
+    requestAnimationFrame(() => mainRef.current?.focus({ preventScroll: true }));
   }, [pathname]);
   useEffect(() => {
     const prepareScrollableTables = () => {
@@ -267,7 +267,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
   const leavePreview = async () => { setPreviewBusy(true); await stopPreview(); setPreviewBusy(false); setProfileOpen(false); navigate("/admin"); };
   const doLogout = async () => { await logout(); navigate("/login"); };
   return <div className={`workspace ${collapsed ? "collapsed" : ""}`}>
-    <button className="skip-link" onClick={() => mainRef.current?.focus()}>Lewati navigasi ke konten utama</button>
+    <button className="skip-link" onClick={() => { mainRef.current?.focus({ preventScroll: true }); mainRef.current?.scrollIntoView({ block: "start" }); }}>Lewati navigasi ke konten utama</button>
     <aside ref={sidebarRef} className={`sidebar ${mobile ? "mobile-open" : ""}`} aria-label="Navigasi utama">
       <div className="sidebar-brand"><div className="brand-logo"><img src="/logo-kapuas.png" alt="Lambang Kabupaten Kapuas" /></div><div className="sidebar-brand-copy"><strong>SABABUKA</strong></div><button className="mobile-close" aria-label="Tutup menu" onClick={() => setMobile(false)}><X /></button></div>
       <nav>
@@ -329,11 +329,12 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
       </header>
       {isRolePreview && <div className="role-preview-banner"><Eye /><span><strong>Mode pratinjau hanya baca</strong><small>Anda sedang melihat SABABUKA sebagai {roleLabels[user?.roles[0]?.code ?? ""] ?? "pengguna"}{user?.simulation?.organization_name ? ` - ${user.simulation.organization_name}` : ""}.</small></span><button disabled={previewBusy} onClick={() => void leavePreview()}><RotateCcw />Kembali ke Developer</button></div>}
       <main id="main-content" ref={mainRef} className="page-shell" tabIndex={-1} aria-label={`${title}. ${subtitle}`}>
+        {pathname !== "/governance/indicators" && <header className="page-header"><div><h1>{title}</h1><p>{subtitle}</p></div>{actions && <div className="page-actions">{actions}</div>}</header>}
         {children}
       </main>
       <footer className="workspace-footer"><span>Dikembangkan oleh</span><strong>Tim Peneliti Kajian SABABUKA BERSINAR 2026</strong></footer>
     </section>
-    {helpOpen && <><button className="help-overlay" aria-label="Tutup bantuan" onClick={() => setHelpOpen(false)} /><aside ref={helpRef} tabIndex={-1} className="help-drawer" role="dialog" aria-modal="true" aria-labelledby="help-drawer-title"><header><div><span className="eyebrow">BANTUAN SESUAI PERAN</span><h2 id="help-drawer-title">{help.title}</h2></div><button type="button" className="icon-button" aria-label="Tutup bantuan" onClick={() => setHelpOpen(false)}><X /></button></header><p>{help.intro}</p><ol>{help.steps.map((step) => <li key={step}><span>{help.steps.indexOf(step) + 1}</span><p>{step}</p></li>)}</ol><section><strong>Istilah penting</strong><dl><div><dt>Target</dt><dd>Sasaran RPJMD untuk tahun pelaporan.</dd></div><div><dt>Realisasi</dt><dd>Nilai yang benar-benar dicapai OPD.</dd></div><div><dt>Dipublikasikan</dt><dd>Sudah diperiksa, dikurasi, dan boleh dilihat pimpinan.</dd></div></dl></section><footer><small>Jika tugas atau data tidak sesuai, catat nama indikator, periode, dan OPD lalu hubungi Pengelola Sistem.</small><button type="button" className="button primary" onClick={() => setHelpOpen(false)}>Saya mengerti</button></footer></aside></>}
+    {helpOpen && <><button className="help-overlay" aria-label="Tutup bantuan" onClick={() => setHelpOpen(false)} /><aside ref={helpRef} tabIndex={-1} className="help-drawer" role="dialog" aria-modal="true" aria-labelledby="help-drawer-title"><header><div><h2 id="help-drawer-title">{help.title}</h2></div><button type="button" className="icon-button" aria-label="Tutup bantuan" onClick={() => setHelpOpen(false)}><X /></button></header><p>{help.intro}</p><ol>{help.steps.map((step) => <li key={step}><span>{help.steps.indexOf(step) + 1}</span><p>{step}</p></li>)}</ol><section><strong>Istilah penting</strong><dl><div><dt>Target</dt><dd>Sasaran RPJMD untuk tahun pelaporan.</dd></div><div><dt>Realisasi</dt><dd>Nilai yang benar-benar dicapai OPD.</dd></div><div><dt>Dipublikasikan</dt><dd>Sudah diperiksa, dikurasi, dan boleh dilihat pimpinan.</dd></div></dl></section><footer><small>Jika tugas atau data tidak sesuai, catat nama indikator, periode, dan OPD lalu hubungi Pengelola Sistem.</small><button type="button" className="button primary" onClick={() => setHelpOpen(false)}>Saya mengerti</button></footer></aside></>}
     {announcement?.enabled && <Modal title={announcement.title ?? "Pemberitahuan"} onClose={() => setAnnouncement(null)}><article className="login-announcement"><span className="announcement-icon"><Megaphone /></span>{announcement.image_url && <img src={announcement.image_url} alt="Ilustrasi pemberitahuan" />}<p>{announcement.message}</p><footer className="modal-actions">{announcement.action_url && <a className="button secondary" href={announcement.action_url} target={announcement.action_url.startsWith("http") ? "_blank" : undefined} rel="noreferrer">{announcement.action_label ?? "Buka informasi"}</a>}<button type="button" className="button primary" onClick={() => setAnnouncement(null)}>Tutup</button></footer></article></Modal>}
   </div>;
 }

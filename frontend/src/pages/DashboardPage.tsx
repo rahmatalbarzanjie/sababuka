@@ -1,6 +1,6 @@
-import { ArrowRight, Building2, Flag, PanelLeft, ShieldCheck, Users } from "lucide-react";
+import { ArrowRight, Building2, CheckCircle2, Flag, PanelLeft, ShieldCheck, Users } from "lucide-react";
 import { api } from "../api";
-import { Notice, PageLoading, useAsync } from "../components";
+import { ErrorState, Notice, PageLoading, useAsync } from "../components";
 import { navigate } from "../router";
 import type { FeatureFlag, Organization, PageResponse, Role, SystemSetting, UserSummary } from "../types";
 
@@ -24,7 +24,7 @@ export function DashboardPage() {
   ]).then(([organizations, users, categories, indicators, roles, configuration]) => ({ organizations, users, categories, indicators, roles, configuration })), []);
 
   if (result.loading) return <PageLoading label="Memuat ringkasan administrasi" />;
-  if (result.error || !result.data) return <Notice tone="error">{result.error?.message ?? "Ringkasan belum dapat dimuat."}</Notice>;
+  if (result.error || !result.data) return <ErrorState title="Ringkasan administrasi belum dapat dimuat" onRetry={result.reload}>{result.error?.message ?? "Periksa koneksi lalu coba lagi."}</ErrorState>;
   const enabledFlags = result.data.configuration.feature_flags.filter((flag) => flag.is_enabled).length;
   const opdCount = result.data.organizations.data.filter((organization) => organization.organization_type === "opd").length;
   const districtCount = result.data.organizations.data.filter((organization) => organization.organization_type === "district").length;
@@ -48,11 +48,11 @@ export function DashboardPage() {
         <button onClick={() => navigate("/admin/menus")}><span><strong>Susun menu berdasarkan peran</strong><small>Tampilan navigasi mengikuti tugas masing-masing pengguna.</small></span><ArrowRight /></button>
       </div></article>
       <article className="panel readiness-panel"><header><div><span className="eyebrow">Kesiapan platform</span><h2>Status fondasi</h2></div></header><div className="readiness-list">
-        <div><span className="check-dot">✓</span><p><strong>Autentikasi dan MFA</strong><small>Session, TOTP, dan recovery code aktif.</small></p></div>
-        <div><span className="check-dot">✓</span><p><strong>Struktur organisasi</strong><small>{opdCount} OPD dan {districtCount} kecamatan aktif dalam direktori.</small></p></div>
-        <div><span className="check-dot">✓</span><p><strong>RBAC dinamis</strong><small>{permissionCount} hak akses unik dan menu berbasis peran.</small></p></div>
-        <div><span className="check-dot">✓</span><p><strong>Audit perubahan</strong><small>Mutasi administrasi tercatat.</small></p></div>
-        <div><span className="check-dot">✓</span><p><strong>Layanan aplikasi</strong><small>API dan database merespons saat ringkasan ini dimuat.</small></p></div>
+        <div><span className="check-dot"><CheckCircle2 aria-hidden /></span><p><strong>Autentikasi dan MFA</strong><small>Session, TOTP, dan recovery code aktif.</small></p></div>
+        <div><span className="check-dot"><CheckCircle2 aria-hidden /></span><p><strong>Struktur organisasi</strong><small>{opdCount} OPD dan {districtCount} kecamatan aktif dalam direktori.</small></p></div>
+        <div><span className="check-dot"><CheckCircle2 aria-hidden /></span><p><strong>RBAC dinamis</strong><small>{permissionCount} hak akses unik dan menu berbasis peran.</small></p></div>
+        <div><span className="check-dot"><CheckCircle2 aria-hidden /></span><p><strong>Audit perubahan</strong><small>Mutasi administrasi tercatat.</small></p></div>
+        <div><span className="check-dot"><CheckCircle2 aria-hidden /></span><p><strong>Layanan aplikasi</strong><small>API dan database merespons saat ringkasan ini dimuat.</small></p></div>
       </div></article>
     </section>
   </>;

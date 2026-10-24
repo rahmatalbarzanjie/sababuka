@@ -15,10 +15,13 @@
     "check": "tsc --noEmit -p tsconfig.json && pnpm test",
     "test": "tsx --test test/*.test.ts",
     "test:integration": "tsx --test test/*.integration.test.ts",
+    "test:e2e": "playwright test",
     "db:migrate": "tsx src/scripts/migrate.ts",
     "admin:create": "tsx src/scripts/create-superadmin.ts",
     "dev:seed-users": "tsx src/scripts/seed-demo-users.ts",
     "accounts:reset-foundation": "tsx src/scripts/reset-foundation-accounts.ts",
+    "accounts:sync-google-form": "tsx src/scripts/sync-google-form-registrants.ts",
+    "data:sync-bps-rpjmd": "tsx src/scripts/sync-bps-rpjmd-observations.ts",
     "dev:seed-pilot": "tsx src/scripts/seed-pilot-account.ts",
     "dev:seed-official": "tsx src/scripts/seed-official-pilot-data.ts",
     "dev:seed-opd-websites": "tsx src/scripts/seed-local-opd-websites.ts",
@@ -36,6 +39,7 @@
     "playwright": "1.58.2"
   },
   "devDependencies": {
+    "@playwright/test": "1.58.2",
     "@types/node": "^26.6.3",
     "@types/pg": "^8.23.1",
     "tsx": "^4.23.15",

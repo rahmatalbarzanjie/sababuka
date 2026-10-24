@@ -1,25 +1,35 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { AuthProvider, useAuth } from "./auth";
-import { LoadingScreen, Notice } from "./components";
+import { LoadingScreen, Notice, PageLoading } from "./components";
 import { AdminLayout, ComingSoon } from "./layout/AdminLayout";
 import { navigate, usePathname } from "./router";
-import { RolesPage, MenusPage } from "./pages/AccessPages";
-import { InvitationPage, LoginPage, PasswordSetupPage, RegistrationPage } from "./pages/AuthPages";
-import { DashboardPage } from "./pages/DashboardPage";
-import { OrganizationsPage } from "./pages/OrganizationsPage";
-import { SecurityPage, SystemPage } from "./pages/SystemPage";
-import { UsersPage } from "./pages/UsersPage";
-import { CategoriesPage, IndicatorsPage } from "./pages/GovernancePages";
-import { SubmissionsPage } from "./pages/SubmissionPages";
-import { ExecutivePage } from "./pages/ExecutivePage";
-import { PublicationsPage } from "./pages/PublicationsPage";
-import { AssistantPage } from "./pages/AssistantPage";
-import { AuditPage, NotificationsPage } from "./pages/MonitoringPages";
-import { OperationsPage } from "./pages/OperationsPage";
-import { ConnectorsPage } from "./pages/ConnectorsPage";
-import { AnalysisPage, FinancePage, PublicServicesPage } from "./pages/DecisionPages";
-import { OpdProfilePage } from "./pages/OpdProfilePage";
-import { OpdMonitoringPage } from "./pages/OpdMonitoringPage";
+
+const RolesPage = lazy(() => import("./pages/AccessPages").then((module) => ({ default: module.RolesPage })));
+const MenusPage = lazy(() => import("./pages/AccessPages").then((module) => ({ default: module.MenusPage })));
+const InvitationPage = lazy(() => import("./pages/AuthPages").then((module) => ({ default: module.InvitationPage })));
+const LoginPage = lazy(() => import("./pages/AuthPages").then((module) => ({ default: module.LoginPage })));
+const PasswordSetupPage = lazy(() => import("./pages/AuthPages").then((module) => ({ default: module.PasswordSetupPage })));
+const RegistrationPage = lazy(() => import("./pages/AuthPages").then((module) => ({ default: module.RegistrationPage })));
+const DashboardPage = lazy(() => import("./pages/DashboardPage").then((module) => ({ default: module.DashboardPage })));
+const OrganizationsPage = lazy(() => import("./pages/OrganizationsPage").then((module) => ({ default: module.OrganizationsPage })));
+const SecurityPage = lazy(() => import("./pages/SystemPage").then((module) => ({ default: module.SecurityPage })));
+const SystemPage = lazy(() => import("./pages/SystemPage").then((module) => ({ default: module.SystemPage })));
+const UsersPage = lazy(() => import("./pages/UsersPage").then((module) => ({ default: module.UsersPage })));
+const CategoriesPage = lazy(() => import("./pages/GovernancePages").then((module) => ({ default: module.CategoriesPage })));
+const IndicatorsPage = lazy(() => import("./pages/GovernancePages").then((module) => ({ default: module.IndicatorsPage })));
+const SubmissionsPage = lazy(() => import("./pages/SubmissionPages").then((module) => ({ default: module.SubmissionsPage })));
+const ExecutivePage = lazy(() => import("./pages/ExecutivePage").then((module) => ({ default: module.ExecutivePage })));
+const PublicationsPage = lazy(() => import("./pages/PublicationsPage").then((module) => ({ default: module.PublicationsPage })));
+const AssistantPage = lazy(() => import("./pages/AssistantPage").then((module) => ({ default: module.AssistantPage })));
+const AuditPage = lazy(() => import("./pages/MonitoringPages").then((module) => ({ default: module.AuditPage })));
+const NotificationsPage = lazy(() => import("./pages/MonitoringPages").then((module) => ({ default: module.NotificationsPage })));
+const OperationsPage = lazy(() => import("./pages/OperationsPage").then((module) => ({ default: module.OperationsPage })));
+const ConnectorsPage = lazy(() => import("./pages/ConnectorsPage").then((module) => ({ default: module.ConnectorsPage })));
+const AnalysisPage = lazy(() => import("./pages/DecisionPages").then((module) => ({ default: module.AnalysisPage })));
+const FinancePage = lazy(() => import("./pages/DecisionPages").then((module) => ({ default: module.FinancePage })));
+const PublicServicesPage = lazy(() => import("./pages/DecisionPages").then((module) => ({ default: module.PublicServicesPage })));
+const OpdProfilePage = lazy(() => import("./pages/OpdProfilePage").then((module) => ({ default: module.OpdProfilePage })));
+const OpdMonitoringPage = lazy(() => import("./pages/OpdMonitoringPage").then((module) => ({ default: module.OpdMonitoringPage })));
 
 const pageMeta: Record<string, { title: string; subtitle: string; permission?: string }> = {
   "/admin": { title: "Beranda Administrasi", subtitle: "Ringkasan konfigurasi, akses pengguna, dan kesiapan sistem.", permission: "system.configure" },
@@ -106,9 +116,19 @@ function ProtectedApp() {
   else if (pathname === "/opd-profile") content = <OpdProfilePage />;
   else content = <ComingSoon title={meta.title} />;
 
-  return <AdminLayout pathname={pathname} title={meta.title} subtitle={meta.subtitle}>{content}</AdminLayout>;
+  return (
+    <AdminLayout pathname={pathname} title={meta.title} subtitle={meta.subtitle}>
+      <Suspense fallback={<PageLoading />}>{content}</Suspense>
+    </AdminLayout>
+  );
 }
 
 export default function App() {
-  return <AuthProvider><ProtectedApp /></AuthProvider>;
+  return (
+    <AuthProvider>
+      <Suspense fallback={<LoadingScreen />}>
+        <ProtectedApp />
+      </Suspense>
+    </AuthProvider>
+  );
 }

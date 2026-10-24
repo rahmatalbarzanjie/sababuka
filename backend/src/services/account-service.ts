@@ -295,12 +295,20 @@ export class AccountService {
          WHERE id = $1`,
         [totp.id, counter],
       );
+      const pendingRegistration = await client.query<{ exists: boolean } & QueryResultRow>(
+        `SELECT EXISTS (
+           SELECT 1 FROM sababuka.user_registration_requests
+           WHERE user_id = $1 AND status = 'pending'
+         ) AS exists`,
+        [invitation.user_id],
+      );
+      const nextStatus = pendingRegistration.rows[0]?.exists ? "invited" : "active";
       await client.query(
         `UPDATE sababuka.users
-         SET password_hash = $2, status = 'active', must_change_password = false,
+         SET password_hash = $2, status = $3, must_change_password = false,
              mfa_required = true, failed_login_count = 0, locked_until = NULL
          WHERE id = $1`,
-        [invitation.user_id, passwordHash],
+        [invitation.user_id, passwordHash, nextStatus],
       );
       await client.query(
         `UPDATE sababuka.user_invitations SET accepted_at = now() WHERE id = $1`,
@@ -329,7 +337,7 @@ export class AccountService {
       await client.query("COMMIT");
       return {
         email: invitation.email,
-        status: "active",
+        status: nextStatus === "active" ? "active" : "pending_approval",
         recovery_codes: recoveryCodes,
       };
     } catch (error) {

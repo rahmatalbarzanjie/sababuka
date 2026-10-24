@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { requireCsrf, requirePermission } from "../plugins/authentication.js";
 import { requestAuditContext } from "../request-context.js";
 import {
-  GovernanceService, type CategoryInput, type IndicatorInput, type IndicatorTechnicalMetadataInput, type PolicyFocusInput,
+  GovernanceService, type CategoryInput, type IndicatorInput, type IndicatorTechnicalMetadataInput, type OpdIndicatorProposalInput, type PolicyFocusInput,
 } from "../services/governance-service.js";
 
 const uuid = { type: "string", format: "uuid" } as const;
@@ -63,6 +63,17 @@ const indicatorBody = {
     targets: { type: "array", maxItems: 100, items: { type: "object", additionalProperties: false,
       required: ["period_id"], properties: { period_id: uuid, numeric_value: { type: ["number", "null"] },
         text_value: { type: ["string", "null"], maxLength: 1000 }, notes: { type: ["string", "null"], maxLength: 2000 } } } },
+  },
+} as const;
+
+const opdIndicatorProposalBody = {
+  ...indicatorBody,
+  required: [...indicatorBody.required, "owner_organization_id", "planning_document_type", "planning_document_reference"],
+  properties: {
+    ...indicatorBody.properties,
+    owner_organization_id: uuid,
+    planning_document_type: { type: "string", enum: ["renstra", "renja", "other"] },
+    planning_document_reference: { type: "string", minLength: 3, maxLength: 1000 },
   },
 } as const;
 
@@ -136,6 +147,25 @@ export async function governanceRoutes(app: FastifyInstance): Promise<void> {
   });
   app.post<{ Body: IndicatorInput }>("/indicators", { schema: { body: indicatorBody } }, async (request, reply) => {
     mutate(request, "indicator.manage"); return reply.code(201).send(await service(request).createIndicator(request.auth!, request.body, requestAuditContext(request)));
+  });
+  app.post<{ Body: OpdIndicatorProposalInput }>("/opd-indicator-proposals", { schema: { body: opdIndicatorProposalBody } }, async (request, reply) => {
+    mutate(request, "indicator.propose");
+    return reply.code(201).send(await service(request).createIndicator(request.auth!, request.body, requestAuditContext(request), "opd_manual"));
+  });
+  app.patch<{ Params: { indicator_id: string }; Body: OpdIndicatorProposalInput }>("/opd-indicator-proposals/:indicator_id", {
+    schema: {
+      params: { type: "object", additionalProperties: false, required: ["indicator_id"], properties: { indicator_id: uuid } },
+      body: opdIndicatorProposalBody,
+    },
+  }, async (request) => {
+    mutate(request, "indicator.propose");
+    return service(request).updateIndicatorDraft(request.auth!, request.params.indicator_id, request.body, requestAuditContext(request), "opd_manual");
+  });
+  app.post<{ Params: { version_id: string } }>("/opd-indicator-proposals/:version_id/submit", {
+    schema: { params: { type: "object", additionalProperties: false, required: ["version_id"], properties: { version_id: uuid } } },
+  }, async (request) => {
+    mutate(request, "indicator.propose");
+    return service(request).transitionIndicatorVersion(request.auth!, request.params.version_id, "submit", requestAuditContext(request));
   });
   app.patch<{ Params: { indicator_id: string }; Body: IndicatorInput }>("/indicators/:indicator_id", {
     schema: {

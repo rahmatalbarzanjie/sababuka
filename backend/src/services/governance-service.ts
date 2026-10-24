@@ -21,6 +21,10 @@ export interface GovernancePageQuery {
 export type CategoryTransitionAction = "submit" | "approve" | "reject" | "reopen";
 export type IndicatorTransitionAction = "submit" | "approve" | "verify" | "activate" | "retire";
 
+export function buildAutoPublicationNumber(publicationKey: string, versionNumber: number): string {
+  return `${publicationKey}-${versionNumber.toString().padStart(3, "0")}`;
+}
+
 export interface BulkTransitionResult {
   processed: Array<{ id: string; status: string }>;
   skipped: Array<{ id: string; reason: string }>;
@@ -72,6 +76,11 @@ export interface IndicatorInput {
   change_notes?: string | null;
   organizations?: IndicatorOrganizationInput[];
   targets?: IndicatorTargetInput[];
+}
+
+export interface OpdIndicatorProposalInput extends IndicatorInput {
+  planning_document_type: "renstra" | "renja" | "other";
+  planning_document_reference: string;
 }
 
 export interface IndicatorTechnicalMetadataInput {
@@ -341,6 +350,8 @@ export class GovernanceService {
               c.policy_focus_id::text, pf.code AS policy_focus_code, pf.name AS policy_focus_name,
               c.review_status AS category_review_status,
               i.owner_organization_id::text, owner.name AS owner_organization_name, i.is_active, i.updated_at::text,
+              i.origin_type, i.planning_document_type, i.planning_document_reference,
+              i.proposed_by_organization_id::text,
               iv.id::text AS version_id, iv.version_number, iv.definition, iv.formula,
               iv.frequency, iv.data_type, iv.direction, iv.source_reference,
               iv.access_level, iv.effective_from::text, iv.status,
@@ -407,16 +418,36 @@ export class GovernanceService {
     return pageEnvelope(result.rows, query.page, query.pageSize);
   }
 
-  async createIndicator(auth: AuthContext, input: IndicatorInput, audit: AuditContext) {
-    requireGlobal(auth);
+  async createIndicator(
+    auth: AuthContext,
+    input: IndicatorInput | OpdIndicatorProposalInput,
+    audit: AuditContext,
+    originType: "rpjmd_master" | "opd_manual" = "rpjmd_master",
+  ) {
+    const scope = organizationScope(auth);
+    if (originType === "rpjmd_master") requireGlobal(auth);
+    else if (!input.owner_organization_id || !scope.includes(input.owner_organization_id)) {
+      throw new ApiError(403, "SCOPE_DENIED", "OPD hanya dapat mengusulkan indikator untuk organisasinya sendiri.");
+    }
+    const proposalInput = originType === "opd_manual" ? input as OpdIndicatorProposalInput : null;
+    if (proposalInput && proposalInput.planning_document_reference.trim().length < 3) {
+      throw new ApiError(400, "VALIDATION_ERROR", "Referensi dokumen perencanaan wajib diisi.");
+    }
     const client = await this.db.connect();
     try {
       await client.query("BEGIN");
+      const effectiveOrganizations: IndicatorOrganizationInput[] = originType === "opd_manual"
+        ? [{ organization_id: input.owner_organization_id!, responsibility: "primary_producer", is_primary: true }]
+        : input.organizations ?? [];
       const indicatorResult = await client.query<QueryResultRow & Record<string, unknown>>(
-        `INSERT INTO sababuka.indicators (code, name, category_id, owner_organization_id, created_by)
-         VALUES ($1, $2, $3, $4, $5)
+        `INSERT INTO sababuka.indicators
+           (code, name, category_id, owner_organization_id, origin_type, planning_document_type,
+            planning_document_reference, proposed_by_organization_id, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          RETURNING id::text, code, name, category_id::text, owner_organization_id::text, is_active`,
-        [input.code, input.name, input.category_id, input.owner_organization_id ?? null, auth.user.id],
+        [input.code, input.name, input.category_id, input.owner_organization_id ?? null, originType,
+         proposalInput?.planning_document_type ?? null, proposalInput?.planning_document_reference.trim() ?? null,
+         originType === "opd_manual" ? input.owner_organization_id : null, auth.user.id],
       );
       const indicator = indicatorResult.rows[0]!;
       const versionResult = await client.query<QueryResultRow & { id: string }>(
@@ -430,7 +461,7 @@ export class GovernanceService {
          input.effective_from, input.change_notes ?? null, auth.user.id],
       );
       const versionId = versionResult.rows[0]!.id;
-      for (const organization of input.organizations ?? []) {
+      for (const organization of effectiveOrganizations) {
         await client.query(
           `INSERT INTO sababuka.indicator_organizations
              (indicator_version_id, organization_id, responsibility, is_primary) VALUES ($1, $2, $3, $4)`,
@@ -451,7 +482,9 @@ export class GovernanceService {
       await recordAudit(client, {
         ...audit, eventType: "indicator.created", entityType: "indicator", entityId: indicator.id as string,
         organizationId: input.owner_organization_id ?? null,
-        afterData: { ...indicator, version_id: versionId, status: "draft", organizations: input.organizations ?? [], targets: input.targets ?? [] },
+        afterData: { ...indicator, origin_type: originType, planning_document_type: proposalInput?.planning_document_type ?? null,
+          planning_document_reference: proposalInput?.planning_document_reference.trim() ?? null,
+          version_id: versionId, status: "draft", organizations: effectiveOrganizations, targets: input.targets ?? [] },
       });
       await client.query("COMMIT");
       return { ...indicator, version_id: versionId, version_number: 1, status: "draft" };
@@ -462,13 +495,20 @@ export class GovernanceService {
     } finally { client.release(); }
   }
 
-  async updateIndicatorDraft(auth: AuthContext, indicatorId: string, input: IndicatorInput, audit: AuditContext) {
-    requireGlobal(auth);
+  async updateIndicatorDraft(
+    auth: AuthContext,
+    indicatorId: string,
+    input: IndicatorInput | OpdIndicatorProposalInput,
+    audit: AuditContext,
+    originType: "rpjmd_master" | "opd_manual" = "rpjmd_master",
+  ) {
+    if (originType === "rpjmd_master") requireGlobal(auth);
     const client = await this.db.connect();
     try {
       await client.query("BEGIN");
       const current = await client.query<QueryResultRow & Record<string, unknown>>(
         `SELECT i.id::text, i.code, i.name, i.category_id::text, i.owner_organization_id::text,
+                i.origin_type, i.proposed_by_organization_id::text,
                 iv.id::text AS version_id, iv.version_number, iv.definition, iv.formula,
                 iv.unit_id::text, iv.frequency, iv.data_type, iv.direction, iv.source_reference,
                 iv.access_level, iv.effective_from::text, iv.status, iv.change_notes
@@ -482,15 +522,32 @@ export class GovernanceService {
         [indicatorId],
       );
       if (!current.rowCount) throw new ApiError(404, "NOT_FOUND", "Indikator tidak ditemukan.");
+      if (current.rows[0]!.origin_type !== originType) {
+        throw new ApiError(409, "CONFLICT", "Jenis indikator tidak sesuai dengan jalur perubahan yang digunakan.");
+      }
+      if (originType === "opd_manual") {
+        const scope = organizationScope(auth);
+        if (!current.rows[0]!.proposed_by_organization_id || !scope.includes(current.rows[0]!.proposed_by_organization_id as string)
+          || input.owner_organization_id !== current.rows[0]!.proposed_by_organization_id) {
+          throw new ApiError(403, "SCOPE_DENIED", "Draf hanya dapat diubah oleh OPD pengusul.");
+        }
+      }
       if (current.rows[0]!.status !== "draft") {
         throw new ApiError(409, "CONFLICT", "Hanya versi indikator berstatus draft yang dapat diubah langsung.");
       }
       const versionId = current.rows[0]!.version_id as string;
+      const effectiveOrganizations: IndicatorOrganizationInput[] = originType === "opd_manual"
+        ? [{ organization_id: input.owner_organization_id!, responsibility: "primary_producer", is_primary: true }]
+        : input.organizations ?? [];
       await client.query(
         `UPDATE sababuka.indicators
-         SET code = $2, name = $3, category_id = $4, owner_organization_id = $5
+         SET code = $2, name = $3, category_id = $4, owner_organization_id = $5,
+             planning_document_type = CASE WHEN origin_type = 'opd_manual' THEN $6 ELSE planning_document_type END,
+             planning_document_reference = CASE WHEN origin_type = 'opd_manual' THEN $7 ELSE planning_document_reference END
          WHERE id = $1`,
-        [indicatorId, input.code, input.name, input.category_id, input.owner_organization_id ?? null],
+        [indicatorId, input.code, input.name, input.category_id, input.owner_organization_id ?? null,
+         originType === "opd_manual" ? (input as OpdIndicatorProposalInput).planning_document_type : null,
+         originType === "opd_manual" ? (input as OpdIndicatorProposalInput).planning_document_reference.trim() : null],
       );
       await client.query(
         `UPDATE sababuka.indicator_versions
@@ -503,7 +560,7 @@ export class GovernanceService {
          input.effective_from, input.change_notes ?? null],
       );
       await client.query(`DELETE FROM sababuka.indicator_organizations WHERE indicator_version_id = $1`, [versionId]);
-      for (const organization of input.organizations ?? []) {
+      for (const organization of effectiveOrganizations) {
         await client.query(
           `INSERT INTO sababuka.indicator_organizations
              (indicator_version_id, organization_id, responsibility, is_primary) VALUES ($1, $2, $3, $4)`,
@@ -616,9 +673,10 @@ export class GovernanceService {
     try {
       await client.query("BEGIN");
       const current = await client.query<QueryResultRow & {
-        id: string; indicator_id: string; indicator_code: string; indicator_name: string; status: string; owner_organization_id: string | null; owner_organization_name: string | null; category_review_status: string; submitted_by: string | null; bapperida_reviewed_by: string | null; metadata_complete: boolean;
+        id: string; indicator_id: string; indicator_code: string; indicator_name: string; status: string; origin_type: string; owner_organization_id: string | null; owner_organization_name: string | null; category_review_status: string; submitted_by: string | null; bapperida_reviewed_by: string | null; metadata_complete: boolean;
       }>(
         `SELECT iv.id::text, iv.indicator_id::text, i.code AS indicator_code, i.name AS indicator_name, iv.status,
+                i.origin_type,
                 iv.submitted_by::text, iv.bapperida_reviewed_by::text,
                 i.owner_organization_id::text, owner.name AS owner_organization_name, c.review_status AS category_review_status,
                 (length(trim(iv.definition)) >= 5 AND i.owner_organization_id IS NOT NULL
@@ -636,7 +694,12 @@ export class GovernanceService {
       if (!current.rowCount) throw new ApiError(404, "NOT_FOUND", "Versi indikator tidak ditemukan.");
       const currentVersion = current.rows[0]!;
       if (action === "submit") {
-        requireIndicatorDrafter(auth);
+        if (currentVersion.origin_type === "opd_manual") {
+          const scope = organizationScope(auth);
+          if (!currentVersion.owner_organization_id || !scope.includes(currentVersion.owner_organization_id)) {
+            throw new ApiError(403, "SCOPE_DENIED", "Usulan hanya dapat diajukan oleh OPD pengusul.");
+          }
+        } else requireIndicatorDrafter(auth);
       } else if (action === "verify") {
         const scope = organizationScope(auth);
         if (!currentVersion.owner_organization_id || !scope.includes(currentVersion.owner_organization_id)) {
@@ -674,6 +737,9 @@ export class GovernanceService {
           [current.rows[0]!.indicator_id, versionId],
         );
       }
+      const targetStatus = action === "approve" && currentVersion.origin_type === "opd_manual"
+        ? "approved"
+        : transition.to;
       const result = await client.query<QueryResultRow & Record<string, unknown>>(
         `UPDATE sababuka.indicator_versions
          SET status = $2,
@@ -681,17 +747,17 @@ export class GovernanceService {
              submitted_at = CASE WHEN $3 = 'submit' THEN now() ELSE submitted_at END,
              bapperida_reviewed_by = CASE WHEN $3 = 'approve' THEN $4 ELSE bapperida_reviewed_by END,
              bapperida_reviewed_at = CASE WHEN $3 = 'approve' THEN now() ELSE bapperida_reviewed_at END,
-             opd_verified_by = CASE WHEN $3 = 'verify' THEN $4 ELSE opd_verified_by END,
-             opd_verified_at = CASE WHEN $3 = 'verify' THEN now() ELSE opd_verified_at END,
-             approved_by = CASE WHEN $3 = 'verify' THEN $4 ELSE approved_by END,
-             approved_at = CASE WHEN $3 = 'verify' THEN now() ELSE approved_at END
+             opd_verified_by = CASE WHEN $3 = 'verify' THEN $4 WHEN $3 = 'approve' AND $5 = 'opd_manual' THEN submitted_by ELSE opd_verified_by END,
+             opd_verified_at = CASE WHEN $3 = 'verify' THEN now() WHEN $3 = 'approve' AND $5 = 'opd_manual' THEN COALESCE(submitted_at, now()) ELSE opd_verified_at END,
+             approved_by = CASE WHEN $3 = 'verify' OR ($3 = 'approve' AND $5 = 'opd_manual') THEN $4 ELSE approved_by END,
+             approved_at = CASE WHEN $3 = 'verify' OR ($3 = 'approve' AND $5 = 'opd_manual') THEN now() ELSE approved_at END
          WHERE id = $1
          RETURNING id::text, indicator_id::text, version_number, status,
                    submitted_by::text, submitted_at::text,
                    bapperida_reviewed_by::text, bapperida_reviewed_at::text,
                    opd_verified_by::text, opd_verified_at::text,
                    approved_by::text, approved_at::text, updated_at::text`,
-        [versionId, transition.to, action, auth.user.id],
+        [versionId, targetStatus, action, auth.user.id, currentVersion.origin_type],
       );
       await recordAudit(client, {
         ...audit, eventType: `indicator.${action}`, entityType: "indicator_version", entityId: versionId,
@@ -703,6 +769,11 @@ export class GovernanceService {
         await notifyRole(client, "bapperida", {
           ...indicatorEntity, type: "indicator.submitted", title: "Indikator menunggu review BAPPERIDA",
           message: `Indikator ${indicator.indicator_name} diajukan untuk ditinjau.`,
+        }, auth.user.id);
+      } else if (action === "approve" && indicator.owner_organization_id && indicator.origin_type === "opd_manual") {
+        await notifyOrganization(client, indicator.owner_organization_id, {
+          ...indicatorEntity, type: "indicator.proposal_approved", title: "Usulan indikator disetujui BAPPERIDA",
+          message: `Usulan ${indicator.indicator_name} telah diperiksa dan menunggu aktivasi BAPPERIDA.`,
         }, auth.user.id);
       } else if (action === "approve" && indicator.owner_organization_id) {
         await notifyOrganization(client, indicator.owner_organization_id, {
@@ -741,7 +812,7 @@ export class GovernanceService {
               `INSERT INTO sababuka.publications
                  (publication_key, version_number, publication_number, title, description, status, effective_at, change_notes, created_by)
                VALUES ($1, $2, $3, $4, $5, 'draft', now(), $6, $7) RETURNING id::text`,
-              [publicationKey, versionNumber, `SABABUKA-AUTO-${versionNumber.toString().padStart(3, "0")}`,
+              [publicationKey, versionNumber, buildAutoPublicationNumber(publicationKey, versionNumber),
                `Rilis otomatis — ${indicator.indicator_name}`,
                "Capaian bersumber dari observasi resmi yang telah lolos validasi teknis OPD.",
                "Diterbitkan otomatis saat BAPPERIDA mengaktifkan indikator.", auth.user.id],

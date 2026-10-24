@@ -2,7 +2,7 @@ import { ArrowLeft, BadgeCheck, Database, Download, FileText, Globe2, Plus, Save
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { api, apiPath, jsonBody } from "../api";
 import { useAuth } from "../auth";
-import { Badge, EmptyState, Notice, PageLoading, useAsync } from "../components";
+import { Badge, EmptyState, ErrorState, Notice, PageLoading, useAsync } from "../components";
 import type { Indicator, PageResponse } from "../types";
 
 type Status = "draft" | "submitted" | "returned" | "verified";
@@ -120,7 +120,7 @@ export function OpdProfilePage() {
   const completion = useMemo(() => { const websiteReady = form.website?.has_website !== "unknown" && (form.website?.has_website !== "yes" || Boolean(form.website.url)); const apiReady = form.integration?.api_available !== "unknown" && (form.integration?.api_available !== "yes" || Boolean(form.integration.api_endpoint && form.integration.api_access_type !== "unknown")); const checks = [profile?.pic_identity?.name, profile?.pic_identity?.whatsapp, profile?.pic_identity?.position, websiteReady, apiReady, form.data_management?.rpjmd_on_website !== "unknown", form.data_management?.renstra_on_website !== "unknown", form.data_management?.storage_locations?.length, form.declaration?.accurate]; return Math.round(checks.filter(Boolean).length / checks.length * 100); }, [form, profile?.pic_identity]);
 
   if (list.loading) return <PageLoading label="Memuat profil data OPD" />;
-  if (list.error || !list.data) return <Notice tone="error">{list.error ?? "Profil data OPD belum tersedia."}</Notice>;
+  if (list.error || !list.data) return <ErrorState title="Profil data OPD belum dapat dimuat" onRetry={list.reload}>{list.error ?? "Periksa koneksi lalu coba lagi."}</ErrorState>;
   return <div className="opd-profile-page">
     {error && <Notice tone="error">{error}</Notice>}{message && <Notice tone="success">{message}</Notice>}
     <section className="panel opd-profile-intro"><div><span className="eyebrow">Pemetaan awal OPD</span><h2>Profil sumber data RPJMD dan Renstra</h2><p>Isi informasi inti satu kali. Capaian berkala tetap diperbarui melalui Pelaporan Realisasi agar tidak terjadi input ganda.</p></div><div className="completion-meter"><strong>{completion}%</strong><small>Kelengkapan inti</small><span><i style={{ width: `${completion}%` }} /></span></div></section>

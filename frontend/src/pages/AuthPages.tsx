@@ -231,6 +231,7 @@ export function InvitationPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [code, setCode] = useState("");
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
+  const [activationStatus, setActivationStatus] = useState<"active" | "pending_approval" | null>(null);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -252,7 +253,8 @@ export function InvitationPage() {
     if (password !== confirmPassword) { setError("Konfirmasi kata sandi belum sama."); return; }
     setBusy(true); setError(null);
     try {
-      const response = await api<{ recovery_codes: string[] }>(`/auth/invitations/${encodeURIComponent(token)}/accept`, { method: "POST", body: jsonBody({ password, mfa_code: code }) });
+      const response = await api<{ recovery_codes: string[]; status: "active" | "pending_approval" }>(`/auth/invitations/${encodeURIComponent(token)}/accept`, { method: "POST", body: jsonBody({ password, mfa_code: code }) });
+      setActivationStatus(response.status);
       setRecoveryCodes(response.recovery_codes);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Aktivasi akun gagal."); }
     finally { setBusy(false); }
@@ -268,7 +270,7 @@ export function InvitationPage() {
     <section className="auth-panel">
       <div className="auth-card activation-card">
         {busy && !info ? <Spinner label="Memeriksa undangan" /> : error && !info ? <><Notice tone="error">{error}</Notice><button className="button secondary full" onClick={() => navigate("/login")}>Kembali ke login</button></> : recoveryCodes ? <>
-          <div className="success-symbol"><Check /></div><div className="auth-card-heading"><span className="eyebrow">Akun aktif</span><h2>Simpan recovery code Anda</h2><p>Kode berikut hanya ditampilkan sekali. Simpan di lokasi aman dan jangan kirim melalui grup percakapan.</p></div>
+          <div className="success-symbol"><Check /></div><div className="auth-card-heading"><span className="eyebrow">{activationStatus === "pending_approval" ? "Menunggu verifikasi" : "Akun aktif"}</span><h2>Simpan recovery code Anda</h2><p>{activationStatus === "pending_approval" ? "Pengaturan keamanan selesai. Developer akan memeriksa identitas dan OPD sebelum akun dapat digunakan." : "Kode berikut hanya ditampilkan sekali. Simpan di lokasi aman dan jangan kirim melalui grup percakapan."}</p></div>
           <div className="recovery-grid">{recoveryCodes.map((item) => <code key={item}>{item}</code>)}</div>
           <button className="button secondary full" onClick={() => copyText(recoveryCodes.join("\n"))}>{copied ? <Check size={17} /> : <Copy size={17} />}{copied ? "Tersalin" : "Salin semua kode"}</button>
           <button className="button primary full" onClick={() => navigate("/login")}>Lanjut ke login <ArrowRight size={17} /></button>

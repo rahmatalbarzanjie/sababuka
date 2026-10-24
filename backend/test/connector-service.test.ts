@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import type { QueryResult } from "pg";
 import type { Database, QueryResultRow } from "../src/database.js";
-import { ConnectorService, parseCsv } from "../src/services/connector-service.js";
+import { buildBpsDomainUrl, ConnectorService, extractBpsDomains, parseCsv } from "../src/services/connector-service.js";
 import { testConfig } from "./test-config.js";
 
 function result<R extends QueryResultRow>(rows: R[]): QueryResult<R> {
@@ -16,6 +16,19 @@ test("parseCsv preserves quoted commas and escaped quotes", () => {
 
 test("parseCsv returns an empty list for header-only resources", () => {
   assert.deepEqual(parseCsv("tahun,nilai\n"), []);
+});
+
+test("BPS domain request uses the current public API contract", () => {
+  const url = new URL(buildBpsDomainUrl("https://webapi.bps.go.id/v1/api/", "secret key"));
+  assert.equal(url.pathname, "/v1/api/domain");
+  assert.equal(url.searchParams.get("type"), "kab");
+  assert.equal(url.searchParams.get("key"), "secret key");
+  assert.equal(url.toString().includes("adminkab"), false);
+});
+
+test("BPS domains are extracted from the documented paginated response", () => {
+  const domains = extractBpsDomains({ status: "OK", data: [{ page: 1, pages: 1 }, [{ domain_id: "6203", domain_name: "Kabupaten Kapuas" }]] });
+  assert.deepEqual(domains, [{ domain_id: "6203", domain_name: "Kabupaten Kapuas" }]);
 });
 
 test("BPS connection profile exposes sanitized metrics and candidate summary", async () => {
@@ -33,7 +46,12 @@ test("BPS connection profile exposes sanitized metrics and candidate summary", a
     connect: async () => { throw new Error("connect tidak digunakan"); },
     end: async () => undefined,
   };
-  globalThis.fetch = async () => new Response(JSON.stringify({ data: [{ name: "Indeks Ketahanan Pangan" }] }), { status: 200, headers: { "content-type": "application/json" } });
+  globalThis.fetch = async (input) => {
+    const url = new URL(String(input));
+    assert.equal(url.pathname, "/v1/api/domain");
+    assert.equal(url.searchParams.get("type"), "kab");
+    return new Response(JSON.stringify({ status: "OK", data: [{ page: 1, pages: 1 }, [{ domain_id: "6203", domain_name: "Indeks Ketahanan Pangan" }]] }), { status: 200, headers: { "content-type": "application/json" } });
+  };
   try {
     const profile = await new ConnectorService(fakeDb, testConfig).testSource("BPS_KAPUAS", { actorId: "user-1", requestId: "req-1", ipAddress: null, userAgent: null });
     assert.equal(profile.reachable, true);
@@ -44,8 +62,12 @@ test("BPS connection profile exposes sanitized metrics and candidate summary", a
     globalThis.fetch = async () => new Response("unauthorized", { status: 401 });
     const failed = await new ConnectorService(fakeDb, testConfig).testSource("BPS_KAPUAS", { actorId: "user-1", requestId: "req-2", ipAddress: null, userAgent: null });
     assert.equal(failed.reachable, false);
-    assert.equal(failed.error, "Sumber tidak dapat dijangkau atau responsnya tidak valid.");
+    assert.equal(failed.error, "API key ditolak oleh WebAPI BPS. Periksa kembali key yang dimasukkan.");
     assert.equal(JSON.stringify(failed).includes("mock-bps-key-2026"), false);
+    globalThis.fetch = async () => new Response(JSON.stringify({ status: "Error", error: "UserNotFound" }), { status: 200, headers: { "content-type": "application/json" } });
+    const rejected = await new ConnectorService(fakeDb, testConfig).testSource("BPS_KAPUAS", { actorId: "user-1", requestId: "req-3", ipAddress: null, userAgent: null });
+    assert.equal(rejected.reachable, false);
+    assert.match(rejected.error ?? "", /Periksa API key, aplikasi yang terdaftar, dan parameter endpoint/u);
   } finally {
     globalThis.fetch = originalFetch;
     if (originalKey === undefined) delete process.env.BPS_API_KEY; else process.env.BPS_API_KEY = originalKey;

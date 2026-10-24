@@ -26,4 +26,15 @@ Konektor hanya bertugas mengambil realisasi dari sumber resmi. Target RPJMD/Rens
 
 ## Hak akses
 
-`connector.view` dapat melihat status, katalog, mapping, dan preview. `connector.manage` membuat mapping dan menjalankan aksi mapping/import. Aktivasi publikasi tetap mengikuti permission publikasi BAPPERIDA; pimpinan hanya membaca hasil yang sudah aktif.
+Ruang konektor, mapping kandidat, dan isi preview staging hanya dapat dibuka oleh akun Developer atau Superadmin dengan role `superadmin` berscope `global`. Pemeriksaan ini diterapkan pada API, bukan hanya dengan menyembunyikan menu. Walidata, BPS, OPD, BAPPERIDA, dan pimpinan tidak dapat membaca nilai mentah staging.
+
+Mapping kandidat boleh dibuat untuk indikator berstatus `opd_verification`. Mapping draf boleh menjalankan preview, tetapi tidak dapat disetujui, diaktifkan, dijadwalkan, atau diimpor sampai indikator berstatus `approved` atau `active`. Preview tidak menulis ke `data_batches`, `observations`, dashboard pimpinan, maupun publikasi.
+
+## Retensi dan penghapusan staging
+
+- Nilai mentah pada `connector_staging_values` disimpan maksimal 90 hari sejak connector run dibuat.
+- Pembersihan diperiksa otomatis oleh scheduler backend setiap menit, serta saat daftar mapping dibuka, preview baru dijalankan, atau riwayat preview dibaca.
+- Setelah masa retensi, nilai mentah dihapus dan `staging_purged_at` dicatat.
+- Ringkasan run, checksum, URL sumber, waktu pengambilan, dan audit event tetap disimpan untuk ketertelusuran.
+- Jika preview masih dibutuhkan setelah masa retensi, Developer harus mengambil ulang sumber untuk membuat run baru.
+- Perubahan masa retensi harus dibuat melalui migration baru dan dicatat pada dokumen ini; jangan menonaktifkan pembersihan hanya dari UI.

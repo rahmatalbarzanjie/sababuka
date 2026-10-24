@@ -2,7 +2,7 @@ import { Activity, ArrowRight, BadgeCheck, Clock3, FileWarning, Gauge, ListCheck
 import { useMemo, useState } from "react";
 import { api } from "../api";
 import { useAuth } from "../auth";
-import { Badge, capaianStatusLabel, EmptyState, formatDate, Notice, PageLoading, SortableHeader, useAsync, type SortDirection } from "../components";
+import { Badge, capaianStatusLabel, EmptyState, ErrorState, formatDate, Notice, PageLoading, SortableHeader, useAsync, type SortDirection } from "../components";
 import { navigate } from "../router";
 
 interface OperationsData {
@@ -24,7 +24,7 @@ export function OperationsPage() {
     return sortOrder === "asc" ? compared : -compared;
   }), [result.data?.organizations, sortBy, sortOrder]);
   if (result.loading) return <PageLoading label="Memuat dashboard operasional" />;
-  if (result.error || !result.data) return <Notice tone="error">{result.error ?? "Dashboard operasional belum dapat dimuat."}</Notice>;
+  if (result.error || !result.data) return <ErrorState title="Beranda tugas belum dapat dimuat" onRetry={result.reload}>{result.error ?? "Periksa koneksi lalu coba lagi."}</ErrorState>;
   const sharedCards = [
     ["Indikator aktif", result.data.metrics.active_indicators, Gauge, "blue"], ["Draf form capaian", result.data.metrics.draft, Clock3, "violet"],
     ["Capaian menunggu pemeriksaan", result.data.metrics.pending_review, Send, "amber"], ["Capaian perlu perbaikan", result.data.metrics.returned, RotateCcw, "amber"],
