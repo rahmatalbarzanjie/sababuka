@@ -1892,6 +1892,10 @@ components:
       required: [code, name, category_id, definition, unit_id, frequency, data_type, effective_from]
       properties:
         code: {type: string, maxLength: 80}
+        kodref_ip:
+          type: [string, "null"]
+          maxLength: 128
+          description: Kode Referensi Indikator Pembangunan nasional untuk pencocokan dengan Satu Data Indonesia dan SIPD; berbeda dari kode internal SABABUKA.
         name: {type: string, maxLength: 255}
         category_id: {$ref: "#/components/schemas/Uuid"}
         owner_organization_id: {$ref: "#/components/schemas/Uuid"}
@@ -1965,10 +1969,13 @@ components:
         effective_from: {type: string, format: date}
     IndicatorDetail:
       type: object
-      required: [id, code, name, category_id, category_name, version_id, version_number, definition, unit_id, unit_name, status, organizations, targets]
+      required: [id, code, kodref_ip, name, category_id, category_name, version_id, version_number, definition, unit_id, unit_name, status, organizations, targets]
       properties:
         id: {$ref: "#/components/schemas/Uuid"}
         code: {type: string}
+        kodref_ip:
+          type: [string, "null"]
+          description: Kode Referensi Indikator Pembangunan nasional; kode internal indikator tetap berada pada properti `code`.
         name: {type: string}
         category_id: {$ref: "#/components/schemas/Uuid"}
         owner_organization_id:

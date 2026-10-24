@@ -1343,6 +1343,8 @@ export interface components {
         IndicatorStatus: "draft" | "in_review" | "opd_verification" | "approved" | "active" | "retired";
         IndicatorCreateInput: {
             code: string;
+            /** @description Kode Referensi Indikator Pembangunan nasional untuk pencocokan dengan Satu Data Indonesia dan SIPD; berbeda dari kode internal SABABUKA. */
+            kodref_ip?: string | null;
             name: string;
             category_id: components["schemas"]["Uuid"];
             owner_organization_id?: components["schemas"]["Uuid"];
@@ -1410,6 +1412,8 @@ export interface components {
         IndicatorDetail: {
             id: components["schemas"]["Uuid"];
             code: string;
+            /** @description Kode Referensi Indikator Pembangunan nasional; kode internal indikator tetap berada pada properti `code`. */
+            kodref_ip: string | null;
             name: string;
             category_id: components["schemas"]["Uuid"];
             owner_organization_id?: components["schemas"]["Uuid"] | null;

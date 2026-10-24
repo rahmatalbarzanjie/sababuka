@@ -47,6 +47,7 @@ const indicatorBody = {
   required: ["code", "name", "category_id", "definition", "unit_id", "frequency", "data_type", "effective_from"],
   properties: {
     code: { type: "string", pattern: "^[A-Z0-9][A-Z0-9._-]*$", maxLength: 80 },
+    kodref_ip: { type: ["string", "null"], maxLength: 128 },
     name: { type: "string", minLength: 2, maxLength: 255 },
     category_id: uuid, owner_organization_id: nullableUuid,
     definition: { type: "string", minLength: 5, maxLength: 10000 },
