@@ -41,7 +41,7 @@ Migration PostgreSQL/PostGIS untuk baseline MVP v1.
 | 043 | Staging kandidat privat Developer/Superadmin dan retensi nilai mentah 90 hari |
 | 044 | Usulan indikator OPD satu per satu secara manual, dengan asal dokumen perencanaan dan pembatasan scope OPD |
 
-Semua migration menggunakan transaksi. Jangan mengubah file migration yang sudah diterapkan pada lingkungan bersama; buat migration baru.
+Semua migration menggunakan transaksi. Jangan mengubah file migration yang sudah diterapkan pada lingkungan bersama; buat migration baru. Satu pengecualian kompatibilitas yang diaudit terdapat pada migration 029: instalasi bersih kini melewati batch demo bila aktor Developer belum dibuat. Runner hanya menerima checksum lama 029 yang dicatat eksplisit, lalu memperbarui ledger ke checksum koreksi; perubahan checksum lain tetap ditolak.
 
 ## Menjalankan
 

@@ -8,6 +8,14 @@ const config = loadConfig();
 const db = createDatabase(config.databaseUrl);
 const migrationDirectory = path.resolve(process.cwd(), "database", "migrations");
 
+// Migration 029 originally tried to create an optional demo batch even when its
+// developer actor was absent on a clean installation. The corrected SQL skips
+// that demo row. Accept only the audited original checksum so existing databases
+// can record the correction without weakening checksum validation generally.
+const approvedChecksumReplacements: Record<string, ReadonlySet<string>> = {
+  "029": new Set(["93c1b3aebf847b841d51532ee04c293cfea620750db5c8c4a3eba4c7cb889351"]),
+};
+
 try {
   const files = (await readdir(migrationDirectory))
     .filter((name) => /^\d{3}_[a-z0-9_]+\.sql$/.test(name))
@@ -29,7 +37,15 @@ try {
       const record = applied.rows[0];
       if (record) {
         if (record.checksum && record.checksum !== checksum) {
-          throw new Error(`Checksum migration ${filename} berubah setelah diterapkan.`);
+          if (approvedChecksumReplacements[version]?.has(record.checksum)) {
+            await db.query(
+              "UPDATE sababuka.schema_migrations SET checksum = $2 WHERE version = $1",
+              [version, checksum],
+            );
+            console.warn(`Perbarui checksum ${filename} untuk koreksi kompatibilitas yang disetujui.`);
+          } else {
+            throw new Error(`Checksum migration ${filename} berubah setelah diterapkan.`);
+          }
         }
         if (!record.checksum) {
           await db.query(

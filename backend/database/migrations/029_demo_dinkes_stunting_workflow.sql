@@ -73,7 +73,10 @@ WITH ctx AS (
          '{"demo":true,"source":"Kementerian Kesehatan — SKI 2023","import_key":"DEMO_PREVALENSI_STUNTING_2023"}'::jsonb,
          0, 'approved', ctx.actor_id, now(), ctx.actor_id, now(), ctx.actor_id
   FROM ctx CROSS JOIN dv
-  WHERE NOT EXISTS (
+  WHERE ctx.actor_id IS NOT NULL
+    AND ctx.organization_id IS NOT NULL
+    AND ctx.period_id IS NOT NULL
+    AND NOT EXISTS (
     SELECT 1 FROM sababuka.data_batches
     WHERE source_metadata->>'import_key' = 'DEMO_PREVALENSI_STUNTING_2023'
   )
