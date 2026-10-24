@@ -7,6 +7,7 @@ Mockup HTML statis (bisa dibuka langsung di browser) sebagai **acuan visual** im
 | `dashboard-pimpinan.html` | Dashboard Pimpinan: ringkasan narasi + lampu lalu lintas, analitik standar, peta kecamatan tertanam, 6 panel premium tergembok, Asisten AI melayang | §3, §4, §6 |
 | `peran-opd-walidata-pembina.html` | Tiga halaman per peran (tab): OPD (Operator), Walidata, Pembina Data (BPS) | §5 |
 | `navigasi-halaman-padat.html` | Sidebar per-peran + badge "Segera", Beranda Tugas yang difokuskan, Matriks Indikator ringkas | §2.1, §2.4 |
+| `dashboard-developer.html` | POV developer: overview sistem (OPD belum gabung, indikator bermasalah, isu kosong, kesehatan sistem) + pusat sinkronisasi data (pipeline SatuData/BPS/SIPD + data mentah) | §2, §3 |
 | `audit-ui-ux.html` | Laporan audit UI/UX 21 halaman (temuan & prioritas) | — |
 
 ## Cara membuka
