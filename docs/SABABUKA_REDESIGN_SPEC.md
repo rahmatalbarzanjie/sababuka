@@ -26,8 +26,18 @@
 ## 2. Perbaikan GLOBAL (lintas halaman) — prioritas tinggi
 
 ### 2.1 Modul placeholder → tandai “Segera”, non-aktifkan klik
-Jangan tampilkan modul kosong seolah aktif. Beri badge `Segera` dan disable navigasi.
-Modul placeholder saat ini: `Keuangan Daerah`, `Layanan Publik`, `Profil Data OPD`, `Fokus Kebijakan` (focuses), `Dataset` (datasets), `Profil Metadata` (metadata-profiles).
+> **KOREKSI PENTING (baseline = kode `main`, bukan situs live).** Audit awal dibuat dari `dev.sababuka.com` yang ternyata **deploy LAMA**. Di kode `main` banyak modul sudah dibangun. **Baseline implementasi = kode `main`, abaikan status situs live.**
+
+Placeholder **sebenarnya** (jatuh ke komponen `ComingSoon` di `App.tsx`) hanya **3**:
+- `Fokus Kebijakan` (`/governance/focuses`)
+- `Dataset` (`/governance/datasets`)
+- `Profil Metadata` (`/admin/metadata-profiles`)
+
+**SUDAH dibangun di kode** (jangan beri badge `Segera`, jangan hapus):
+- `Profil Data OPD` (`/opd-profile`) → `OpdProfilePage.tsx` + migration 036/039. Ini **ruang kerja utama PIC OPD** (profil PIC, website, integrasi API, baseline RPJMD/Renstra, dokumen, deklarasi). **JANGAN dihapus.** Terlihat kosong saat dibuka sebagai Admin karena role-gated untuk PIC OPD.
+- `Keuangan Daerah` (`/finance`) & `Layanan Publik` (`/public-services`) → `DomainPage` (analisis domain). Sudah ada; verifikasi kelengkapan data/polish, bukan placeholder.
+
+Beri badge `Segera` + disable navigasi **hanya untuk 3 modul placeholder di atas.**
 
 ### 2.2 Nama kanonik (samakan sidebar = judul = breadcrumb)
 | Kode sistem | Nama kanonik (pakai di SEMUA tempat) |
@@ -92,7 +102,7 @@ Acuan: mockup dashboard.
 
 ### 5.1 OPD Operator — Pelaporan Realisasi (`/submissions`)
 POV: *staf OPD ingin cepat selesai mengisi.*
-**Menu OPD:** Beranda Tugas · Pelaporan Realisasi · **Matriks Indikator** · Profil Data OPD (`Segera`). Tanpa Asisten AI.
+**Menu OPD:** Beranda Tugas · Pelaporan Realisasi · **Matriks Indikator** · **Profil Data OPD** (ruang kerja utama PIC OPD — sudah dibangun, BUKAN placeholder). Tanpa Asisten AI.
 > Indikator **tidak** memakai menu baru "Usulan". OPD membuka menu yang sama **"Matriks Indikator"** (daftar + tombol "Tambah indikator"). Indikator yang ditambahkan OPD masuk sebagai **usulan lewat status/alur** (penyusun mengajukan → BAPPERIDA memeriksa → OPD memverifikasi → BAPPERIDA mengaktifkan), bukan menu terpisah. Nama menu tetap sama lintas peran (lihat §2.2).
 - **Hero “aksi berikutnya”**: jumlah formulir perlu diisi + tombol primer `Isi laporan sekarang` + chip tenggat.
 - **Panduan 3 langkah**: Isi nilai → Lampirkan bukti → Kirim.
@@ -136,6 +146,9 @@ Implementasi: render panel, tampilkan teaser, kunci isi penuh di belakang flag `
 ---
 
 ## 7. Catatan teknis & keputusan terbuka
+- **Baseline implementasi = kode `main`** (React 19 + Vite + TS frontend; Fastify + PostgreSQL/PostGIS backend; menu dari API `/me/menu` yang di-seed migration). **Situs `dev.sababuka.com` adalah deploy lama — jangan dijadikan acuan status fitur.** Ikuti `AGENTS.md`.
+- **Menu digerakkan data (DB), bukan hardcode.** Urutan/visibilitas/penghapusan menu = ubah **seed migration** tabel `menu_items` (lihat migration 034/035/036/039), plus dukungan badge `Segera` di `AdminLayout.tsx`.
+- **Kode indikator → acuan resmi (TODO):** tabel `sababuka.indicators` punya `code` internal (mis. `RPJMD_I022`) tetapi **belum punya field kode referensi resmi**. Tambah kolom **`kodref_ip`** (nullable) yang mengacu ke **Kode Referensi Indikator Pembangunan (Kodref IP)** — standar Satu Data Indonesia, ditetapkan **KEP.26A/M.PPN/HK/05/2025**, dipakai SIPD Kemendagri & KRISNA; daftar di `data.go.id/reference`. Tujuan: pencocokan benar saat sinkron ke SatuData/SIPD + klaim **SDI-compliant**. Kode internal tetap untuk tautan lokal.
 - Peta kecamatan menunggu **kode wilayah kecamatan** tersambung; sampai itu, peta tampil tingkat kabupaten + pesan status.
 - Data tanggal di API tampaknya beragam → normalisasi di frontend via `formatTanggal()`.
 - Semua panel premium butuh **feature flag** per organisasi/langganan.
@@ -157,8 +170,8 @@ Prinsip urutan: **beranda/overview → kerja harian → setelan → audit** (pal
 
 | Peran | Urutan menu |
 |---|---|
-| **OPD** | Beranda Tugas · Pelaporan Realisasi · Matriks Indikator · Profil Data OPD (`Segera`) |
-| **Pimpinan** | Dashboard Pimpinan · Analisis & Peta · Keuangan Daerah (`Segera`) · Layanan Publik (`Segera`) — AI melayang |
+| **OPD** | Beranda Tugas · Pelaporan Realisasi · Matriks Indikator · Profil Data OPD |
+| **Pimpinan** | Dashboard Pimpinan · Analisis & Peta · Keuangan Daerah · Layanan Publik — AI melayang |
 | **Walidata** | Beranda Tugas · Verifikasi Pelaporan OPD · Kurasi & Publikasi · Matriks Indikator · Ruang Walidata · Audit |
 | **Pembina Data (BPS)** | Beranda Pembinaan · Matriks Indikator |
 | **Developer/Admin** | Dashboard Sistem · Pusat Sinkronisasi Data · Organisasi · Pengguna · Peran & Hak Akses · Pengaturan Menu · Konfigurasi Sistem · Audit |
