@@ -63,7 +63,8 @@ test("akses dan menu lintas role mengikuti permission serta scope", { skip: !dat
     assert.equal((await app.inject({ method: "POST", url: "/api/v1/assistant/sessions", headers: { cookie: pimpinan.cookie, "x-csrf-token": pimpinan.csrf }, payload: { title: "QA" } })).statusCode, 201);
 
     const kominfo = await login("kominfo"); const kominfoMenu = await menuCodes(kominfo.cookie);
-    assert.ok(kominfoMenu.includes("operations") && kominfoMenu.includes("audit"));
+    assert.ok(kominfoMenu.includes("dashboard") && kominfoMenu.includes("audit"));
+    assert.ok(!kominfoMenu.includes("connectors") && !kominfoMenu.includes("operations") && !kominfoMenu.includes("submissions"));
     assert.equal((await app.inject({ method: "GET", url: "/api/v1/audit/events", headers: { cookie: kominfo.cookie } })).statusCode, 200);
     assert.equal((await app.inject({ method: "POST", url: "/api/v1/publications", headers: { cookie: kominfo.cookie, "x-csrf-token": kominfo.csrf }, payload: { publication_key: "QA", publication_number: "QA-1", title: "Tidak boleh" } })).statusCode, 403);
   } finally { await app.close(); await db.end(); }

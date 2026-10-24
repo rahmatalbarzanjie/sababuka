@@ -26,7 +26,7 @@ test("master kategori dan indikator pilot dapat dibaca dan ditambah sebagai draf
       };
     };
     const bapperidaHeaders = await loginAs("bapperida@sababuka.com");
-    const opdHeaders = await loginAs("opd.dkpp@sababuka.com");
+    const opdHeaders = await loginAs("opd.dinkes@sababuka.com");
 
     const categories = await app.inject({ method: "GET", url: "/api/v1/categories?page_size=100", headers: { cookie } });
     assert.equal(categories.statusCode, 200, categories.body);
@@ -63,8 +63,10 @@ test("master kategori dan indikator pilot dapat dibaca dan ditambah sebagai draf
     assert.equal(approvedCategory.json().review_status, "approved");
 
     const unit = units.json().data.find((item: { code: string }) => item.code === "PERCENT");
-    const period = periods.json().data.find((item: { code: string }) => item.code === "2025");
-    const organization = organizations.json().data.find((item: { code: string }) => item.code === "DKPP");
+    const targetPeriods = (periods.json().data as Array<{ id: string; code: string }>)
+      .filter((item) => ["2025", "2026", "2027", "2028", "2029"].includes(item.code));
+    assert.equal(targetPeriods.length, 5);
+    const organization = organizations.json().data.find((item: { code: string }) => item.code === "DINKES");
     const indicator = await app.inject({
       method: "POST", url: "/api/v1/indicators", headers,
       payload: {
@@ -73,7 +75,7 @@ test("master kategori dan indikator pilot dapat dibaca dan ditambah sebagai draf
         unit_id: unit.id, frequency: "annual", data_type: "percentage", direction: "increase",
         source_reference: "Sumber pengujian", access_level: "internal", effective_from: "2025-01-01",
         organizations: [{ organization_id: organization.id, responsibility: "primary_producer", is_primary: true }],
-        targets: [{ period_id: period.id, numeric_value: 10, notes: "Target pengujian" }],
+        targets: targetPeriods.map((period) => ({ period_id: period.id, numeric_value: 10, notes: "Target pengujian" })),
       },
     });
     assert.equal(indicator.statusCode, 201, indicator.body);
@@ -87,7 +89,7 @@ test("master kategori dan indikator pilot dapat dibaca dan ditambah sebagai draf
         unit_id: unit.id, frequency: "annual", data_type: "percentage", direction: "increase",
         source_reference: "Sumber pengujian diperbarui", access_level: "internal", effective_from: "2025-01-01",
         organizations: [{ organization_id: organization.id, responsibility: "primary_producer", is_primary: true }],
-        targets: [{ period_id: period.id, numeric_value: 11, notes: "Target diperbarui" }],
+        targets: targetPeriods.map((period) => ({ period_id: period.id, numeric_value: 11, notes: "Target diperbarui" })),
       },
     });
     assert.equal(updated.statusCode, 200, updated.body);
@@ -95,7 +97,8 @@ test("master kategori dan indikator pilot dapat dibaca dan ditambah sebagai draf
 
     const filtered = await app.inject({ method: "GET", url: `/api/v1/indicators?q=TEST_${suffix}`, headers: { cookie } });
     assert.equal(filtered.statusCode, 200, filtered.body);
-    assert.equal(Number(filtered.json().data[0].targets[0].numeric_value), 11);
+    assert.equal(filtered.json().data[0].targets.length, 5);
+    assert.ok(filtered.json().data[0].targets.every((target: { numeric_value: string }) => Number(target.numeric_value) === 11));
 
     const submittedIndicator = await app.inject({
       method: "POST", url: `/api/v1/indicator-versions/${indicator.json().version_id}/actions/submit`, headers,

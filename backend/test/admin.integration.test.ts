@@ -121,8 +121,9 @@ test(
 
       const menus = await app.inject({ method: "GET", url: "/api/v1/menus", headers: { cookie } });
       assert.equal(menus.statusCode, 200, menus.body);
-      assert.equal(menus.json().data.length, 21);
-      assert.ok(menus.json().data.some((menu: { code: string }) => menu.code === "operations"));
+      const availableMenus = menus.json().data as Array<{ id: string; code: string }>;
+      assert.ok(availableMenus.length > 0);
+      assert.ok(availableMenus.some((menu) => menu.code === "operations"));
 
       const roleMenus = await app.inject({
         method: "GET",
@@ -131,7 +132,16 @@ test(
       });
       assert.equal(roleMenus.statusCode, 200, roleMenus.body);
       assert.equal(roleMenus.json().role_id, superadminRole.id);
-      assert.equal(roleMenus.json().menu_ids.length, 21);
+      const availableMenuIds = new Set(availableMenus.map((menu) => menu.id));
+      const superadminMenuIds = roleMenus.json().menu_ids as string[];
+      assert.ok(superadminMenuIds.length > 0);
+      assert.ok(superadminMenuIds.every((menuId) => availableMenuIds.has(menuId)));
+      const superadminMenuCodes = new Set(
+        availableMenus.filter((menu) => superadminMenuIds.includes(menu.id)).map((menu) => menu.code),
+      );
+      for (const requiredCode of ["dashboard", "organizations", "users", "roles", "menus", "system-settings", "audit"]) {
+        assert.ok(superadminMenuCodes.has(requiredCode), `Menu ${requiredCode} wajib tersedia untuk Superadmin`);
+      }
 
       const protectedMenus = await app.inject({
         method: "PUT",

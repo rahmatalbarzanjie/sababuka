@@ -16,13 +16,13 @@ test("alur kategori, indikator, OPD, publikasi, dan dashboard berjalan lintas pe
   const passwordHash = await hashPassword(password);
   try {
     const organizations = await db.query<{ id: string; code: string }>(
-      `SELECT id::text, code FROM sababuka.organizations WHERE code IN ('BAPPERIDA', 'DKPP')`,
+      `SELECT id::text, code FROM sababuka.organizations WHERE code IN ('BAPPERIDA', 'DPUPR')`,
     );
-    const dkpp = organizations.rows.find((item) => item.code === "DKPP")!.id;
+    const ownerOrganizationId = organizations.rows.find((item) => item.code === "DPUPR")!.id;
     const roleUsers = [
       { role: "superadmin", scope: "global", organizationId: null },
       { role: "bapperida", scope: "global", organizationId: null },
-      { role: "opd", scope: "organization", organizationId: dkpp },
+      { role: "opd", scope: "organization", organizationId: ownerOrganizationId },
       { role: "pimpinan", scope: "published", organizationId: null },
     ] as const;
     for (const entry of roleUsers) {
@@ -59,6 +59,11 @@ test("alur kategori, indikator, OPD, publikasi, dan dashboard berjalan lintas pe
 
     const units = await app.inject({ method: "GET", url: "/api/v1/units", headers: { cookie: bapperida.cookie } });
     const unit = units.json().data.find((item: { code: string }) => item.code === "PERCENT") ?? units.json().data[0];
+    const targetPeriodResult = await db.query<{ id: string; code: string }>(
+      `SELECT id::text, code FROM sababuka.periods WHERE code = ANY($1::text[]) ORDER BY code`,
+      [["2025", "2026", "2027", "2028", "2029"]],
+    );
+    assert.equal(targetPeriodResult.rows.length, 5);
     const workflowYear = 2200 + Number.parseInt(suffix.slice(0, 2), 16);
     const periodResult = await db.query<{ id: string }>(
       `INSERT INTO sababuka.periods (period_type, code, label, starts_on, ends_on)
@@ -78,11 +83,11 @@ test("alur kategori, indikator, OPD, publikasi, dan dashboard berjalan lintas pe
       method: "POST", url: "/api/v1/indicators", headers: superadmin,
       payload: {
         code: `FLOW_${suffix}`, name: `Indikator Alur ${suffix}`, category_id: category.json().id,
-        owner_organization_id: dkpp, definition: "Indikator pengujian alur strategis lintas peran.",
+        owner_organization_id: ownerOrganizationId, definition: "Indikator pengujian alur strategis lintas peran.",
         unit_id: unit.id, frequency: "annual", data_type: "percentage", direction: "increase",
         source_reference: "Sumber pengujian alur", access_level: "internal", effective_from: "2025-01-01",
-        organizations: [{ organization_id: dkpp, responsibility: "primary_producer", is_primary: true }],
-        targets: [{ period_id: period.id, numeric_value: 75 }],
+        organizations: [{ organization_id: ownerOrganizationId, responsibility: "primary_producer", is_primary: true }],
+        targets: targetPeriodResult.rows.map((targetPeriod) => ({ period_id: targetPeriod.id, numeric_value: 75 })),
       },
     });
     assert.equal(indicator.statusCode, 201, indicator.body);
@@ -137,7 +142,7 @@ test("alur kategori, indikator, OPD, publikasi, dan dashboard berjalan lintas pe
 
     const submission = await app.inject({
       method: "POST", url: "/api/v1/submissions", headers: opd,
-      payload: { organization_id: dkpp, period_id: period.id },
+      payload: { organization_id: ownerOrganizationId, period_id: period.id },
     });
     assert.equal(submission.statusCode, 201, submission.body);
     const saved = await app.inject({
