@@ -1,0 +1,287 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Dashboard Developer SABABUKA</title>
+<style>
+  /* Layout: developer/owner view. Tab 1 = system overview (what needs attention), Tab 2 = data sync pipeline + raw staging. Same SABABUKA tokens. */
+  :root{
+    --bg:#eef1f5; --surface:#ffffff; --surface-2:#f6f8fa; --surface-3:#eef2f6;
+    --ink:#16233b; --ink-2:#44546e; --muted:#7a8699; --line:#dde3ea;
+    --brand:#0f6d54; --brand-2:#13886a; --brand-soft:#e3f1ec;
+    --nav:#16304f;
+    --good:#0f6d54; --good-soft:#e3f1ec;
+    --warn:#b7791f; --warn-soft:#fbf1dd;
+    --crit:#c0392b; --crit-soft:#fbe9e7;
+    --info:#2f6fb0; --info-soft:#e7f0f9;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    --font-display:"Barlow Semi Condensed",-apple-system,Segoe UI,sans-serif;
+    --font-body:"Inter",-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#0c1320; --surface:#121b2b; --surface-2:#0f1826; --surface-3:#172235;
+    --ink:#e7edf5; --ink-2:#aeb9ca; --muted:#808ca3; --line:#26324a;
+    --brand:#4fd1a6; --brand-2:#3bbf93; --brand-soft:#133028;
+    --nav:#0a111d;
+    --good:#4fd1a6; --good-soft:#133028;
+    --warn:#f0c46b; --warn-soft:#2a2112;
+    --crit:#ff8a7a; --crit-soft:#2c1714;
+    --info:#6fa8dc; --info-soft:#15263a;
+    color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0c1320; --surface:#121b2b; --surface-2:#0f1826; --surface-3:#172235;
+    --ink:#e7edf5; --ink-2:#aeb9ca; --muted:#808ca3; --line:#26324a;
+    --brand:#4fd1a6; --brand-2:#3bbf93; --brand-soft:#133028;
+    --nav:#0a111d;
+    --good:#4fd1a6; --good-soft:#133028;
+    --warn:#f0c46b; --warn-soft:#2a2112;
+    --crit:#ff8a7a; --crit-soft:#2c1714;
+    --info:#6fa8dc; --info-soft:#15263a;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-body);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+  h1,h2,h3,h4{font-family:var(--font-display);margin:0;line-height:1.15;text-wrap:balance}
+  p{margin:0}
+  .tnum{font-variant-numeric:tabular-nums}
+  .k{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--brand);font-weight:600}
+
+  .topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--nav);color:#eaf1f8;border-radius:0 0 14px 14px}
+  body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--nav);z-index:21}
+  .topbar-in{padding:13px max(16px,env(safe-area-inset-left,0px))}
+  .tl{display:flex;align-items:center;gap:11px;margin-bottom:11px}
+  .badge{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--brand-2),var(--brand));display:grid;place-items:center;color:#fff;font-family:var(--font-display);font-weight:700;font-size:.8rem;flex:none}
+  .topbar h1{font-size:1rem;color:#fff;font-weight:600}
+  .topbar .sub{font-size:.72rem;color:#9fb0c4}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap}
+  .tab{font-size:.82rem;font-weight:600;color:#cdd8e6;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:8px 14px;cursor:pointer;font-family:var(--font-body)}
+  .tab[aria-selected="true"]{background:var(--brand);color:#fff;border-color:transparent}
+
+  .demo-note{display:flex;gap:8px;margin-top:14px;font-size:.78rem;color:var(--ink-2);background:var(--warn-soft);border:1px solid var(--line);border-radius:9px;padding:8px 12px}
+  .demo-note b{color:var(--ink)}
+
+  .persona{display:flex;gap:14px;align-items:flex-start;background:var(--brand-soft);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-top:16px}
+  .persona .pic{width:42px;height:42px;border-radius:11px;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;font-size:1.3rem;flex:none}
+  .persona .who{font-family:var(--font-display);font-weight:600;font-size:1.02rem}
+  .persona .role{font-size:.78rem;color:var(--muted)}
+  .persona .goal{font-size:.86rem;color:var(--ink-2);margin-top:3px}
+  .persona .goal b{color:var(--brand)}
+
+  section.page{margin-top:12px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-top:14px}
+  .ch{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .ch h3{font-size:1.05rem;font-weight:600}
+  .ch .r{font-size:.74rem;color:var(--muted);text-align:right}
+
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+  .tile{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:15px;border-left:4px solid var(--line);position:relative}
+  .tile.crit{border-left-color:var(--crit)} .tile.warn{border-left-color:var(--warn)} .tile.good{border-left-color:var(--good)} .tile.info{border-left-color:var(--info)}
+  .tile .lbl{font-size:.78rem;color:var(--ink-2)}
+  .tile .big{font-family:var(--font-display);font-size:2rem;font-weight:600;line-height:1;margin-top:3px}
+  .tile .big span{font-size:.9rem;color:var(--muted)}
+  .tile .sm{font-size:.72rem;color:var(--muted);margin-top:3px}
+  .tile .act{font-size:.72rem;color:var(--brand);font-weight:600;margin-top:6px}
+
+  .bar{height:9px;border-radius:99px;background:var(--surface-3);overflow:hidden;margin-top:8px}
+  .bar i{display:block;height:100%;border-radius:99px;background:var(--brand)}
+
+  .rows{display:flex;flex-direction:column}
+  .row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:none}
+  .row .ico{width:32px;height:32px;border-radius:8px;background:var(--surface-2);display:grid;place-items:center;flex:none}
+  .row .main{flex:1;min-width:0}
+  .row .main b{font-size:.9rem;font-weight:600}
+  .row .main .meta{font-size:.76rem;color:var(--muted);margin-top:1px}
+  .pill{font-size:.7rem;font-weight:600;padding:3px 9px;border-radius:99px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+  .pill.crit{background:var(--crit-soft);color:var(--crit)} .pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.ok{background:var(--good-soft);color:var(--good)} .pill.info{background:var(--info-soft);color:var(--info)} .pill.mute{background:var(--surface-3);color:var(--ink-2)}
+  .mini-btn{font-size:.76rem;font-weight:600;border-radius:8px;padding:6px 11px;cursor:pointer;font-family:var(--font-body);border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+  /* health list */
+  .health{display:flex;flex-direction:column;gap:9px}
+  .hrow{display:flex;align-items:center;gap:10px;font-size:.86rem}
+  .hrow .dot{width:9px;height:9px;border-radius:99px;flex:none}
+  .hrow .dot.ok{background:var(--good)} .hrow .dot.warn{background:var(--warn)} .hrow .dot.crit{background:var(--crit)}
+  .hrow .nm{flex:1;color:var(--ink-2)} .hrow .vl{font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+  /* ---- pipeline ---- */
+  .pipe{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding:4px 2px 10px;margin-top:6px}
+  .stage{flex:0 0 auto;min-width:130px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:4px;position:relative}
+  .stage.raw{border-color:var(--warn);background:var(--warn-soft)}
+  .stage.final{border-color:var(--brand);background:var(--brand-soft)}
+  .stage .st-ic{font-size:1.1rem}
+  .stage .st-t{font-weight:600;font-size:.84rem}
+  .stage .st-s{font-size:.72rem;color:var(--muted)}
+  .arrow{flex:0 0 auto;display:grid;place-items:center;color:var(--muted);font-size:1.1rem;padding:0 4px;align-self:center}
+
+  .tscroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;margin-top:4px}
+  table{border-collapse:collapse;width:100%;min-width:560px;font-size:.84rem}
+  th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--line);vertical-align:middle}
+  thead th{font-size:.67rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--surface-2)}
+  tbody tr:last-child td{border-bottom:none}
+  td.mono,.mono{font-family:var(--mono);font-size:.8rem}
+  .raw-note{font-size:.76rem;color:var(--warn);background:var(--warn-soft);border:1px solid var(--line);border-radius:9px;padding:9px 12px;margin-top:4px;display:flex;gap:8px}
+
+  .map{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:.84rem;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-top:9px}
+  .map .f{font-family:var(--mono);font-size:.8rem;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:3px 8px}
+  .map .to{color:var(--brand);font-weight:700}
+
+  footer{margin:30px 0 26px;padding-top:14px;border-top:1px solid var(--line);font-size:.78rem;color:var(--muted);text-align:center}
+
+  @media (max-width:760px){ .tiles{grid-template-columns:1fr 1fr} .two{grid-template-columns:1fr} }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="topbar-in">
+      <div class="tl">
+        <div class="badge">SB</div>
+        <div><h1>Dashboard Developer</h1><div class="sub">SABABUKA · POV Pengelola Sistem</div></div>
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" aria-selected="true" data-t="overview" onclick="go('overview')">🛰️ Overview Sistem</button>
+        <button class="tab" role="tab" aria-selected="false" data-t="sync" onclick="go('sync')">🔄 Sinkronisasi Data</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo-note">⚠️ <span><b>Mockup usulan — pengganti "Beranda Administrasi".</b> Data ilustrasi. Menggantikan kartu "Kendali Sistem" &amp; "Kesiapan Platform" dengan informasi sistem yang bisa ditindaklanjuti.</span></div>
+
+  <!-- ===== OVERVIEW ===== -->
+  <section class="page" id="page-overview">
+    <div class="persona">
+      <div class="pic">🧑‍💻</div>
+      <div>
+        <div class="who">Developer SABABUKA</div>
+        <div class="role">Pengelola Sistem</div>
+        <div class="goal">“Saya perlu tahu <b>kondisi sistem menyeluruh</b>: OPD mana belum bergabung, indikator mana bermasalah, isu mana masih kosong — biar bisa saya tindaklanjuti.”</div>
+      </div>
+    </div>
+
+    <div class="tiles">
+      <div class="tile crit"><div class="lbl">OPD belum bergabung</div><div class="big tnum">23<span> / 29</span></div><div class="sm">belum punya user / belum lapor</div><div class="act">Lihat daftar →</div></div>
+      <div class="tile warn"><div class="lbl">Indikator bermasalah</div><div class="big tnum">4</div><div class="sm">metadata / PIC / target</div><div class="act">Perbaiki →</div></div>
+      <div class="tile warn"><div class="lbl">Isu tanpa indikator</div><div class="big tnum">4<span> / 17</span></div><div class="sm">kelompok isu kosong</div><div class="act">Lengkapi →</div></div>
+      <div class="tile info"><div class="lbl">OPD belum lapor periode</div><div class="big tnum">23<span> / 29</span></div><div class="sm">Tahun 2026</div><div class="act">Ingatkan →</div></div>
+    </div>
+
+    <div class="card">
+      <div class="ch"><div><div class="k">Onboarding</div><h3>Keikutsertaan OPD</h3></div><div class="r">6 dari 29 OPD aktif · 21%</div></div>
+      <div class="bar"><i style="width:21%"></i></div>
+      <div class="rows" style="margin-top:12px">
+        <div class="row"><div class="ico">🏥</div><div class="main"><b>Dinas Kesehatan</b><div class="meta">user aktif · sudah lapor 2026</div></div><span class="pill ok">● Aktif</span></div>
+        <div class="row"><div class="ico">🌾</div><div class="main"><b>Dinas Ketahanan Pangan</b><div class="meta">user aktif · sudah lapor</div></div><span class="pill ok">● Aktif</span></div>
+        <div class="row"><div class="ico">🏗️</div><div class="main"><b>Dinas PUPR</b><div class="meta">user terdaftar · belum lapor 2026</div></div><span class="pill warn">● Belum lapor</span></div>
+        <div class="row"><div class="ico">🏫</div><div class="main"><b>Dinas Pendidikan</b><div class="meta">belum ada user terdaftar</div></div><span class="pill crit">● Belum bergabung</span></div>
+        <div class="row"><div class="ico">⋯</div><div class="main"><b>+22 OPD lainnya</b><div class="meta">belum bergabung / belum lapor</div></div><button class="mini-btn">Lihat semua</button></div>
+      </div>
+    </div>
+
+    <div class="two">
+      <div class="card">
+        <div class="ch"><div><div class="k">Mutu data</div><h3>Indikator bermasalah</h3></div></div>
+        <div class="rows">
+          <div class="row"><div class="ico">🧩</div><div class="main"><b>PAD Sektor Pariwisata</b><div class="meta">target tahunan belum diisi</div></div><span class="pill warn">Metadata</span></div>
+          <div class="row"><div class="ico">👤</div><div class="main"><b>Rasio PDRB Akomodasi</b><div class="meta">tanpa penanggung jawab (PIC)</div></div><span class="pill crit">PIC</span></div>
+          <div class="row"><div class="ico">⚠️</div><div class="main"><b>Prevalensi Stunting</b><div class="meta">tahun observasi perlu diselaraskan</div></div><span class="pill warn">Metode</span></div>
+          <div class="row"><div class="ico">⏸️</div><div class="main"><b>69 indikator</b><div class="meta">belum ada yang berstatus “aktif”</div></div><span class="pill info">Aktivasi</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><div><div class="k">Kesehatan sistem</div><h3>Status langsung</h3></div><div class="r">diperiksa 2 mnt lalu</div></div>
+        <div class="health">
+          <div class="hrow"><span class="dot ok"></span><span class="nm">API aplikasi</span><span class="vl">200 · 142ms</span></div>
+          <div class="hrow"><span class="dot ok"></span><span class="nm">Basis data (PostgreSQL/PostGIS)</span><span class="vl">normal</span></div>
+          <div class="hrow"><span class="dot ok"></span><span class="nm">Autentikasi &amp; RBAC</span><span class="vl">aktif</span></div>
+          <div class="hrow"><span class="dot warn"></span><span class="nm">Konektor Kode Wilayah Kecamatan</span><span class="vl">belum tersambung</span></div>
+          <div class="hrow"><span class="dot ok"></span><span class="nm">Job sinkronisasi terakhir</span><span class="vl">23 Okt, 18.03</span></div>
+          <div class="hrow"><span class="dot ok"></span><span class="nm">Audit trail</span><span class="vl">merekam</span></div>
+        </div>
+        <p style="font-size:.74rem;color:var(--muted);margin-top:10px">Menggantikan kartu statis “Kesiapan Platform” — ini status langsung, bukan checklist sekali-setup.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SYNC ===== -->
+  <section class="page" id="page-sync" hidden>
+    <div class="persona">
+      <div class="pic">🔄</div>
+      <div>
+        <div class="who">Pusat Sinkronisasi Data</div>
+        <div class="role">Alur pengambilan data · SatuData · BPS · SIPD</div>
+        <div class="goal">“Saya ingin melihat <b>struktur alur data</b> dan <b>data mentahnya</b> sebelum menjadi capaian OPD — agar paham dari mana angka berasal.”</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ch"><div><div class="k">Alur data</div><h3>Dari sumber resmi ke dashboard</h3></div></div>
+      <div class="pipe">
+        <div class="stage"><span class="st-ic">🏛️</span><span class="st-t">Sumber resmi</span><span class="st-s">SatuData · BPS/SSGI · SIPD · Upload OPD</span></div>
+        <div class="arrow">→</div>
+        <div class="stage"><span class="st-ic">🔌</span><span class="st-t">Konektor</span><span class="st-s">tarik berkala / API</span></div>
+        <div class="arrow">→</div>
+        <div class="stage raw"><span class="st-ic">📥</span><span class="st-t">Staging (mentah)</span><span class="st-s">belum diolah</span></div>
+        <div class="arrow">→</div>
+        <div class="stage"><span class="st-ic">⚙️</span><span class="st-t">Transformasi</span><span class="st-s">pencocokan ke indikator</span></div>
+        <div class="arrow">→</div>
+        <div class="stage"><span class="st-ic">📐</span><span class="st-t">Indikator</span><span class="st-s">master</span></div>
+        <div class="arrow">→</div>
+        <div class="stage"><span class="st-ic">📊</span><span class="st-t">Capaian OPD</span><span class="st-s">verifikasi</span></div>
+        <div class="arrow">→</div>
+        <div class="stage final"><span class="st-ic">🏅</span><span class="st-t">Publikasi</span><span class="st-s">dashboard pimpinan</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ch"><div><div class="k">Konektor</div><h3>Status sumber data</h3></div></div>
+      <div class="tscroll">
+        <table>
+          <thead><tr><th>Sumber</th><th>Jenis</th><th>Sinkron terakhir</th><th>Rekaman</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td><b>SatuData Indonesia</b></td><td>API</td><td>23 Okt 2026, 18.03</td><td class="mono">1.204</td><td><span class="pill ok">● Aktif</span></td></tr>
+            <tr><td><b>BPS — SSGI/SKI</b></td><td>API</td><td>22 Okt 2026, 06.00</td><td class="mono">318</td><td><span class="pill ok">● Aktif</span></td></tr>
+            <tr><td><b>SIPD Kemendagri</b></td><td>API</td><td>23 Okt 2026, 02.00</td><td class="mono">876</td><td><span class="pill ok">● Aktif</span></td></tr>
+            <tr><td><b>Upload Sektoral OPD</b></td><td>Manual</td><td>8 Okt 2026</td><td class="mono">42</td><td><span class="pill ok">● Aktif</span></td></tr>
+            <tr><td><b>Kode Wilayah Kecamatan</b></td><td>Referensi</td><td>—</td><td class="mono">0</td><td><span class="pill warn">● Belum tersambung</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ch"><div><div class="k">Data mentah · staging</div><h3>Contoh: BPS/SSGI — stunting</h3></div><div class="r">sebelum dipetakan</div></div>
+      <div class="raw-note">📥 <span>Ini <b>data mentah</b> apa adanya dari sumber — <b>belum</b> menjadi capaian OPD. Baris dicocokkan ke indikator &amp; OPD pada tahap transformasi.</span></div>
+      <div class="tscroll" style="margin-top:9px">
+        <table>
+          <thead><tr><th>kode_wilayah</th><th>tahun</th><th>nilai</th><th>satuan</th><th>sumber</th><th>status</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">6203</td><td class="mono">2023</td><td class="mono">16.2</td><td class="mono">%</td><td class="mono">SKI_2023</td><td><span class="pill ok">● cocok</span></td></tr>
+            <tr><td class="mono">6203010</td><td class="mono">2023</td><td class="mono">18.9</td><td class="mono">%</td><td class="mono">SSGI_2022</td><td><span class="pill warn">● kec. tak dikenal</span></td></tr>
+            <tr><td class="mono">6203</td><td class="mono">2024</td><td class="mono">15.1</td><td class="mono">%</td><td class="mono">SKI_2024</td><td><span class="pill mute">● menunggu</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="map">
+        <span>Pemetaan:</span>
+        <span class="f">kode_wilayah 6203</span><span>→</span><span class="f">OPD Dinkes</span>
+        <span class="to">·</span>
+        <span class="f">sumber SKI</span><span>→</span><span class="to">Indikator PREVALENSI_STUNTING</span>
+      </div>
+      <p style="font-size:.74rem;color:var(--muted);margin-top:10px">Developer dapat menelusuri tiap angka capaian kembali ke baris mentah sumbernya (lineage), untuk audit &amp; debugging.</p>
+    </div>
+  </section>
+
+  <footer>Mockup Dashboard Developer · SABABUKA · data ilustrasi</footer>
+</div>
+
+<script>
+  var pages=['overview','sync'];
+  function go(t){
+    if(pages.indexOf(t)<0) t='overview';
+    pages.forEach(function(p){ document.getElementById('page-'+p).hidden=(p!==t); });
+    document.querySelectorAll('.tab').forEach(function(b){ b.setAttribute('aria-selected', b.dataset.t===t?'true':'false'); });
+    try{ if(location.hash.replace('#','')!==t) history.replaceState(null,'','#'+t); }catch(e){}
+  }
+  go((location.hash||'').replace('#','')||'overview');
+</script>
