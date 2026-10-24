@@ -92,7 +92,8 @@ Acuan: mockup dashboard.
 
 ### 5.1 OPD Operator — Pelaporan Realisasi (`/submissions`)
 POV: *staf OPD ingin cepat selesai mengisi.*
-**Menu OPD:** Beranda Tugas · Pelaporan Realisasi · **Usulan Indikator** (OPD dapat mengajukan indikator baru — sistem sudah mendukung "Tambah indikator" + alur usulan) · Profil Data OPD (`Segera`). Tanpa Asisten AI.
+**Menu OPD:** Beranda Tugas · Pelaporan Realisasi · **Matriks Indikator** · Profil Data OPD (`Segera`). Tanpa Asisten AI.
+> Indikator **tidak** memakai menu baru "Usulan". OPD membuka menu yang sama **"Matriks Indikator"** (daftar + tombol "Tambah indikator"). Indikator yang ditambahkan OPD masuk sebagai **usulan lewat status/alur** (penyusun mengajukan → BAPPERIDA memeriksa → OPD memverifikasi → BAPPERIDA mengaktifkan), bukan menu terpisah. Nama menu tetap sama lintas peran (lihat §2.2).
 - **Hero “aksi berikutnya”**: jumlah formulir perlu diisi + tombol primer `Isi laporan sekarang` + chip tenggat.
 - **Panduan 3 langkah**: Isi nilai → Lampirkan bukti → Kirim.
 - **Daftar “Laporan OPD saya”**: tiap baris punya status pill (`Perlu diisi` / `Menunggu pemeriksaan` / `Perlu diperbaiki` / `Disetujui`) + aksi per baris (`Lanjutkan` / `Perbaiki` / `Lihat`). Baris “perlu diperbaiki” menampilkan catatan pemeriksa.
