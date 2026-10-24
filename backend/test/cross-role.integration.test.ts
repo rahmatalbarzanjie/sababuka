@@ -15,7 +15,7 @@ test("akses dan menu lintas role mengikuti permission serta scope", { skip: !dat
     const organizations = await db.query<{ id: string; code: string }>(`SELECT id::text, code FROM sababuka.organizations WHERE code IN ('DKPP','DINKES')`);
     const dkpp = organizations.rows.find((item) => item.code === "DKPP")!.id;
     const users: Record<string, string> = {};
-    for (const role of ["bapperida", "kominfo", "opd", "pimpinan"] as const) {
+    for (const role of ["bapperida", "kominfo", "pembina_statistik", "opd", "pimpinan"] as const) {
       const email = `${role}.qa@sababuka.test`;
       const user = await db.query<{ id: string }>(`INSERT INTO sababuka.users (email, full_name, password_hash, status, must_change_password, mfa_required) VALUES ($1,$2,$3,'active',false,false) RETURNING id::text`, [email, `QA ${role}`, passwordHash]);
       users[role] = user.rows[0]!.id;
@@ -35,7 +35,7 @@ test("akses dan menu lintas role mengikuti permission serta scope", { skip: !dat
     };
 
     const opd = await login("opd"); const opdMenu = await menuCodes(opd.cookie);
-    assert.ok(opdMenu.includes("operations") && opdMenu.includes("submissions"));
+    assert.deepEqual(opdMenu, ["operations", "opd-profile", "submissions", "governance"]);
     assert.ok(!opdMenu.includes("reviews") && !opdMenu.includes("administration"));
     const opdOperations = await app.inject({ method: "GET", url: "/api/v1/operations/dashboard", headers: { cookie: opd.cookie } });
     assert.equal(opdOperations.statusCode, 200, opdOperations.body);
@@ -44,7 +44,7 @@ test("akses dan menu lintas role mengikuti permission serta scope", { skip: !dat
     assert.equal(forbiddenCategory.statusCode, 403, forbiddenCategory.body);
 
     const bapperida = await login("bapperida"); const bappMenu = await menuCodes(bapperida.cookie);
-    assert.ok(bappMenu.includes("reviews") && bappMenu.includes("publications") && bappMenu.includes("operations"));
+    assert.deepEqual(bappMenu, ["operations", "reviews", "publications", "governance", "analysis", "finance", "public-services", "connectors", "audit"]);
     const bappMe = await app.inject({ method: "GET", url: "/api/v1/me", headers: { cookie: bapperida.cookie } });
     assert.equal(bappMe.statusCode, 200, bappMe.body);
     assert.ok(!bappMe.json().permissions.includes("indicator.submit"));
@@ -54,7 +54,8 @@ test("akses dan menu lintas role mengikuti permission serta scope", { skip: !dat
     assert.equal(forbiddenSystem.statusCode, 403, forbiddenSystem.body);
 
     const pimpinan = await login("pimpinan"); const pimpinanMenu = await menuCodes(pimpinan.cookie);
-    assert.ok(pimpinanMenu.includes("dashboard") && pimpinanMenu.includes("assistant"));
+    assert.deepEqual(pimpinanMenu, ["dashboard", "publications", "analysis", "finance", "public-services"]);
+    assert.ok(!pimpinanMenu.includes("assistant"));
     assert.ok(!pimpinanMenu.includes("executive"));
     assert.ok(!pimpinanMenu.includes("submissions") && !pimpinanMenu.includes("audit"));
     assert.equal((await app.inject({ method: "GET", url: "/api/v1/executive/dashboard", headers: { cookie: pimpinan.cookie } })).statusCode, 200);
@@ -63,9 +64,12 @@ test("akses dan menu lintas role mengikuti permission serta scope", { skip: !dat
     assert.equal((await app.inject({ method: "POST", url: "/api/v1/assistant/sessions", headers: { cookie: pimpinan.cookie, "x-csrf-token": pimpinan.csrf }, payload: { title: "QA" } })).statusCode, 201);
 
     const kominfo = await login("kominfo"); const kominfoMenu = await menuCodes(kominfo.cookie);
-    assert.ok(kominfoMenu.includes("dashboard") && kominfoMenu.includes("audit"));
-    assert.ok(!kominfoMenu.includes("connectors") && !kominfoMenu.includes("operations") && !kominfoMenu.includes("submissions"));
+    assert.deepEqual(kominfoMenu, ["connectors", "dashboard", "audit"]);
+    assert.ok(!kominfoMenu.includes("operations") && !kominfoMenu.includes("submissions"));
     assert.equal((await app.inject({ method: "GET", url: "/api/v1/audit/events", headers: { cookie: kominfo.cookie } })).statusCode, 200);
     assert.equal((await app.inject({ method: "POST", url: "/api/v1/publications", headers: { cookie: kominfo.cookie, "x-csrf-token": kominfo.csrf }, payload: { publication_key: "QA", publication_number: "QA-1", title: "Tidak boleh" } })).statusCode, 403);
+
+    const pembina = await login("pembina_statistik"); const pembinaMenu = await menuCodes(pembina.cookie);
+    assert.deepEqual(pembinaMenu, ["statistical-guidance", "governance", "submissions"]);
   } finally { await app.close(); await db.end(); }
 });
