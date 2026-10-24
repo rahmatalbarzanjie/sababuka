@@ -1598,12 +1598,14 @@ components:
             - type: "null"
     MenuItem:
       type: object
-      required: [code, label, display_order, children]
+      required: [code, label, navigation_disabled, display_order, children]
       properties:
         code: {type: string}
         label: {type: string}
         icon: {type: [string, "null"]}
         route_name: {type: [string, "null"]}
+        badge: {type: [string, "null"]}
+        navigation_disabled: {type: boolean}
         display_order: {type: integer}
         children:
           type: array
@@ -1738,7 +1740,7 @@ components:
           items: {$ref: "#/components/schemas/Uuid"}
     AdminMenuItem:
       type: object
-      required: [id, code, label, display_order, is_active]
+      required: [id, code, label, navigation_disabled, display_order, is_active]
       properties:
         id: {$ref: "#/components/schemas/Uuid"}
         code: {type: string}
@@ -1751,6 +1753,8 @@ components:
         icon: {type: [string, "null"]}
         route_name: {type: [string, "null"]}
         required_permission: {type: [string, "null"]}
+        badge: {type: [string, "null"]}
+        navigation_disabled: {type: boolean}
         display_order: {type: integer}
         is_active: {type: boolean}
     RoleMenusInput:

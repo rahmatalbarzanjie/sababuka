@@ -67,7 +67,7 @@ const iconByCode: Record<string, typeof LayoutDashboard> = {
   "statistical-guidance": BookCheck,
 };
 
-const supportedRoutes = new Set(["/admin", "/dashboard", "/executive", "/assistant", "/analysis", "/finance", "/public-services", "/notifications", "/audit", "/operations", "/opd-profile", "/admin/organizations", "/admin/opd-monitoring", "/admin/users", "/admin/roles", "/admin/menus", "/admin/system", "/governance/categories", "/governance/indicators", "/submissions", "/reviews", "/guidance", "/publications", "/connectors"]);
+const supportedRoutes = new Set(["/admin", "/dashboard", "/executive", "/assistant", "/analysis", "/finance", "/public-services", "/notifications", "/audit", "/operations", "/opd-profile", "/admin/organizations", "/admin/opd-monitoring", "/admin/users", "/admin/roles", "/admin/menus", "/admin/system", "/admin/metadata-profiles", "/governance/focuses", "/governance/categories", "/governance/indicators", "/governance/datasets", "/submissions", "/reviews", "/guidance", "/publications", "/connectors"]);
 
 const navigationLabels: Record<string, string> = {
   categories: "Kelompok Isu",
@@ -281,7 +281,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
         {governanceEntries.map((entry) => {
           const Icon = iconByCode[entry.code] ?? Settings2;
           const label = navigationLabels[entry.code] ?? entry.label;
-          return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : undefined} onClick={() => go(entry.route_name!)}><Icon /><span>{label}</span></button>;
+          return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : entry.navigation_disabled ? `${label} — ${entry.badge ?? "Belum tersedia"}` : undefined} disabled={entry.navigation_disabled} aria-disabled={entry.navigation_disabled} onClick={() => { if (!entry.navigation_disabled) go(entry.route_name!); }}><Icon /><span>{label}</span>{entry.badge && <small className="nav-badge">{entry.badge}</small>}</button>;
         })}
         {sourceEntries.length > 0 && <div className="nav-label">Walidata</div>}
         {sourceEntries.map((entry) => { const Icon = iconByCode[entry.code] ?? Plug; const label = navigationLabels[entry.code] ?? entry.label; return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : undefined} onClick={() => go(entry.route_name!)}><Icon /><span>{label}</span></button>; })}
@@ -293,7 +293,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
         {adminEntries.map((entry) => {
           const Icon = iconByCode[entry.code] ?? Settings2;
           const label = navigationLabels[entry.code] ?? entry.label;
-          return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : undefined} onClick={() => go(entry.route_name!)}><Icon /><span>{label}</span></button>;
+          return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : entry.navigation_disabled ? `${label} — ${entry.badge ?? "Belum tersedia"}` : undefined} disabled={entry.navigation_disabled} aria-disabled={entry.navigation_disabled} onClick={() => { if (!entry.navigation_disabled) go(entry.route_name!); }}><Icon /><span>{label}</span>{entry.badge && <small className="nav-badge">{entry.badge}</small>}</button>;
         })}
       </nav>
       <button className="collapse-button" title={collapsed ? "Perbesar sidebar" : undefined} onClick={() => setCollapsed((value) => !value)}>{collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}<span>{collapsed ? "Perbesar" : "Perkecil sidebar"}</span></button>
