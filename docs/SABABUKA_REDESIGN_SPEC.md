@@ -54,6 +54,13 @@ Di modal/halaman detail capaian, tombol aksi primer (`Kirim ke pemeriksa` / `Per
 ### 2.6 Mobile
 Tabel → kartu (sudah baik). Perbaiki bar filter/tab yang overflow: jadikan dapat digeser horizontal atau dropdown di layar sempit.
 
+### 2.7 Label status relatif terhadap peran yang melihat (POV)
+Label tahap/status harus sesuai sudut pandang pengguna, jangan generik.
+- Alur indikator (asli sistem): **penyusun mengajukan → BAPPERIDA memeriksa → OPD penanggung jawab memverifikasi → BAPPERIDA mengaktifkan.**
+- Dari **POV OPD** untuk indikator miliknya: tampilkan **“Perlu Anda verifikasi”** — JANGAN “Menunggu verifikasi OPD”.
+- Dari **POV BAPPERIDA/Walidata**: tetap “Menunggu verifikasi OPD [nama OPD]” / “Perlu Anda aktifkan”.
+- Prinsip umum: ganti kata peran dengan “Anda” bila pengguna yang login adalah peran tersebut.
+
 ---
 
 ## 3. Dashboard Pimpinan (route: `/dashboard`)
@@ -71,8 +78,9 @@ Acuan: mockup dashboard.
 ---
 
 ## 4. AI Assistant — penempatan (KEPUTUSAN FINAL)
+- **HANYA untuk peran Pimpinan.** Peran lain (OPD, Walidata, Pembina Data) **tidak** memiliki Asisten AI — baik di web maupun WA.
 - **HAPUS “Asisten AI” dari menu sidebar.**
-- **Tombol melayang** (floating action button) kanan-bawah, tampil di SEMUA halaman web. Indikator titik hijau “aktif” + label kecil “juga di WhatsApp”.
+- **Tombol melayang** (floating action button) kanan-bawah, tampil di semua halaman web **saat login sebagai Pimpinan**. Indikator titik hijau “aktif” + label kecil “juga di WhatsApp”.
 - Klik → **panel chat** (header, pertanyaan saran, input). Panel punya tombol **“Buka layar penuh”** → halaman penuh (riwayat, jawaban panjang, ekspor). Halaman penuh TIDAK dihapus, hanya pintu masuknya pindah ke tombol melayang.
 - **Satu engine, banyak kanal**: WA bot (sudah ada), tombol web, halaman penuh — semua memakai mesin AI yang sama.
 - Onboarding: tooltip sekali “Asisten AI sekarang di sini” menunjuk tombol melayang.
@@ -84,6 +92,7 @@ Acuan: mockup dashboard.
 
 ### 5.1 OPD Operator — Pelaporan Realisasi (`/submissions`)
 POV: *staf OPD ingin cepat selesai mengisi.*
+**Menu OPD:** Beranda Tugas · Pelaporan Realisasi · **Usulan Indikator** (OPD dapat mengajukan indikator baru — sistem sudah mendukung "Tambah indikator" + alur usulan) · Profil Data OPD (`Segera`). Tanpa Asisten AI.
 - **Hero “aksi berikutnya”**: jumlah formulir perlu diisi + tombol primer `Isi laporan sekarang` + chip tenggat.
 - **Panduan 3 langkah**: Isi nilai → Lampirkan bukti → Kirim.
 - **Daftar “Laporan OPD saya”**: tiap baris punya status pill (`Perlu diisi` / `Menunggu pemeriksaan` / `Perlu diperbaiki` / `Disetujui`) + aksi per baris (`Lanjutkan` / `Perbaiki` / `Lihat`). Baris “perlu diperbaiki” menampilkan catatan pemeriksa.
