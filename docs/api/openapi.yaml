@@ -488,6 +488,19 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/SystemConfiguration"}
         "403": {$ref: "#/components/responses/Forbidden"}
+  /system/dashboard:
+    get:
+      tags: [System]
+      operationId: getSystemDashboard
+      summary: Membaca kesehatan dan pekerjaan administrasi sistem
+      description: Membutuhkan `system.configure`; seluruh metrik dihitung langsung dari database saat permintaan diproses.
+      responses:
+        "200":
+          description: Kesehatan sistem, OPD tanpa PIC aktif, indikator bermasalah, dan kelompok isu kosong
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SystemDashboard"}
+        "403": {$ref: "#/components/responses/Forbidden"}
   /system/settings/{key}:
     put:
       tags: [System]
@@ -1804,6 +1817,42 @@ components:
               is_enabled: {type: boolean}
               configuration: {type: object, additionalProperties: true}
               updated_at: {$ref: "#/components/schemas/Timestamp"}
+    SystemDashboard:
+      type: object
+      required: [generated_at, health, metrics, organizations_without_pic, problematic_indicators, empty_categories]
+      properties:
+        generated_at: {$ref: "#/components/schemas/Timestamp"}
+        health:
+          type: object
+          required: [status, database, database_response_ms, failed_integrations, failed_runs_30d]
+          properties:
+            status: {type: string, enum: [healthy, attention]}
+            database: {type: string, const: healthy}
+            database_response_ms: {type: integer, minimum: 0}
+            failed_integrations: {type: integer, minimum: 0}
+            failed_runs_30d: {type: integer, minimum: 0}
+        metrics:
+          type: object
+          required: [active_organizations, active_users, pending_users, active_integrations]
+          properties:
+            active_organizations: {type: integer, minimum: 0}
+            active_users: {type: integer, minimum: 0}
+            pending_users: {type: integer, minimum: 0}
+            active_integrations: {type: integer, minimum: 0}
+        organizations_without_pic:
+          $ref: "#/components/schemas/SystemAttentionCollection"
+        problematic_indicators:
+          $ref: "#/components/schemas/SystemAttentionCollection"
+        empty_categories:
+          $ref: "#/components/schemas/SystemAttentionCollection"
+    SystemAttentionCollection:
+      type: object
+      required: [total, data]
+      properties:
+        total: {type: integer, minimum: 0}
+        data:
+          type: array
+          items: {type: object, additionalProperties: true}
     PolicyFocusInput:
       type: object
       additionalProperties: false

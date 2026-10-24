@@ -918,6 +918,92 @@ export class AdminService {
     return { settings: settings.rows, feature_flags: features.rows };
   }
 
+  async getSystemDashboard() {
+    const startedAt = Date.now();
+    const [summary, organizations, indicators, categories] = await Promise.all([
+      this.db.query<QueryResultRow & Record<string, number>>(
+        `SELECT
+           (SELECT count(*)::int FROM sababuka.organizations WHERE archived_at IS NULL AND is_active = true) AS active_organizations,
+           (SELECT count(*)::int FROM sababuka.users WHERE archived_at IS NULL AND status = 'active') AS active_users,
+           (SELECT count(*)::int FROM sababuka.users WHERE archived_at IS NULL AND status = 'invited') AS pending_users,
+           (SELECT count(*)::int FROM sababuka.data_source_integrations WHERE status = 'active') AS active_integrations,
+           (SELECT count(*)::int FROM sababuka.data_source_integrations WHERE status = 'error' OR last_sync_status = 'failed') AS failed_integrations,
+           (SELECT count(*)::int FROM sababuka.connector_runs WHERE status = 'failed' AND created_at >= now() - interval '30 days') AS failed_runs_30d`,
+      ),
+      this.db.query<QueryResultRow & Record<string, unknown>>(
+        `SELECT o.id::text, o.code, COALESCE(o.short_name, o.name) AS name,
+                count(u.id)::int AS active_pic_count,
+                count(*) OVER()::int AS total_count
+         FROM sababuka.organizations o
+         LEFT JOIN sababuka.organization_memberships om
+           ON om.organization_id = o.id AND om.ends_at IS NULL
+         LEFT JOIN sababuka.users u
+           ON u.id = om.user_id AND u.archived_at IS NULL AND u.status = 'active'
+         WHERE o.organization_type = 'opd' AND o.is_active = true AND o.archived_at IS NULL
+         GROUP BY o.id
+         HAVING count(u.id) = 0
+         ORDER BY o.name, o.code
+         LIMIT 8`,
+      ),
+      this.db.query<QueryResultRow & Record<string, unknown>>(
+        `SELECT i.id::text, i.code, i.name, iv.status,
+                array_remove(ARRAY[
+                  CASE WHEN i.owner_organization_id IS NULL THEN 'OPD penanggung jawab belum ditetapkan' END,
+                  CASE WHEN iv.id IS NULL THEN 'Versi indikator belum tersedia' END,
+                  CASE WHEN iv.id IS NOT NULL AND iv.status <> 'active' THEN 'Tahap: ' || replace(iv.status, '_', ' ') END,
+                  CASE WHEN iv.id IS NOT NULL AND NOT EXISTS (
+                    SELECT 1 FROM sababuka.targets t WHERE t.indicator_version_id = iv.id
+                  ) THEN 'Target tahunan belum tersedia' END
+                ], NULL) AS reasons,
+                count(*) OVER()::int AS total_count
+         FROM sababuka.indicators i
+         LEFT JOIN LATERAL (
+           SELECT candidate.id, candidate.status
+           FROM sababuka.indicator_versions candidate
+           WHERE candidate.indicator_id = i.id
+           ORDER BY candidate.version_number DESC
+           LIMIT 1
+         ) iv ON true
+         WHERE i.is_active = true AND i.archived_at IS NULL
+           AND (i.owner_organization_id IS NULL OR iv.id IS NULL OR iv.status <> 'active' OR NOT EXISTS (
+             SELECT 1 FROM sababuka.targets t WHERE t.indicator_version_id = iv.id
+           ))
+         ORDER BY i.updated_at DESC, i.code
+         LIMIT 8`,
+      ),
+      this.db.query<QueryResultRow & Record<string, unknown>>(
+        `SELECT c.id::text, c.code, c.name, count(*) OVER()::int AS total_count
+         FROM sababuka.categories c
+         WHERE c.is_active = true AND NOT EXISTS (
+           SELECT 1 FROM sababuka.indicators i
+           WHERE i.category_id = c.id AND i.is_active = true AND i.archived_at IS NULL
+         )
+         ORDER BY c.name, c.code
+         LIMIT 8`,
+      ),
+    ]);
+    const totals = summary.rows[0] ?? {};
+    return {
+      generated_at: new Date().toISOString(),
+      health: {
+        status: Number(totals.failed_integrations ?? 0) + Number(totals.failed_runs_30d ?? 0) > 0 ? "attention" : "healthy",
+        database: "healthy",
+        database_response_ms: Date.now() - startedAt,
+        failed_integrations: Number(totals.failed_integrations ?? 0),
+        failed_runs_30d: Number(totals.failed_runs_30d ?? 0),
+      },
+      metrics: {
+        active_organizations: Number(totals.active_organizations ?? 0),
+        active_users: Number(totals.active_users ?? 0),
+        pending_users: Number(totals.pending_users ?? 0),
+        active_integrations: Number(totals.active_integrations ?? 0),
+      },
+      organizations_without_pic: { total: Number(organizations.rows[0]?.total_count ?? 0), data: organizations.rows },
+      problematic_indicators: { total: Number(indicators.rows[0]?.total_count ?? 0), data: indicators.rows },
+      empty_categories: { total: Number(categories.rows[0]?.total_count ?? 0), data: categories.rows },
+    };
+  }
+
   async upsertSetting(auth: AuthContext, key: string, value: unknown, description: string | null, audit: AuditContext) {
     requireGlobal(auth);
     const client = await this.db.connect();
