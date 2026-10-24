@@ -44,6 +44,8 @@ interface MenuRow extends QueryResultRow {
   label: string;
   icon: string | null;
   route_name: string | null;
+  badge: string | null;
+  navigation_disabled: boolean;
   display_order: number;
 }
 
@@ -69,6 +71,8 @@ export interface EffectiveMenuItem {
   label: string;
   icon: string | null;
   route_name: string | null;
+  badge: string | null;
+  navigation_disabled: boolean;
   display_order: number;
   children: EffectiveMenuItem[];
 }
@@ -348,7 +352,8 @@ export class AuthService {
   async getMenu(userId: string): Promise<EffectiveMenuItem[]> {
     const result = await this.db.query<MenuRow>(
       `SELECT DISTINCT m.code, parent.code AS parent_code, m.label, m.icon,
-              m.route_name, COALESCE(rmi.display_order, m.display_order) AS display_order
+              m.route_name, m.badge, m.navigation_disabled,
+              COALESCE(rmi.display_order, m.display_order) AS display_order
        FROM sababuka.user_role_assignments ura
        JOIN sababuka.roles r ON r.id = ura.role_id AND r.is_active = true
        JOIN sababuka.role_menu_items rmi ON rmi.role_id = r.id AND rmi.is_visible = true
@@ -377,6 +382,8 @@ export class AuthService {
         label: row.label,
         icon: row.icon,
         route_name: row.route_name,
+        badge: row.badge,
+        navigation_disabled: row.navigation_disabled,
         display_order: row.display_order,
         children: [],
       });
@@ -401,7 +408,8 @@ export class AuthService {
   async getMenuForRoles(roleCodes: string[]): Promise<EffectiveMenuItem[]> {
     const result = await this.db.query<MenuRow>(
       `SELECT DISTINCT m.code, parent.code AS parent_code, m.label, m.icon,
-              m.route_name, COALESCE(rmi.display_order, m.display_order) AS display_order
+              m.route_name, m.badge, m.navigation_disabled,
+              COALESCE(rmi.display_order, m.display_order) AS display_order
        FROM sababuka.roles r
        JOIN sababuka.role_menu_items rmi ON rmi.role_id = r.id AND rmi.is_visible = true
        JOIN sababuka.menu_items m ON m.id = rmi.menu_item_id AND m.is_active = true
@@ -415,7 +423,7 @@ export class AuthService {
        ORDER BY display_order, m.label`, [roleCodes],
     );
     const items = new Map<string, EffectiveMenuItem>();
-    for (const row of result.rows) items.set(row.code, { code: row.code, label: row.label, icon: row.icon, route_name: row.route_name, display_order: row.display_order, children: [] });
+    for (const row of result.rows) items.set(row.code, { code: row.code, label: row.label, icon: row.icon, route_name: row.route_name, badge: row.badge, navigation_disabled: row.navigation_disabled, display_order: row.display_order, children: [] });
     const roots: EffectiveMenuItem[] = [];
     for (const row of result.rows) {
       const item = items.get(row.code)!; const parent = row.parent_code ? items.get(row.parent_code) : undefined;

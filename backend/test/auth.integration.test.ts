@@ -42,6 +42,12 @@ test(
       const menu = await app.inject({ method: "GET", url: "/api/v1/me/menu", headers: { cookie } });
       assert.equal(menu.statusCode, 200, menu.body);
       assert.ok(menu.json().data.length > 0);
+      const flattenMenu = (items: Array<{ code: string; badge: string | null; navigation_disabled: boolean; children: unknown[] }>): typeof items =>
+        items.flatMap((item) => [item, ...flattenMenu(item.children as typeof items)]);
+      const menuItems = flattenMenu(menu.json().data);
+      const placeholders = menuItems.filter((item) => item.navigation_disabled);
+      assert.deepEqual(placeholders.map((item) => item.code).sort(), ["datasets", "focuses", "metadata-profiles"]);
+      assert.ok(placeholders.every((item) => item.badge === "Segera"));
 
       const logout = await app.inject({
         method: "POST",

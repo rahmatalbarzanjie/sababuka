@@ -818,7 +818,7 @@ export class AdminService {
     const result = await this.db.query(
       `SELECT m.id::text, m.code, m.parent_id::text, parent.code AS parent_code,
               m.label, m.icon, m.route_name, m.required_permission,
-              m.display_order, m.is_active
+              m.badge, m.navigation_disabled, m.display_order, m.is_active
        FROM sababuka.menu_items m
        LEFT JOIN sababuka.menu_items parent ON parent.id = m.parent_id
        ORDER BY COALESCE(parent.display_order, m.display_order), m.parent_id NULLS FIRST, m.display_order, m.label`,

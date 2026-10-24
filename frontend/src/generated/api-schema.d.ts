@@ -1165,6 +1165,8 @@ export interface components {
             label: string;
             icon?: string | null;
             route_name?: string | null;
+            badge?: string | null;
+            navigation_disabled: boolean;
             display_order: number;
             children: components["schemas"]["MenuItem"][];
         };
@@ -1254,6 +1256,8 @@ export interface components {
             icon?: string | null;
             route_name?: string | null;
             required_permission?: string | null;
+            badge?: string | null;
+            navigation_disabled: boolean;
             display_order: number;
             is_active: boolean;
         };
