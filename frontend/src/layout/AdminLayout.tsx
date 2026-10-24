@@ -41,7 +41,7 @@ import { navigate } from "../router";
 import type { LoginAnnouncement, MenuItem, NotificationItem } from "../types";
 import { api } from "../api";
 import { notificationDestination } from "../notification-routing";
-import { Modal } from "../components";
+import { formatTanggal, Modal } from "../components";
 
 const iconByCode: Record<string, typeof LayoutDashboard> = {
   organizations: Building2,
@@ -254,7 +254,6 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     await api("/notifications/read-all", { method: "POST", mutation: true });
     await loadNotifications();
   };
-  const notificationTime = (value: string) => new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
   const enterPreview = async (role: "bapperida" | "kominfo" | "pembina_statistik" | "opd" | "pimpinan", organizationId?: string) => {
     setPreviewBusy(true); setPreviewError(null);
     try {
@@ -313,7 +312,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
               <div className="notification-preview-list">
                 {notificationLoading && !notificationPreview.length ? <p className="notification-preview-empty">Memuat notifikasi…</p>
                   : !notificationPreview.length ? <p className="notification-preview-empty">Belum ada pemberitahuan untuk Anda.</p>
-                  : notificationPreview.map((item) => <button type="button" key={item.id} className={item.read_at ? "" : "unread"} onClick={() => void openNotification(item)}><span className="notification-preview-icon"><Bell /></span><span><strong>{item.title}</strong><p>{item.message}</p><small>{notificationTime(item.created_at)} WIB</small></span>{!item.read_at && <i aria-label="Belum dibaca" />}</button>)}
+                  : notificationPreview.map((item) => <button type="button" key={item.id} className={item.read_at ? "" : "unread"} onClick={() => void openNotification(item)}><span className="notification-preview-icon"><Bell /></span><span><strong>{item.title}</strong><p>{item.message}</p><small>{formatTanggal(item.created_at, "tanggal-waktu")}</small></span>{!item.read_at && <i aria-label="Belum dibaca" />}</button>)}
               </div>
               <footer><button type="button" onClick={() => go("/notifications")}>Lihat semua notifikasi</button></footer>
             </section>}

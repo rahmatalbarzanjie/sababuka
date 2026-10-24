@@ -2,7 +2,7 @@ import { BadgeCheck, BookCheck, CheckCircle2, ClipboardList, Download, FileCheck
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { api, apiPath, jsonBody } from "../api";
 import { useAuth } from "../auth";
-import { Badge, capaianStatusLabel, EmptyState, ErrorState, formatDate, formatDateOnly, Modal, Notice, PageSizeControl, Pagination, SortableHeader, Spinner, useAsync, type SortDirection } from "../components";
+import { Badge, capaianStatusLabel, EmptyState, ErrorState, formatDate, formatDateOnly, formatTanggal, Modal, Notice, PageSizeControl, Pagination, SortableHeader, Spinner, useAsync, type SortDirection } from "../components";
 import { navigate } from "../router";
 import type { Organization, PageResponse, Period, StatisticalGuidanceNote, Submission, SubmissionEvidence, SubmissionObservation } from "../types";
 
@@ -149,7 +149,7 @@ function SubmissionDetailModal({ id, review, guidance, permissions, writableOrga
   };
   const save = async (item: SubmissionObservation) => {
     setBusy(true); setError("");
-    try { await persist(item); setSavedAt(new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })); detail.reload(); onChanged(); }
+    try { await persist(item); setSavedAt(formatTanggal(new Date(), "waktu")); detail.reload(); onChanged(); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Capaian gagal disimpan."); }
     finally { setBusy(false); }
   };
@@ -159,7 +159,7 @@ function SubmissionDetailModal({ id, review, guidance, permissions, writableOrga
     try {
       const filled = detail.data.observations.filter((item) => currentValue(item).trim());
       await Promise.all(filled.map(persist));
-      setSavedAt(new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })); detail.reload(); onChanged();
+      setSavedAt(formatTanggal(new Date(), "waktu")); detail.reload(); onChanged();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Sebagian perubahan belum dapat disimpan."); }
     finally { setBusy(false); }
   };

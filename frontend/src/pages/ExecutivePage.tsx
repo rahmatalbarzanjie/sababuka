@@ -99,7 +99,7 @@ export function ExecutivePage() {
 
     {headlineSeries.length > 0 && <div className="toolbar executive-filters"><label className="search-field"><Search /><input aria-label="Cari indikator" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari kondisi atau indikator" /></label><select aria-label="Filter kelompok isu" value={category} onChange={(event) => setCategory(event.target.value)}><option value="">Semua kelompok isu</option>{categories.map((value) => <option key={value}>{value}</option>)}</select>{(query || category) && <button className="button secondary" onClick={() => { setQuery(""); setCategory(""); }}>Hapus filter</button>}<span className="filter-result">{visible.length} indikator</span></div>}
 
-    <section className="panel executive-panel"><header><div><h2>Perkembangan indikator</h2><p>Kondisi terbaru dan perubahannya.</p></div><small>Diperbarui {formatDate(dashboard.generated_at)} WIB</small></header>
+    <section className="panel executive-panel"><header><div><h2>Perkembangan indikator</h2><p>Kondisi terbaru dan perubahannya.</p></div><small>Diperbarui {formatDate(dashboard.generated_at)}</small></header>
       {!headlineSeries.length ? <EmptyState title="Belum ada data terpublikasi">Data akan tampil setelah capaian disetujui dan diterbitkan.</EmptyState> : !visible.length ? <EmptyState title="Indikator tidak ditemukan">Ubah kata pencarian atau hapus filter.</EmptyState> : <div className="executive-cards executive-series-cards">{visible.map((series) => {
         const latest = series.points.at(-1); const unit = series.unit_symbol ?? series.unit;
         const tone = series.performance === "improving" ? "success" : series.performance === "worsening" ? "danger" : "warning";
