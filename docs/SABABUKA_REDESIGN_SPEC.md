@@ -1,7 +1,5 @@
 # SABABUKA — Spesifikasi Perbaikan UI/UX (Handoff untuk Implementasi)
 
-> **Status integrasi — 24 Oktober 2026:** dokumen ini berasal dari audit dan handoff Claude pada branch `docs/redesign-spec` di repository demo lama. Prinsip produk dan keputusan UX tetap menjadi acuan. Detail arsitektur, daftar placeholder, nama route, dan status implementasi harus diverifikasi terhadap aplikasi full-stack React/Fastify pada branch aktif. Kode, OpenAPI, migration, dan pengujian terbaru adalah sumber kebenaran teknis.
-
 > **Tujuan dokumen:** menerjemahkan hasil audit + mockup menjadi instruksi implementasi yang bisa dikerjakan agen koding (Codex) atau developer. Semua keputusan di sini sudah disepakati pemilik produk.
 >
 > **Cara pakai:** commit file ini ke repo (mis. `docs/SABABUKA_REDESIGN_SPEC.md`). Tunjuk dari `AGENTS.md` (dibaca Codex) **dan** `CLAUDE.md` (dibaca Claude Code) dengan satu baris: `Lihat docs/SABABUKA_REDESIGN_SPEC.md sebagai sumber kebenaran redesign UI/UX.`
@@ -28,7 +26,8 @@
 ## 2. Perbaikan GLOBAL (lintas halaman) — prioritas tinggi
 
 ### 2.1 Modul placeholder → tandai “Segera”, non-aktifkan klik
-Jangan tampilkan modul kosong seolah aktif. Beri badge `Segera` dan disable navigasi. Daftar pada audit awal mencakup `Keuangan Daerah`, `Layanan Publik`, `Profil Data OPD`, `Fokus Kebijakan`, `Dataset`, dan `Profil Metadata`; beberapa di antaranya sudah diimplementasikan setelah audit. Periksa dukungan route, API, permission, serta state data aktual sebelum memberi label `Segera` atau menonaktifkan navigasi.
+Jangan tampilkan modul kosong seolah aktif. Beri badge `Segera` dan disable navigasi.
+Modul placeholder saat ini: `Keuangan Daerah`, `Layanan Publik`, `Profil Data OPD`, `Fokus Kebijakan` (focuses), `Dataset` (datasets), `Profil Metadata` (metadata-profiles).
 
 ### 2.2 Nama kanonik (samakan sidebar = judul = breadcrumb)
 | Kode sistem | Nama kanonik (pakai di SEMUA tempat) |
@@ -55,6 +54,13 @@ Di modal/halaman detail capaian, tombol aksi primer (`Kirim ke pemeriksa` / `Per
 ### 2.6 Mobile
 Tabel → kartu (sudah baik). Perbaiki bar filter/tab yang overflow: jadikan dapat digeser horizontal atau dropdown di layar sempit.
 
+### 2.7 Label status relatif terhadap peran yang melihat (POV)
+Label tahap/status harus sesuai sudut pandang pengguna, jangan generik.
+- Alur indikator (asli sistem): **penyusun mengajukan → BAPPERIDA memeriksa → OPD penanggung jawab memverifikasi → BAPPERIDA mengaktifkan.**
+- Dari **POV OPD** untuk indikator miliknya: tampilkan **“Perlu Anda verifikasi”** — JANGAN “Menunggu verifikasi OPD”.
+- Dari **POV BAPPERIDA/Walidata**: tetap “Menunggu verifikasi OPD [nama OPD]” / “Perlu Anda aktifkan”.
+- Prinsip umum: ganti kata peran dengan “Anda” bila pengguna yang login adalah peran tersebut.
+
 ---
 
 ## 3. Dashboard Pimpinan (route: `/dashboard`)
@@ -72,8 +78,9 @@ Acuan: mockup dashboard.
 ---
 
 ## 4. AI Assistant — penempatan (KEPUTUSAN FINAL)
+- **HANYA untuk peran Pimpinan.** Peran lain (OPD, Walidata, Pembina Data) **tidak** memiliki Asisten AI — baik di web maupun WA.
 - **HAPUS “Asisten AI” dari menu sidebar.**
-- **Tombol melayang** (floating action button) kanan-bawah, tampil di SEMUA halaman web. Indikator titik hijau “aktif” + label kecil “juga di WhatsApp”.
+- **Tombol melayang** (floating action button) kanan-bawah, tampil di semua halaman web **saat login sebagai Pimpinan**. Indikator titik hijau “aktif” + label kecil “juga di WhatsApp”.
 - Klik → **panel chat** (header, pertanyaan saran, input). Panel punya tombol **“Buka layar penuh”** → halaman penuh (riwayat, jawaban panjang, ekspor). Halaman penuh TIDAK dihapus, hanya pintu masuknya pindah ke tombol melayang.
 - **Satu engine, banyak kanal**: WA bot (sudah ada), tombol web, halaman penuh — semua memakai mesin AI yang sama.
 - Onboarding: tooltip sekali “Asisten AI sekarang di sini” menunjuk tombol melayang.
@@ -85,6 +92,7 @@ Acuan: mockup dashboard.
 
 ### 5.1 OPD Operator — Pelaporan Realisasi (`/submissions`)
 POV: *staf OPD ingin cepat selesai mengisi.*
+**Menu OPD:** Beranda Tugas · Pelaporan Realisasi · **Usulan Indikator** (OPD dapat mengajukan indikator baru — sistem sudah mendukung "Tambah indikator" + alur usulan) · Profil Data OPD (`Segera`). Tanpa Asisten AI.
 - **Hero “aksi berikutnya”**: jumlah formulir perlu diisi + tombol primer `Isi laporan sekarang` + chip tenggat.
 - **Panduan 3 langkah**: Isi nilai → Lampirkan bukti → Kirim.
 - **Daftar “Laporan OPD saya”**: tiap baris punya status pill (`Perlu diisi` / `Menunggu pemeriksaan` / `Perlu diperbaiki` / `Disetujui`) + aksi per baris (`Lanjutkan` / `Perbaiki` / `Lihat`). Baris “perlu diperbaiki” menampilkan catatan pemeriksa.
