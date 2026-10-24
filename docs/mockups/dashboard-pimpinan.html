@@ -1,0 +1,514 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Dashboard Pimpinan Kapuas</title>
+<style>
+  /* Layout: executive dashboard. Row of signal tiles → free analytics (trend + attention + base map) → gated "master key" panels behind locks. Palette: slate ink, SABABUKA teal accent, reserved status hues, gold for premium gating. */
+  :root{
+    --bg:#eef1f5; --surface:#ffffff; --surface-2:#f6f8fa; --surface-3:#eef2f6;
+    --ink:#16233b; --ink-2:#44546e; --muted:#7a8699; --line:#dde3ea;
+    --brand:#0f6d54; --brand-2:#13886a; --brand-soft:#e3f1ec;
+    --nav:#16304f;
+    --good:#0f6d54; --good-soft:#e3f1ec;
+    --warn:#b7791f; --warn-soft:#fbf1dd;
+    --crit:#c0392b; --crit-soft:#fbe9e7;
+    --info:#2f6fb0; --info-soft:#e7f0f9;
+    --gold:#9a6a12; --gold-soft:#f8efd8; --gold-line:#e4cf94;
+    --grid:#e7ecf1;
+    --font-display:"Barlow Semi Condensed",-apple-system,Segoe UI,sans-serif;
+    --font-body:"Inter",-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#0c1320; --surface:#121b2b; --surface-2:#0f1826; --surface-3:#172235;
+    --ink:#e7edf5; --ink-2:#aeb9ca; --muted:#808ca3; --line:#26324a;
+    --brand:#4fd1a6; --brand-2:#3bbf93; --brand-soft:#133028;
+    --nav:#0a111d;
+    --good:#4fd1a6; --good-soft:#133028;
+    --warn:#f0c46b; --warn-soft:#2a2112;
+    --crit:#ff8a7a; --crit-soft:#2c1714;
+    --info:#6fa8dc; --info-soft:#15263a;
+    --gold:#e4c877; --gold-soft:#2a2214; --gold-line:#4a3c1c;
+    --grid:#223049;
+    color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0c1320; --surface:#121b2b; --surface-2:#0f1826; --surface-3:#172235;
+    --ink:#e7edf5; --ink-2:#aeb9ca; --muted:#808ca3; --line:#26324a;
+    --brand:#4fd1a6; --brand-2:#3bbf93; --brand-soft:#133028;
+    --nav:#0a111d;
+    --good:#4fd1a6; --good-soft:#133028;
+    --warn:#f0c46b; --warn-soft:#2a2112;
+    --crit:#ff8a7a; --crit-soft:#2c1714;
+    --info:#6fa8dc; --info-soft:#15263a;
+    --gold:#e4c877; --gold-soft:#2a2214; --gold-line:#4a3c1c;
+    --grid:#223049;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-body);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+  h1,h2,h3,h4{font-family:var(--font-display);margin:0;line-height:1.15;text-wrap:balance}
+  p{margin:0}
+  .eyebrow{font-size:.7rem;letter-spacing:.11em;text-transform:uppercase;font-weight:600;color:var(--brand)}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  /* Top bar */
+  .topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--nav);color:#eaf1f8;border-radius:0 0 14px 14px}
+  body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--nav);z-index:21}
+  .topbar-in{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px max(16px,env(safe-area-inset-left,0px))}
+  .brand-badge{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--brand-2),var(--brand));display:grid;place-items:center;color:#fff;font-family:var(--font-display);font-weight:700;flex:none}
+  .topbar h1{font-size:1.15rem;color:#fff;font-weight:600}
+  .topbar .sub{font-size:.76rem;color:#9fb0c4}
+  .spacer{flex:1}
+  .period{font-size:.78rem;color:#cdd8e6;background:rgba(255,255,255,.08);padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.12)}
+
+  .demo-note{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:.78rem;color:var(--ink-2);background:var(--warn-soft);border:1px solid var(--gold-line);border-radius:9px;padding:8px 12px}
+  .demo-note b{color:var(--ink)}
+
+  section{margin-top:22px}
+  .tier-head{display:flex;align-items:center;gap:12px;margin:0 0 12px;flex-wrap:wrap}
+  .tier-head h2{font-size:1.3rem;font-weight:600}
+  .tier-pill{font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:99px;display:inline-flex;align-items:center;gap:6px}
+  .tier-pill.free{background:var(--good-soft);color:var(--good)}
+  .tier-pill.prem{background:var(--gold-soft);color:var(--gold);border:1px solid var(--gold-line)}
+  .tier-head .desc{font-size:.82rem;color:var(--muted);flex-basis:100%}
+
+  /* Signal tiles */
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .tile{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:15px;position:relative;overflow:hidden}
+  .tile .stripe{position:absolute;left:0;top:0;bottom:0;width:4px}
+  .tile.crit .stripe{background:var(--crit)} .tile.warn .stripe{background:var(--warn)} .tile.good .stripe{background:var(--good)} .tile.info .stripe{background:var(--info)}
+  .tile .ico{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;margin-bottom:9px}
+  .tile.crit .ico{background:var(--crit-soft);color:var(--crit)} .tile.warn .ico{background:var(--warn-soft);color:var(--warn)} .tile.good .ico{background:var(--good-soft);color:var(--good)} .tile.info .ico{background:var(--info-soft);color:var(--info)}
+  .tile .lbl{font-size:.8rem;color:var(--ink-2)}
+  .tile .big{font-family:var(--font-display);font-size:2.1rem;font-weight:600;line-height:1;margin-top:3px}
+  .tile .meta{font-size:.74rem;color:var(--muted);margin-top:4px}
+
+  /* Content grid */
+  .grid2{display:grid;grid-template-columns:1.55fr 1fr;gap:14px;margin-top:14px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
+  .card-head h3{font-size:1.02rem;font-weight:600}
+  .card-head .k{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--brand);font-weight:600}
+  .card-head .r{font-size:.74rem;color:var(--muted);text-align:right}
+
+  /* Trend chart */
+  .chart{width:100%;height:auto;display:block;overflow:visible}
+  .lgnd{display:flex;gap:16px;flex-wrap:wrap;font-size:.76rem;color:var(--ink-2);margin-top:8px}
+  .lgnd span{display:inline-flex;align-items:center;gap:6px}
+  .sw{width:14px;height:0;border-top-width:3px;border-top-style:solid;display:inline-block}
+
+  /* Attention list */
+  .att{display:flex;flex-direction:column;gap:12px}
+  .att-row .t{display:flex;justify-content:space-between;gap:8px;font-size:.86rem;margin-bottom:5px}
+  .att-row .t b{font-weight:600}
+  .att-row .t .v{color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .bar{height:9px;border-radius:99px;background:var(--surface-3);overflow:hidden;position:relative}
+  .bar i{display:block;height:100%;border-radius:99px}
+  .bar .tgt{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink-2);opacity:.55}
+  .att-row .cap{font-size:.72rem;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:5px}
+
+  /* Premium section wrapper */
+  .prem-wrap{background:linear-gradient(180deg,var(--gold-soft),transparent 60%);border:1px solid var(--gold-line);border-radius:18px;padding:18px clamp(14px,2.5vw,22px) 22px}
+  .prem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .pcard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;display:flex;flex-direction:column;min-height:210px}
+  .pcard .ph{display:flex;align-items:center;gap:9px;margin-bottom:4px}
+  .pcard .ph .pi{width:30px;height:30px;border-radius:8px;background:var(--gold-soft);color:var(--gold);display:grid;place-items:center;flex:none;border:1px solid var(--gold-line)}
+  .pcard h4{font-size:.96rem;font-weight:600;line-height:1.2}
+  .pcard .q{font-size:.76rem;color:var(--muted);font-style:italic;margin:2px 0 10px}
+  .teaser{flex:1;position:relative}
+  .teaser .peek{font-size:.82rem;color:var(--ink-2)}
+  .teaser .peek b{color:var(--ink)}
+  .locked{filter:blur(4px);opacity:.5;user-select:none;pointer-events:none}
+  .lockbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--gold-line)}
+  .lockbar .lk{display:inline-flex;align-items:center;gap:6px;font-size:.74rem;font-weight:600;color:var(--gold)}
+  .btn-open{font-size:.76rem;font-weight:600;color:#fff;background:var(--gold);border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-family:var(--font-body)}
+  .ribbon{position:absolute;top:12px;right:-30px;transform:rotate(45deg);background:var(--gold);color:#fff;font-size:.6rem;font-weight:700;letter-spacing:.08em;padding:3px 34px}
+
+  /* mini projection svg */
+  .mini{width:100%;height:72px;display:block;overflow:visible;margin:6px 0}
+
+  /* map */
+  .maprow{display:grid;grid-template-columns:1.2fr 1fr;gap:14px;margin-top:14px}
+  .hexmap{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+  .kec{aspect-ratio:1;border-radius:7px;display:grid;place-items:center;font-size:.56rem;font-weight:600;color:#fff;text-align:center;padding:2px;line-height:1.05;position:relative}
+  .scale{display:flex;align-items:center;gap:8px;font-size:.72rem;color:var(--muted);margin-top:10px}
+  .scale .ramp{height:9px;flex:1;border-radius:99px;background:linear-gradient(90deg,#cfe7df,#7cc3ac,#2b9e79,#0f6d54)}
+
+  footer{margin:30px 0 26px;padding-top:14px;border-top:1px solid var(--line);font-size:.78rem;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
+  @media (max-width:860px){
+    .tiles{grid-template-columns:repeat(2,1fr)}
+    .grid2{grid-template-columns:1fr}
+    .prem-grid{grid-template-columns:1fr 1fr}
+    .maprow{grid-template-columns:1fr}
+  }
+  @media (max-width:520px){
+    .prem-grid{grid-template-columns:1fr}
+    .tiles{grid-template-columns:1fr 1fr}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* Narrative summary band — plain-language, traffic-light; the part a Bupati actually reads */
+  .narr{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:14px;padding:16px 18px;margin-top:14px}
+  .narr-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+  .ai-chip{display:inline-flex;align-items:center;gap:5px;font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--brand);background:var(--brand-soft);padding:3px 9px;border-radius:99px}
+  .narr-top .when{font-size:.74rem;color:var(--muted)}
+  .narr p.say{font-size:1.02rem;line-height:1.55;color:var(--ink)}
+  .narr p.say b{font-weight:600}
+  .narr p.say .r{color:var(--crit)} .narr p.say .y{color:var(--warn)} .narr p.say .g{color:var(--good)}
+  .lights{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .light{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;font-weight:600;padding:5px 11px;border-radius:99px;border:1px solid var(--line)}
+  .light .d{width:9px;height:9px;border-radius:99px}
+  .light.g{background:var(--good-soft);color:var(--good)} .light.g .d{background:var(--good)}
+  .light.y{background:var(--warn-soft);color:var(--warn)} .light.y .d{background:var(--warn)}
+  .light.r{background:var(--crit-soft);color:var(--crit)} .light.r .d{background:var(--crit)}
+  .narr-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:13px;padding-top:12px;border-top:1px solid var(--line)}
+  .narr-foot .ask{font-size:.82rem;color:var(--brand);font-weight:600;cursor:pointer;background:none;border:none;font-family:var(--font-body);display:inline-flex;align-items:center;gap:6px}
+  .narr-foot .prem-note{font-size:.74rem;color:var(--gold);display:inline-flex;align-items:center;gap:5px}
+
+  /* Floating AI assistant */
+  .fab{position:fixed;right:max(20px,env(safe-area-inset-right,0px));bottom:max(20px,env(safe-area-inset-bottom,0px));z-index:40;width:60px;height:60px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(135deg,var(--brand-2),var(--brand));color:#fff;box-shadow:0 10px 26px rgba(15,109,84,.42);display:grid;place-items:center;font-size:1.5rem}
+  .fab .live{position:absolute;top:4px;right:4px;width:13px;height:13px;border-radius:50%;background:#2ec27e;border:2.5px solid var(--surface)}
+  .fab .wa{position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);font-size:.56rem;font-weight:700;background:#25d366;color:#063d1b;padding:1px 7px;border-radius:99px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+  .aipanel{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(max(20px,env(safe-area-inset-bottom,0px)) + 74px);z-index:41;width:min(360px,calc(100vw - 32px));background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 50px rgba(8,16,30,.28);overflow:hidden;display:flex;flex-direction:column;max-height:min(560px,calc(100vh - 120px))}
+  .aipanel .ah{background:var(--nav);color:#eaf1f8;padding:13px 15px;display:flex;align-items:center;gap:10px}
+  .aipanel .ah .av{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--brand-2),var(--brand));display:grid;place-items:center;flex:none}
+  .aipanel .ah h4{font-size:.95rem;color:#fff;font-weight:600}
+  .aipanel .ah .st{font-size:.7rem;color:#9fe3c4;display:flex;align-items:center;gap:5px}
+  .aipanel .ah .st .d{width:7px;height:7px;border-radius:99px;background:#2ec27e}
+  .aipanel .ah .x{margin-left:auto;background:rgba(255,255,255,.1);border:none;color:#cdd8e6;width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:1rem}
+  .aibody{padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;background:var(--surface-2)}
+  .msg{max-width:85%;font-size:.85rem;line-height:1.45;padding:9px 12px;border-radius:12px}
+  .msg.bot{background:var(--surface);border:1px solid var(--line);color:var(--ink);align-self:flex-start;border-bottom-left-radius:4px}
+  .msg.me{background:var(--brand);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+  .msg.bot b{color:var(--brand)}
+  .qchips{display:flex;flex-direction:column;gap:7px;margin-top:2px}
+  .qchip{font-size:.8rem;text-align:left;background:var(--surface);border:1px solid var(--line);color:var(--ink-2);padding:8px 11px;border-radius:9px;cursor:pointer}
+  .qchip:hover{border-color:var(--brand);color:var(--brand)}
+  .aifoot{border-top:1px solid var(--line);padding:10px 12px;background:var(--surface);display:flex;flex-direction:column;gap:8px}
+  .airow{display:flex;gap:8px;align-items:center}
+  .airow input{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:9px;padding:9px 11px;font-size:.84rem;font-family:var(--font-body)}
+  .airow .send{background:var(--brand);border:none;color:#fff;width:38px;height:38px;border-radius:9px;cursor:pointer;flex:none}
+  .aifoot .util{display:flex;align-items:center;justify-content:space-between;font-size:.72rem}
+  .aifoot .util .full{color:var(--brand);font-weight:600;cursor:pointer;background:none;border:none;font-family:var(--font-body);display:inline-flex;align-items:center;gap:5px}
+  .aifoot .util .wab{color:#1a8a46;display:inline-flex;align-items:center;gap:5px;font-weight:600}
+</style>
+
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="topbar-in">
+      <div class="brand-badge">SB</div>
+      <div>
+        <h1>Dashboard Pimpinan</h1>
+        <div class="sub">Kabupaten Kapuas · Ringkasan pengambilan keputusan</div>
+      </div>
+      <div class="spacer"></div>
+      <div class="period">Periode: 2026 · Diperbarui 24 Okt 2026</div>
+    </div>
+  </div>
+
+  <div class="demo-note">⚠️ <span><b>Mockup usulan.</b> Angka di bawah adalah data ilustrasi untuk menunjukkan rancangan — bukan data resmi terpublikasi.</span></div>
+
+  <!-- ===== NARRATIVE SUMMARY — read first, plain language ===== -->
+  <div class="narr">
+    <div class="narr-top">
+      <span class="ai-chip">✦ Ringkasan otomatis</span>
+      <span class="when">Dibuat Asisten AI · 24 Okt 2026, 06.00</span>
+    </div>
+    <p class="say">Secara umum pembangunan Kapuas <b class="g">membaik</b> — indeks capaian naik ke <b>74</b> dari target <b>80</b>. Namun <b class="r">5 indikator perlu perhatian</b>, terutama <b>stunting (16,2%)</b> yang masih di atas target dan belum turun. Kecamatan <b>Kapuas Hulu</b> tertinggal dan belum mengirim data terbaru.</p>
+    <div class="lights">
+      <span class="light g"><span class="d"></span>18 sesuai target</span>
+      <span class="light y"><span class="d"></span>6 melambat</span>
+      <span class="light r"><span class="d"></span>5 perlu perhatian</span>
+    </div>
+    <div class="narr-foot">
+      <button class="ask" onclick="openAI()">💬 Tanya lebih lanjut ke Asisten AI →</button>
+      <span class="prem-note">🔒 Rekomendasi tindakan &amp; briefing lengkap: paket lanjutan</span>
+    </div>
+  </div>
+
+  <!-- ============ FREE TIER ============ -->
+  <section>
+    <div class="tier-head">
+      <h2>Analitik Standar</h2>
+      <span class="tier-pill free">✓ Termasuk paket dasar</span>
+      <span class="desc">Menjawab “APA yang terjadi” — angka capaian, tren, dan indikator yang perlu perhatian. Bagian ini memenuhi janji fitur analitik kami.</span>
+    </div>
+
+    <div class="tiles">
+      <div class="tile crit"><div class="stripe"></div>
+        <div class="ico">⚠️</div><div class="lbl">Perlu perhatian</div>
+        <div class="big tnum">5</div><div class="meta">dari 29 indikator</div>
+      </div>
+      <div class="tile good"><div class="stripe"></div>
+        <div class="ico">↗</div><div class="lbl">Tren membaik</div>
+        <div class="big tnum">12</div><div class="meta">naik vs periode lalu</div>
+      </div>
+      <div class="tile info"><div class="stripe"></div>
+        <div class="ico">◎</div><div class="lbl">Sesuai target</div>
+        <div class="big tnum">18</div><div class="meta">on-track RPJMD</div>
+      </div>
+      <div class="tile warn"><div class="stripe"></div>
+        <div class="ico">⬡</div><div class="lbl">Cakupan kecamatan</div>
+        <div class="big tnum">14<span style="font-size:1rem;color:var(--muted)"> / 17</span></div><div class="meta">punya data terkini</div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <!-- TREND -->
+      <div class="card">
+        <div class="card-head">
+          <div><div class="k">Perkembangan</div><h3>Indeks Capaian Agregat</h3></div>
+          <div class="r">Skala 0–100<br>2023 → 2026</div>
+        </div>
+        <svg class="chart" viewBox="0 0 560 240" role="img" aria-label="Tren indeks capaian agregat naik dari 58 di 2023 ke 74 di 2026, garis target putus-putus di 80">
+          <!-- gridlines -->
+          <g stroke="var(--grid)" stroke-width="1">
+            <line x1="46" y1="30" x2="548" y2="30"/>
+            <line x1="46" y1="80" x2="548" y2="80"/>
+            <line x1="46" y1="130" x2="548" y2="130"/>
+            <line x1="46" y1="180" x2="548" y2="180"/>
+          </g>
+          <!-- y labels -->
+          <g fill="var(--muted)" font-size="11" font-family="var(--font-body)" text-anchor="end">
+            <text x="40" y="34">100</text><text x="40" y="84">80</text><text x="40" y="134">60</text><text x="40" y="184">40</text>
+          </g>
+          <!-- target line at 80 (y=80) -->
+          <line x1="46" y1="80" x2="548" y2="80" stroke="var(--warn)" stroke-width="2" stroke-dasharray="6 5"/>
+          <text x="548" y="74" fill="var(--warn)" font-size="11" text-anchor="end" font-weight="600">Target RPJMD 80</text>
+          <!-- area + line: 2023=58(y130-ish) ... map value v to y: y=180-(v-40)/60*150 => v40->180,v100->30 -->
+          <!-- points: 2023 58 -> y=180-(18/60*150)=135 ; 2024 63 ->180-23/60*150=122.5 ; 2025 69 ->180-29/60*150=107.5 ; 2026 74 ->180-34/60*150=95 -->
+          <polygon points="80,135 236,122.5 392,107.5 520,95 520,180 80,180" fill="var(--brand)" opacity="0.12"/>
+          <polyline points="80,135 236,122.5 392,107.5 520,95" fill="none" stroke="var(--brand)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+          <g fill="var(--brand)"><circle cx="80" cy="135" r="4.5"/><circle cx="236" cy="122.5" r="4.5"/><circle cx="392" cy="107.5" r="4.5"/><circle cx="520" cy="95" r="5.5" stroke="var(--surface)" stroke-width="2"/></g>
+          <text x="520" y="84" fill="var(--ink)" font-size="12" font-weight="700" text-anchor="middle">74</text>
+          <!-- x labels -->
+          <g fill="var(--muted)" font-size="11" text-anchor="middle">
+            <text x="80" y="205">2023</text><text x="236" y="205">2024</text><text x="392" y="205">2025</text><text x="520" y="205">2026</text>
+          </g>
+        </svg>
+        <div class="lgnd">
+          <span><i class="sw" style="border-top-color:var(--brand)"></i> Capaian aktual</span>
+          <span><i class="sw" style="border-top-color:var(--warn);border-top-style:dashed"></i> Target RPJMD</span>
+        </div>
+      </div>
+
+      <!-- ATTENTION LIST -->
+      <div class="card">
+        <div class="card-head"><div><div class="k">Prioritas</div><h3>Indikator perlu perhatian</h3></div></div>
+        <div class="att">
+          <div class="att-row">
+            <div class="t"><b>Prevalensi Stunting</b><span class="v">16,2% <span style="color:var(--muted)">· tgt 14%</span></span></div>
+            <div class="bar"><i style="width:82%;background:var(--crit)"></i><span class="tgt" style="left:70%"></span></div>
+            <div class="cap" style="color:var(--crit)">● Jauh dari target · makin tinggi</div>
+          </div>
+          <div class="att-row">
+            <div class="t"><b>Indeks Ketahanan Pangan</b><span class="v">71,4 <span style="color:var(--muted)">· tgt 80</span></span></div>
+            <div class="bar"><i style="width:72%;background:var(--warn)"></i><span class="tgt" style="left:85%"></span></div>
+            <div class="cap" style="color:var(--warn)">● Melambat</div>
+          </div>
+          <div class="att-row">
+            <div class="t"><b>PAD Sektor Pariwisata</b><span class="v">63% <span style="color:var(--muted)">· tgt capaian</span></span></div>
+            <div class="bar"><i style="width:63%;background:var(--warn)"></i><span class="tgt" style="left:100%"></span></div>
+            <div class="cap" style="color:var(--warn)">● Di bawah proyeksi</div>
+          </div>
+          <div class="att-row">
+            <div class="t"><b>Indeks Pembangunan Kebudayaan</b><span class="v">58,9 <span style="color:var(--muted)">· tgt 65</span></span></div>
+            <div class="bar"><i style="width:68%;background:var(--warn)"></i><span class="tgt" style="left:90%"></span></div>
+            <div class="cap" style="color:var(--muted)">● Stagnan</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BASE MAP (free) -->
+    <div class="card" style="margin-top:14px">
+      <div class="card-head">
+        <div><div class="k">Geospasial · dasar</div><h3>Sebaran capaian per kecamatan</h3></div>
+        <div class="r">17 kecamatan<br>indeks komposit</div>
+      </div>
+      <div class="maprow">
+        <div>
+          <div class="hexmap" id="hexmap"></div>
+          <div class="scale"><span>Rendah</span><div class="ramp"></div><span>Tinggi</span><span style="margin-left:6px;color:var(--ink-2)">· 3 kec. belum ada data</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;justify-content:center;gap:10px">
+          <p style="font-size:.86rem;color:var(--ink-2)">Peta dasar menampilkan <b>posisi capaian</b> tiap kecamatan. Cukup untuk melihat sebaran — <b>analisis kesenjangan &amp; pemerataan</b> ada di paket lanjutan.</p>
+          <div style="font-size:.78rem;color:var(--muted)">Tertinggi: <b style="color:var(--ink)">Selat</b> · Terendah: <b style="color:var(--ink)">Kapuas Hulu</b></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PREMIUM TIER ============ -->
+  <section>
+    <div class="prem-wrap">
+      <div class="tier-head">
+        <h2>Analitik Lanjutan</h2>
+        <span class="tier-pill prem">🔒 Paket terpisah</span>
+        <span class="desc">Menjawab “KENAPA · AKAN jadi apa · APA yang harus dilakukan”. Panel tampil agar terlihat nilainya — isi penuh terbuka setelah paket diaktifkan.</span>
+      </div>
+
+      <div class="prem-grid">
+
+        <!-- 1 Proyeksi -->
+        <div class="pcard">
+          <div class="ribbon">PREMIUM</div>
+          <div class="ph"><div class="pi">◊</div><h4>Proyeksi &amp; Peringatan Dini</h4></div>
+          <div class="q">“Akan tercapai di 2029?”</div>
+          <div class="teaser">
+            <svg class="mini" viewBox="0 0 220 72" role="img" aria-label="Proyeksi stunting menurun namun berakhir di atas garis target 2029">
+              <line x1="0" y1="20" x2="220" y2="20" stroke="var(--warn)" stroke-width="1.5" stroke-dasharray="4 4"/>
+              <text x="2" y="15" font-size="8" fill="var(--warn)">target 2029</text>
+              <polyline points="0,58 55,52 95,48" fill="none" stroke="var(--brand)" stroke-width="2.5"/>
+              <polyline points="95,48 140,42 190,34 220,30" fill="none" stroke="var(--crit)" stroke-width="2.5" stroke-dasharray="5 4"/>
+              <circle cx="95" cy="48" r="3" fill="var(--brand)"/>
+            </svg>
+            <div class="peek"><b style="color:var(--crit)">Peringatan:</b> pada laju saat ini, Stunting diproyeksikan <b>meleset 1,8 poin</b> dari target 2029.</div>
+          </div>
+          <div class="lockbar"><span class="lk">🔒 Proyeksi 29 indikator</span><button class="btn-open">Buka paket</button></div>
+        </div>
+
+        <!-- 2 Rekomendasi -->
+        <div class="pcard">
+          <div class="ribbon">PREMIUM</div>
+          <div class="ph"><div class="pi">✦</div><h4>Rekomendasi Keputusan</h4></div>
+          <div class="q">“Saya harus apa?”</div>
+          <div class="teaser">
+            <div class="peek" style="margin-bottom:8px"><b>1 rekomendasi (contoh):</b> Prioritaskan intervensi gizi di <b>Dinkes</b> &amp; <b>3 kecamatan</b> dengan gap terlebar.</div>
+            <div class="locked peek">Alokasikan ulang anggaran sektor X sebesar Rp… ke program… OPD penanggung jawab… dampak proyeksi +… poin dalam… bulan.</div>
+          </div>
+          <div class="lockbar"><span class="lk">🔒 +7 rekomendasi aktif</span><button class="btn-open">Buka paket</button></div>
+        </div>
+
+        <!-- 3 Narasi -->
+        <div class="pcard">
+          <div class="ribbon">PREMIUM</div>
+          <div class="ph"><div class="pi">❝</div><h4>Narasi &amp; Briefing Otomatis</h4></div>
+          <div class="q">Bahan pidato &amp; laporan</div>
+          <div class="teaser">
+            <div class="peek" style="margin-bottom:8px">“Capaian pembangunan Kapuas 2026 membaik, indeks agregat naik ke 74…”</div>
+            <div class="locked peek">…namun 5 indikator memerlukan perhatian khusus, terutama stunting yang… Rekomendasi kebijakan untuk Musrenbang… Lampiran per sektor…</div>
+          </div>
+          <div class="lockbar"><span class="lk">🔒 Briefing lengkap + ekspor</span><button class="btn-open">Buka paket</button></div>
+        </div>
+
+        <!-- 4 Benchmark -->
+        <div class="pcard">
+          <div class="ribbon">PREMIUM</div>
+          <div class="ph"><div class="pi">⇅</div><h4>Benchmark Antar-Daerah</h4></div>
+          <div class="q">“Kapuas peringkat berapa?”</div>
+          <div class="teaser">
+            <div class="peek" style="margin-bottom:8px"><b>Icip-icip:</b> Kapuas <b>di bawah</b> rata-rata Kalteng untuk 3 dari 5 indikator utama.</div>
+            <div class="locked peek">Peringkat 9/14 kab/kota · pembanding: Barito… Katingan… posisi nasional… tren relatif…</div>
+          </div>
+          <div class="lockbar"><span class="lk">🔒 Peringkat &amp; pembanding</span><button class="btn-open">Buka paket</button></div>
+        </div>
+
+        <!-- 5 Geo-equity -->
+        <div class="pcard">
+          <div class="ribbon">PREMIUM</div>
+          <div class="ph"><div class="pi">⬡</div><h4>Geo-analitik Pemerataan</h4></div>
+          <div class="q">“Kecamatan mana tertinggal?”</div>
+          <div class="teaser">
+            <div class="peek" style="margin-bottom:8px"><b>Indeks ketimpangan antar-kecamatan</b> &amp; deteksi kantong tertinggal.</div>
+            <div class="locked peek">Gini spasial 0,2… klaster merah: Kapuas Hulu, Mandau Talawang… rekomendasi pemerataan…</div>
+          </div>
+          <div class="lockbar"><span class="lk">🔒 Analisis kesenjangan</span><button class="btn-open">Buka paket</button></div>
+        </div>
+
+        <!-- 6 What-if -->
+        <div class="pcard">
+          <div class="ribbon">PREMIUM</div>
+          <div class="ph"><div class="pi">⌥</div><h4>Simulasi What-if</h4></div>
+          <div class="q">“Kalau anggaran +X, dampaknya?”</div>
+          <div class="teaser">
+            <div class="peek" style="margin-bottom:8px">Geser anggaran sektor → lihat proyeksi indikator bergerak.</div>
+            <div class="locked peek">+Rp2 M gizi → stunting −0,9 poin / 12 bln · trade-off sektor lain… skenario tersimpan…</div>
+          </div>
+          <div class="lockbar"><span class="lk">🔒 Mesin simulasi</span><button class="btn-open">Buka paket</button></div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Mockup Dashboard Pimpinan · SABABUKA · data ilustrasi</span>
+    <span>Standar (deskriptif) + Master Key (prediktif &amp; preskriptif)</span>
+  </footer>
+
+</div>
+
+<!-- ===== Floating AI assistant (no sidebar menu) ===== -->
+<button class="fab" id="fab" onclick="toggleAI()" aria-label="Buka Asisten AI">
+  <span>💬</span><span class="live"></span><span class="wa">juga di WA</span>
+</button>
+
+<div class="aipanel" id="aipanel" hidden>
+  <div class="ah">
+    <div class="av">✦</div>
+    <div>
+      <h4>Asisten Data Pimpinan</h4>
+      <div class="st"><span class="d"></span>Hanya data resmi terpublikasi</div>
+    </div>
+    <button class="x" onclick="toggleAI()" aria-label="Tutup">✕</button>
+  </div>
+  <div class="aibody">
+    <div class="msg bot">Selamat pagi, Pak Bupati. Ada yang ingin ditanyakan soal capaian pembangunan?</div>
+    <div class="qchips">
+      <button class="qchip">Ringkas kondisi stunting terbaru</button>
+      <button class="qchip">Kecamatan mana yang tertinggal?</button>
+      <button class="qchip">Indikator apa yang perlu saya perhatikan?</button>
+    </div>
+    <div class="msg me">Ringkas kondisi stunting terbaru</div>
+    <div class="msg bot">Prevalensi <b>stunting</b> Kapuas <b>16,2%</b> (SKI 2023), masih di atas target 14% dan belum menunjukkan penurunan. Penanggung jawab: <b>Dinkes</b>. <br><span style="color:var(--gold)">🔒 Proyeksi 2029 &amp; rekomendasi tindakan tersedia di paket lanjutan.</span></div>
+  </div>
+  <div class="aifoot">
+    <div class="airow">
+      <input type="text" id="aiq" placeholder="Tanyakan indikator, periode, atau OPD…" aria-label="Pertanyaan">
+      <button class="send" aria-label="Kirim">➤</button>
+    </div>
+    <div class="util">
+      <button class="full">⛶ Buka layar penuh</button>
+      <span class="wab">🟢 Lanjut via WhatsApp</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openAI(){ document.getElementById('aipanel').hidden=false; document.getElementById('fab').hidden=true; }
+  function toggleAI(){ var p=document.getElementById('aipanel'); var open=!p.hidden; p.hidden=open; document.getElementById('fab').hidden=!open; }
+</script>
+
+<script>
+  // Build the kecamatan hex map (free base layer). Values illustrative; 3 kecamatan with no data.
+  (function(){
+    var kec = [
+      ["Selat",88],["Kapuas Timur",79],["Kapuas Hilir",74],["Basarang",71],["Pulau Petak",69],["Kapuas Murung",66],
+      ["Tamban Catur",64],["Kapuas Barat",61],["Mantangai",58],["Dadahup",55],["Bataguh",72],["Kapuas Kuala",60],
+      ["Timpah",52],["Kapuas Tengah",48],["Pasak Talawang",null],["Mandau Talawang",null],["Kapuas Hulu",null]
+    ];
+    function col(v){
+      if(v===null) return {bg:"var(--surface-3)",fg:"var(--muted)"};
+      // map 45..90 to ramp
+      var t=Math.max(0,Math.min(1,(v-45)/45));
+      // interpolate light teal -> brand
+      var stops=[[207,231,223],[124,195,172],[43,158,121],[15,109,84]];
+      var seg=t*3, i=Math.min(2,Math.floor(seg)), f=seg-i;
+      var a=stops[i], b=stops[i+1];
+      var r=Math.round(a[0]+(b[0]-a[0])*f), g=Math.round(a[1]+(b[1]-a[1])*f), bl=Math.round(a[2]+(b[2]-a[2])*f);
+      var fg = t>0.4 ? "#fff" : "#1d3b31";
+      return {bg:"rgb("+r+","+g+","+bl+")",fg:fg};
+    }
+    var host=document.getElementById("hexmap");
+    kec.forEach(function(k){
+      var c=col(k[1]);
+      var d=document.createElement("div");
+      d.className="kec"; d.style.background=c.bg; d.style.color=c.fg;
+      d.title=k[0]+(k[1]===null?" · belum ada data":" · indeks "+k[1]);
+      d.textContent=k[0];
+      host.appendChild(d);
+    });
+  })();
+</script>
