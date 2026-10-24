@@ -152,5 +152,38 @@ font display: Barlow Semi Condensed · body: Inter
 ```
 Dukung light & dark (token diredefinisi untuk dark). Tanggal & angka pakai `tabular-nums`.
 
+## 9. Urutan menu per peran
+Prinsip urutan: **beranda/overview → kerja harian → setelan → audit** (paling sering dipakai di atas).
+
+| Peran | Urutan menu |
+|---|---|
+| **OPD** | Beranda Tugas · Pelaporan Realisasi · Matriks Indikator · Profil Data OPD (`Segera`) |
+| **Pimpinan** | Dashboard Pimpinan · Analisis & Peta · Keuangan Daerah (`Segera`) · Layanan Publik (`Segera`) — AI melayang |
+| **Walidata** | Beranda Tugas · Verifikasi Pelaporan OPD · Kurasi & Publikasi · Matriks Indikator · Ruang Walidata · Audit |
+| **Pembina Data (BPS)** | Beranda Pembinaan · Matriks Indikator |
+| **Developer/Admin** | Dashboard Sistem · Pusat Sinkronisasi Data · Organisasi · Pengguna · Peran & Hak Akses · Pengaturan Menu · Konfigurasi Sistem · Audit |
+
+## 10. Beranda Administrasi → Dashboard Developer/Admin
+"Beranda Administrasi" adalah **home khusus peran Developer/Admin** (bukan untuk Bupati/OPD). Revisi:
+- **Buang kartu "Kesiapan Platform / Status fondasi"** (MFA aktif, RBAC aktif, dst.) dari home harian — itu checklist sekali-setup, bukan info harian. Ganti dengan indikator **"Kesehatan sistem" langsung** (status API/DB/konektor/job, bukan centang statis).
+- **Tipiskan "Kendali Sistem"** (pintasan kelola user/peran/menu) — duplikat sidebar. Ganti dengan **"Perlu tindakan"** yang nyata.
+- Jadikan home ini **Dashboard Sistem** yang menampilkan kondisi menyeluruh (POV developer).
+
+### 10.1 Dashboard Sistem (route home Admin, mis. `/admin`)
+Tampilkan hal yang **bisa ditindaklanjuti**:
+- **Onboarding OPD**: X dari total OPD aktif (punya user & sudah lapor); daftar OPD **belum bergabung / belum lapor** periode berjalan.
+- **Indikator bermasalah**: metadata belum lengkap, tanpa penanggung jawab (PIC), target belum diisi, belum berstatus aktif.
+- **Isu tanpa indikator**: kelompok isu yang masih kosong.
+- **Kesehatan sistem langsung**: API, basis data, konektor, job sinkronisasi terakhir, audit trail.
+
+### 10.2 Pusat Sinkronisasi Data (route mis. `/admin/sync` atau di Ruang Walidata)
+Agar developer memahami **struktur alur** dan melihat **data mentah sebelum jadi capaian**:
+- **Diagram alur**: Sumber resmi (SatuData · BPS/SSGI · SIPD · Upload OPD) → Konektor → **Staging (mentah)** → Transformasi/pencocokan → Indikator → Capaian OPD → Publikasi → Dashboard.
+- **Status konektor**: sinkron terakhir, jumlah rekaman, status per sumber.
+- **Pratinjau data mentah (staging)**: baris apa adanya dari sumber, **sebelum** dipetakan ke indikator/OPD; tandai baris yang cocok / kec. tak dikenal / menunggu.
+- **Pemetaan (mapping)** & **lineage**: tiap angka capaian dapat ditelusuri balik ke baris mentah sumbernya (untuk audit & debugging).
+
+Acuan visual: `docs/mockups/dashboard-developer.html`.
+
 ---
 *Disusun dari audit 21 halaman dev.sababuka.com + sesi desain. Sumber kebenaran untuk implementasi redesign.*
