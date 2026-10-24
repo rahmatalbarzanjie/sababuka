@@ -1,42 +1,64 @@
-# CLAUDE.md — Panduan untuk Claude Code
+# CLAUDE.md — Panduan Claude Code untuk SABABUKA
 
-Panduan untuk Claude Code saat mengerjakan repo ini. Isinya selaras dengan `AGENTS.md` (dibaca agen lain seperti Codex) — jaga keduanya tetap konsisten.
+Panduan ini berlaku untuk seluruh repository dan sengaja diselaraskan dengan `AGENTS.md`. Jika salah satunya diperbarui karena perubahan arsitektur atau kebijakan kerja, perbarui keduanya.
 
-## Tentang proyek
-**SABABUKA BERSINAR** — frontend dashboard eksekutif pemantauan indikator Kabupaten Kapuas.
-- **Sekarang:** build mandiri HTML/CSS/ES Modules.
-- **Target:** Next.js App Router + TypeScript + Tailwind + Lucide + Recharts.
-- **Bahasa UI:** Bahasa Indonesia.
+## Konteks proyek
 
-## Perintah
-```bash
-npm run demo      # http://localhost:3000
-npm run check     # pemeriksaan sintaks sebelum selesai
-```
+**SABABUKA BERSINAR** adalah sistem full-stack Kabupaten Kapuas untuk indikator RPJMD, pelaporan OPD, verifikasi BAPPERIDA, pembinaan statistik, publikasi, dan dashboard pimpinan.
 
-## ⭐ Sumber kebenaran redesign
-**Baca `docs/SABABUKA_REDESIGN_SPEC.md` sebelum menyentuh UI.** Itu keputusan desain final. Patuhi.
+- Frontend: React 19 + TypeScript + Vite di `frontend/`.
+- Backend: Fastify + TypeScript di `backend/`.
+- Database: PostgreSQL/PostGIS dengan migration berurutan di `backend/database/migrations/`.
+- Kontrak API: `docs/api/openapi.yaml`; tipe hasil generate: `frontend/src/generated/`.
+- Bahasa UI: Bahasa Indonesia.
+
+Repository ini bukan lagi build statis HTML/CSS/ES Modules dan tidak sedang menargetkan migrasi Next.js. Jangan mengembalikan arsitektur ke versi demo lama.
+
+## Sumber kebenaran redesign
+
+Baca `docs/SABABUKA_REDESIGN_SPEC.md` sebelum menyentuh UI. Dokumen tersebut menyimpan arah desain hasil audit dan mockup Claude, tetapi status implementasi harus selalu diverifikasi terhadap kode terbaru. Fitur yang sudah berjalan tidak boleh dinonaktifkan hanya karena pernah dicatat sebagai placeholder.
 
 Prinsip inti:
-1. Pimpinan bukan pembaca grafik → buka dengan narasi + lampu lalu lintas, grafik pendukung.
-2. Satu aksi utama per halaman, ditonjolkan.
-3. POV pengguna di tiap halaman.
-4. Menu per peran; modul belum siap diberi badge `Segera`.
 
-Aturan konkret:
-- Tanggal satu format: `8 Okt 2026`. Util `formatTanggal()`.
-- Nama kanonik konsisten (sidebar = judul = breadcrumb) — spec §2.2.
-- Asisten AI = tombol melayang, bukan menu — spec §4.
-- Peta kecamatan tertanam di Dashboard Pimpinan.
-- Panel premium tampil dengan gembok + feature flag — spec §6.
+1. Buka halaman keputusan dengan narasi dan status; grafik adalah pendukung.
+2. Tonjolkan satu aksi utama sesuai peran.
+3. Setiap halaman menjawab tindakan pengguna berikutnya.
+4. Menu ditentukan oleh role dan permission backend.
+5. Pertahankan aksesibilitas, responsive layout, serta loading, empty, dan error state.
 
-## Struktur
-- `index.html` / `app.js` / `styles.css` — build mandiri
-- `server.js` — server demo
-- `src/data/data.js` — data contoh
-- `docs/` — dokumentasi & spec
+## Perintah verifikasi
+
+Gunakan Node.js 22+ dan pnpm 11.
+
+```bash
+cd frontend
+pnpm check
+pnpm build
+
+cd ../backend
+pnpm check
+pnpm test:e2e
+```
+
+Jika OpenAPI berubah:
+
+```bash
+cd frontend
+pnpm api:types
+pnpm api:types:check
+```
+
+Pengembangan lokal memakai backend port 3001 dan frontend port 5173.
 
 ## Kebiasaan kerja
-- Jalankan `npm run check` sebelum menandai selesai.
-- Pekerjaan UI besar: buat branch + PR, jangan langsung ke `main`.
-- Commit ringkas, Bahasa Indonesia. Jangan commit rahasia.
+
+- Baca status Git dan pertahankan perubahan pengguna yang tidak berkaitan.
+- Gunakan migration baru untuk perubahan skema; backup dan verifikasi database sebelum/selesai penerapan.
+- OPD mengusulkan dan mengisi indikator secara manual, bukan auto-generate atau semiotomatis.
+- Pertahankan RBAC, pemisahan kewenangan, provenance, audit trail, serta aturan bahwa dashboard pimpinan hanya membaca data terpublikasi.
+- Jangan commit secret, dump database, ekspor privat, cache lokal, atau build output.
+- Uji perubahan UI pada desktop, tablet, dan mobile.
+- Perubahan UI besar menggunakan branch dan pull request kecuali pemilik meminta langsung ke branch utama.
+- Repository pribadi pemilik adalah sumber utama; repository organisasi menjadi mirror. Verifikasi tujuan remote sebelum push.
+
+Gunakan `frontend/src/ui-system.css` dan `frontend/src/styles.css` sebagai implementasi token visual yang berjalan. Keputusan pengguna terbaru mengungguli catatan lama, lalu dokumentasikan perubahan agar `AGENTS.md`, `CLAUDE.md`, dan spesifikasi tetap sinkron.

@@ -1,46 +1,72 @@
-# AGENTS.md — Panduan Agen untuk pre-sababuka
+# AGENTS.md — Panduan Agen SABABUKA
 
-Panduan untuk agen koding (Codex, dsb.) yang mengerjakan repo ini.
+Panduan ini berlaku untuk seluruh repository dan harus dibaca oleh Codex atau agen koding lain sebelum mengubah kode.
 
 ## Tentang proyek
-**SABABUKA BERSINAR** — frontend dashboard eksekutif pemantauan indikator Kabupaten Kapuas (indikator daerah, OPD, keuangan, pelayanan publik, peringatan, sumber data, validasi).
 
-- **Sekarang:** build mandiri HTML/CSS/ES Modules (bisa dibuka tanpa layanan eksternal).
-- **Target arsitektur:** Next.js App Router, TypeScript, Tailwind CSS, Lucide Icons, Recharts.
-- **Bahasa UI:** Bahasa Indonesia.
+**SABABUKA BERSINAR** adalah sistem analisis data Kabupaten Kapuas untuk tata kelola indikator RPJMD, pelaporan OPD, verifikasi BAPPERIDA, pembinaan statistik, publikasi, serta dashboard pimpinan.
 
-## Menjalankan & memeriksa
+Arsitektur yang berjalan saat ini:
+
+- `frontend/`: React 19, TypeScript, Vite, Source Sans 3, dan Lucide.
+- `backend/`: Fastify, TypeScript, PostgreSQL/PostGIS, autentikasi, RBAC, dan audit trail.
+- `backend/database/migrations/`: migration SQL berurutan; jangan mengubah migration yang sudah diterapkan.
+- `docs/api/openapi.yaml`: kontrak API; tipe frontend hasil generate berada di `frontend/src/generated/`.
+- Bahasa antarmuka dan dokumentasi pengguna: Bahasa Indonesia.
+
+Repository ini bukan lagi aplikasi statis dan tidak sedang dimigrasikan ke Next.js. Jangan memakai struktur aplikasi demo lama sebagai acuan implementasi.
+
+## Sumber kebenaran
+
+1. Kode, migration, OpenAPI, dan pengujian pada branch aktif adalah sumber kebenaran teknis.
+2. `docs/SABABUKA_REDESIGN_SPEC.md` adalah arah produk dan UI/UX hasil audit Claude. Baca sebelum mengubah frontend.
+3. Bila spesifikasi menyebut modul sebagai placeholder tetapi modul tersebut sudah berfungsi pada kode terbaru, pertahankan fungsi yang ada dan perbarui dokumentasinya; jangan menonaktifkan fitur hanya karena catatan lama.
+4. Keputusan pengguna terbaru mengungguli catatan lama. Jaga `AGENTS.md` dan `CLAUDE.md` tetap selaras ketika arsitektur atau aturan kerja berubah.
+
+## Menjalankan dan memeriksa
+
+Gunakan Node.js 22+ dan pnpm 11.
+
 ```bash
-npm run demo      # server demo di http://localhost:3000
-npm run check     # pemeriksaan sintaks (node --check)
+# frontend
+cd frontend
+pnpm check
+pnpm build
+
+# backend
+cd backend
+pnpm check
+pnpm test:e2e
+
+# perubahan kontrak API
+cd frontend
+pnpm api:types
+pnpm api:types:check
 ```
-> Catatan: registry npm mungkin tidak dapat diakses di sebagian lingkungan; dependensi Next.js belum tentu bisa dipasang. Jaga agar struktur data & komponen mudah dimigrasikan ke Next.js.
 
-## Struktur
-- `index.html`, `app.js`, `styles.css` — build mandiri saat ini
-- `server.js` — server demo statis
-- `src/data/data.js` — sumber data contoh
-- `docs/` — dokumentasi & spesifikasi
-- `.github/workflows/deploy-pages.yml` — publikasi GitHub Pages saat push ke `main`
+Untuk pengembangan lokal, jalankan `pnpm dev` masing-masing dari `backend/` dan `frontend/`. Frontend memakai port 5173 dan mem-proxy `/api` ke backend pada port 3001.
 
-## ⭐ Sumber kebenaran redesign UI/UX
-**Baca `docs/SABABUKA_REDESIGN_SPEC.md` sebelum mengubah UI.** Dokumen itu memuat keputusan desain final (hasil audit + sesi desain). Patuhi, jangan menyimpang tanpa alasan.
+## Aturan perubahan
 
-Ringkasan prinsip (detail di spec):
-1. **Pimpinan bukan pembaca grafik** → tiap halaman keputusan dibuka dengan narasi kalimat + status lampu lalu lintas; grafik sebagai pendukung.
-2. **Satu aksi utama per halaman**, ditonjolkan (tombol primer, sticky bila perlu).
-3. **POV pengguna** — tiap halaman menjawab "apa yang harus SAYA lakukan sekarang".
-4. **Kurangi beban navigasi** — menu per peran; modul belum siap diberi badge `Segera` dan klik dinonaktifkan.
+- Pertahankan perubahan pengguna yang tidak berkaitan dan periksa working tree sebelum mengedit.
+- Perubahan database harus berupa migration baru, didahului backup, aman dijalankan ulang bila memungkinkan, dan diverifikasi setelah diterapkan.
+- OPD mengusulkan dan mengisi indikator secara manual; jangan mengubahnya menjadi auto-generate atau semiotomatis tanpa keputusan produk baru.
+- Data pimpinan hanya boleh berasal dari data yang disetujui dan dipublikasikan. Pertahankan RBAC, pemisahan kewenangan, provenance, dan audit trail.
+- Jangan commit secret, dump database, hasil ekspor privat, cache audit, atau artefak build.
+- Perubahan UI wajib menjaga aksesibilitas, state loading/empty/error, serta diuji pada desktop, tablet, dan mobile.
+- Pakai util tanggal bersama dengan zona waktu aplikasi; jangan menambah format tanggal lokal yang baru.
+- Untuk perubahan UI besar, gunakan branch dan pull request. Perbaikan terverifikasi yang diminta langsung dapat masuk ke branch utama sesuai arahan pemilik.
+- Pesan commit ringkas dan deskriptif dalam Bahasa Indonesia atau mengikuti konvensi commit repository.
 
-Aturan konkret yang sering dilanggar:
-- **Tanggal**: satu format `8 Okt 2026` (dengan waktu: `8 Okt 2026, 18.46`). Buat util `formatTanggal()`.
-- **Nama kanonik**: satu label per entitas, sama di sidebar = judul = breadcrumb (tabel di spec §2.2).
-- **AI Assistant**: tombol melayang (floating), BUKAN item sidebar. Lihat spec §4.
-- **Peta kecamatan**: tertanam di Dashboard Pimpinan, bukan menu terpisah.
-- **Gating gratis/premium**: panel premium tetap tampil dengan gembok + CTA; isi penuh di belakang feature flag. Lihat spec §6.
+## Prinsip UI/UX inti
 
-## Konvensi kode
-- Ikuti gaya berkas yang sudah ada; jangan menambah dependensi tanpa perlu.
-- Jalankan `npm run check` sebelum menandai pekerjaan selesai.
-- Commit dalam Bahasa Indonesia, ringkas dan deskriptif.
-- Jangan commit rahasia/kunci API.
+- Halaman keputusan dibuka dengan narasi dan status yang mudah dipahami; grafik menjadi bukti pendukung.
+- Tonjolkan satu aksi utama sesuai peran dan tahap workflow.
+- Setiap halaman harus menjawab tindakan pengguna berikutnya.
+- Menu mengikuti role dan permission dari backend; jangan menampilkan rute yang tidak didukung.
+- Tombol approve, verifikasi, kirim, dan kembalikan harus mudah ditemukan serta tetap mematuhi kewenangan backend.
+- Pertahankan identitas visual pemerintah Kabupaten Kapuas dan konsistensi token di `frontend/src/ui-system.css` serta `frontend/src/styles.css`.
+
+## Repository dan sinkronisasi
+
+Repository pribadi pemilik adalah sumber utama. Repository organisasi adalah mirror. Sebelum push, pastikan remote lokal menunjuk ke tujuan yang benar, hindari force-push tanpa cadangan branch, dan verifikasi hash commit remote setelah sinkronisasi.
