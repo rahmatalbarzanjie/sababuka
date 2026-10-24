@@ -82,7 +82,11 @@ test(
       assert.ok(setup.json().provisioning_uri.startsWith("otpauth://totp/"));
 
       const userPassword = "Mfa-Integration-Password-2026!";
-      const acceptanceCode = generateTotpCode(secret, Date.now() - 30_000);
+      // Gunakan counter tepat sebelum periode berjalan. Mengurangi 30 detik dari
+      // waktu saat ini dapat menjadi dua counter lama bila request melintasi batas
+      // periode TOTP, sehingga test sesekali gagal di runner CI yang cepat.
+      const currentTotpPeriodStart = Math.floor(Date.now() / 30_000) * 30_000;
+      const acceptanceCode = generateTotpCode(secret, currentTotpPeriodStart - 1);
       const accepted = await app.inject({
         method: "POST",
         url: `/api/v1/auth/invitations/${invitationToken}/accept`,
