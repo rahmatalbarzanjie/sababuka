@@ -16,7 +16,7 @@ concurrency:
 jobs:
   frontend:
     name: Frontend, OpenAPI types, and build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
@@ -44,7 +44,7 @@ jobs:
 
   backend:
     name: Backend type-check and tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgis/postgis:18-3.6
@@ -96,7 +96,9 @@ jobs:
 
   e2e:
     name: Playwright browser smoke tests
-    runs-on: ubuntu-latest
+    # Playwright 1.58 belum menyediakan Chromium untuk Ubuntu 26.
+    # Pin runner sampai versi Playwright proyek resmi mendukung Ubuntu 26.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
