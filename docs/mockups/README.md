@@ -15,4 +15,4 @@ Buka berkas `.html` langsung di browser, atau jalankan server demo lalu akses pa
 ## Catatan
 - Semua angka di mockup adalah **data ilustrasi**, bukan data resmi.
 - Mockup mandiri (inline CSS/JS), mendukung light & dark theme.
-- Mockup menunjukkan *maksud desain*; implementasi akhir mengikuti arsitektur target (Next.js + Tailwind + Recharts).
+- Mockup menunjukkan *maksud desain*; implementasi akhir mengikuti arsitektur aplikasi yang berlaku (lihat AGENTS.md).
