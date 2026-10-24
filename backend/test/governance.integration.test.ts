@@ -70,7 +70,7 @@ test("master kategori dan indikator pilot dapat dibaca dan ditambah sebagai draf
     const indicator = await app.inject({
       method: "POST", url: "/api/v1/indicators", headers,
       payload: {
-        code: `TEST_${suffix}`, name: `Indikator Integration ${suffix}`, category_id: category.json().id,
+        code: `TEST_${suffix}`, kodref_ip: `KODREF.${suffix}`, name: `Indikator Integration ${suffix}`, category_id: category.json().id,
         owner_organization_id: organization.id, definition: "Definisi indikator untuk pengujian integration.",
         unit_id: unit.id, frequency: "annual", data_type: "percentage", direction: "increase",
         source_reference: "Sumber pengujian", access_level: "internal", effective_from: "2025-01-01",
@@ -84,7 +84,7 @@ test("master kategori dan indikator pilot dapat dibaca dan ditambah sebagai draf
     const updated = await app.inject({
       method: "PATCH", url: `/api/v1/indicators/${indicator.json().id}`, headers,
       payload: {
-        code: `TEST_${suffix}`, name: `Indikator Integration ${suffix} Diperbarui`, category_id: category.json().id,
+        code: `TEST_${suffix}`, kodref_ip: `KODREF.${suffix}.UPDATED`, name: `Indikator Integration ${suffix} Diperbarui`, category_id: category.json().id,
         owner_organization_id: organization.id, definition: "Definisi indikator yang telah diperbarui.",
         unit_id: unit.id, frequency: "annual", data_type: "percentage", direction: "increase",
         source_reference: "Sumber pengujian diperbarui", access_level: "internal", effective_from: "2025-01-01",
@@ -95,8 +95,9 @@ test("master kategori dan indikator pilot dapat dibaca dan ditambah sebagai draf
     assert.equal(updated.statusCode, 200, updated.body);
     assert.equal(updated.json().source_reference, "Sumber pengujian diperbarui");
 
-    const filtered = await app.inject({ method: "GET", url: `/api/v1/indicators?q=TEST_${suffix}`, headers: { cookie } });
+    const filtered = await app.inject({ method: "GET", url: `/api/v1/indicators?q=${encodeURIComponent(`KODREF.${suffix}.UPDATED`)}`, headers: { cookie } });
     assert.equal(filtered.statusCode, 200, filtered.body);
+    assert.equal(filtered.json().data[0].kodref_ip, `KODREF.${suffix}.UPDATED`);
     assert.equal(filtered.json().data[0].targets.length, 5);
     assert.ok(filtered.json().data[0].targets.every((target: { numeric_value: string }) => Number(target.numeric_value) === 11));
 
