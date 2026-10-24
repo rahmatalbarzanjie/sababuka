@@ -1,5 +1,8 @@
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight, Inbox, LoaderCircle, RefreshCw, X } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { formatTanggal } from "./utils/date";
+
+export { formatTanggal } from "./utils/date";
 
 export function Spinner({ label = "Memuat" }: { label?: string }) {
   return <span className="spinner" role="status" aria-live="polite"><LoaderCircle size={17} aria-hidden /> {label}</span>;
@@ -117,19 +120,14 @@ export function Pagination({ page, totalPages, totalItems, pageSize, sortLabel, 
   </div>;
 }
 
+/** @deprecated Gunakan formatTanggal(value, "tanggal-waktu"). */
 export function formatDate(value: string | null | undefined): string {
-  if (!value) return "-";
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
-    timeZone: "Asia/Jakarta",
-  }).format(new Date(value));
+  return formatTanggal(value, "tanggal-waktu");
 }
 
+/** @deprecated Gunakan formatTanggal(value). */
 export function formatDateOnly(value: string | null | undefined): string {
-  if (!value) return "-";
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta",
-  }).format(new Date(value));
+  return formatTanggal(value);
 }
 
 const STATUS_LABELS: Record<string, string> = {
