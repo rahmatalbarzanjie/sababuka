@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, ArrowRight, Building2, CircleCheck, Database, PlugZap, UserRoundCheck, Users } from "lucide-react";
+import { Activity, AlertTriangle, ArrowRight, CircleCheck, Database, UserRoundCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { api } from "../api";
 import { Badge, EmptyState, ErrorState, formatDate, PageLoading, useAsync } from "../components";
@@ -21,10 +21,10 @@ export function DashboardPage() {
   const data = result.data;
   const attentionCount = data.organizations_without_pic.total + data.problematic_indicators.total + data.empty_categories.total + data.health.failed_integrations + data.health.failed_runs_30d;
   const cards = [
-    { label: "Organisasi aktif", value: data.metrics.active_organizations, detail: "Direktori pemerintah daerah", icon: Building2, tone: "blue", path: "/admin/organizations" },
-    { label: "Pengguna aktif", value: data.metrics.active_users, detail: `${data.metrics.pending_users} undangan menunggu`, icon: Users, tone: "teal", path: "/admin/users" },
-    { label: "Integrasi aktif", value: data.metrics.active_integrations, detail: `${data.health.failed_integrations} konektor bermasalah`, icon: PlugZap, tone: data.health.failed_integrations ? "amber" : "teal", path: "/connectors" },
-    { label: "Perlu perhatian", value: attentionCount, detail: "Tindak lanjut lintas modul", icon: AlertTriangle, tone: attentionCount ? "amber" : "teal", path: data.problematic_indicators.total ? "/governance/indicators" : "/admin/opd-monitoring" },
+    { label: "Organisasi aktif", value: data.metrics.active_organizations, detail: "Direktori pemerintah daerah", path: "/admin/organizations" },
+    { label: "Pengguna aktif", value: data.metrics.active_users, detail: `${data.metrics.pending_users} undangan menunggu`, path: "/admin/users" },
+    { label: "Integrasi aktif", value: data.metrics.active_integrations, detail: `${data.health.failed_integrations} konektor bermasalah`, path: "/connectors" },
+    { label: "Perlu perhatian", value: attentionCount, detail: "Tindak lanjut lintas modul", path: data.problematic_indicators.total ? "/governance/indicators" : "/admin/opd-monitoring" },
   ] as const;
 
   return <>
@@ -34,7 +34,7 @@ export function DashboardPage() {
       <Badge tone={data.health.status === "healthy" ? "success" : "warning"}>{data.health.status === "healthy" ? "Sehat" : "Perlu ditinjau"}</Badge>
     </section>
 
-    <section className="metric-grid system-metric-grid">{cards.map(({ label, value, detail, icon: Icon, tone, path }) => <button className="metric-card" key={label} onClick={() => navigate(path)}><span className={`metric-icon ${tone}`}><Icon /></span><span><small>{label}</small><strong>{value}</strong><p>{detail}</p></span><ArrowRight /></button>)}</section>
+    <section className="metric-grid system-metric-grid">{cards.map(({ label, value, detail, path }) => <button className="metric-card" key={label} onClick={() => navigate(path)}><span><small>{label}</small><strong>{value}</strong><p>{detail}</p></span><ArrowRight /></button>)}</section>
 
     <section className="system-dashboard-grid">
       <SystemAttentionPanel title="OPD belum bergabung" total={data.organizations_without_pic.total} icon={<UserRoundCheck aria-hidden />} emptyTitle="Semua OPD sudah memiliki PIC aktif" emptyText="Tidak ada tindak lanjut akun OPD saat ini." actionLabel="Buka kesiapan OPD" onAction={() => navigate("/admin/opd-monitoring")}>
