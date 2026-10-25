@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="id" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Konsep Katalog Data — SABABUKA</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --frame: #eef4f1;
+      --sheet: #ffffff;
+      --raised: #f8faf9;
+      --text: #17231f;
+      --muted: #66716c;
+      --quiet: #89928e;
+      --border: #e3e9e6;
+      --rule: #edf1ef;
+      --control: #ffffff;
+      --green: #0f6d54;
+      --green-dark: #0a533f;
+      --green-pale: #e7f3ee;
+      --navy: #16304f;
+      --gold: #b78016;
+      --red: #a23b31;
+      --amber-bg: #fbf2dd;
+      --red-bg: #f9e9e7;
+      --blue: #245b91;
+      --radius: 12px;
+    }
+
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --frame: #101a17;
+      --sheet: #17221e;
+      --raised: #1c2924;
+      --text: #eef5f2;
+      --muted: #aab7b1;
+      --quiet: #84928c;
+      --border: #2c3b35;
+      --rule: #26332e;
+      --control: #1a2722;
+      --green: #55b493;
+      --green-dark: #79c9ad;
+      --green-pale: #173c30;
+      --navy: #95b7df;
+      --gold: #e1b458;
+      --red: #ef8f86;
+      --amber-bg: #443819;
+      --red-bg: #482623;
+      --blue: #7bb0e4;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100dvh;
+      overflow: hidden;
+      background: var(--frame);
+      color: var(--text);
+      font: 15px/1.45 "Source Sans 3", "Segoe UI", sans-serif;
+    }
+    button, input, select { font: inherit; }
+    button { color: inherit; }
+    svg { display: block; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+    .app { display: grid; grid-template: 48px minmax(0, 1fr) / 228px minmax(0, 1fr); height: 100dvh; }
+    .brand {
+      grid-column: 1; grid-row: 1;
+      display: flex; align-items: center; gap: 10px;
+      padding: 0 18px;
+      color: var(--navy); font-weight: 760; letter-spacing: .01em;
+    }
+    .brand-mark { width: 22px; height: 30px; flex: 0 0 auto; }
+    .brand small { display: block; margin-top: -3px; color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .12em; }
+    .topbar {
+      grid-column: 2; grid-row: 1;
+      display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+      padding: 0 16px 0 8px;
+    }
+    .global-search {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      width: min(520px, 42vw); height: 32px;
+      display: flex; align-items: center; gap: 8px;
+      padding: 0 10px; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--control); color: var(--muted);
+    }
+    .global-search span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .shortcut { margin-left: auto; padding: 0 5px; border: 1px solid var(--border); border-radius: 4px; font-size: 11px; color: var(--quiet); }
+    .icon-button, .profile-button {
+      display: inline-flex; align-items: center; justify-content: center;
+      height: 32px; border: 1px solid transparent; border-radius: 8px; background: transparent; cursor: pointer;
+    }
+    .icon-button { width: 32px; }
+    .icon-button:hover, .profile-button:hover { background: var(--green-pale); }
+    .profile-button { gap: 8px; padding: 0 5px 0 8px; }
+    .avatar { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--navy); color: white; font-size: 11px; font-weight: 700; }
+    .profile-button span:last-child { font-size: 13px; font-weight: 650; }
+
+    .sidebar { grid-column: 1; grid-row: 2; padding: 14px 10px 18px; display: flex; flex-direction: column; min-height: 0; }
+    .nav-label { margin: 8px 10px 7px; color: var(--quiet); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .nav-item {
+      width: 100%; height: 40px; display: flex; align-items: center; gap: 11px;
+      padding: 0 10px; border: 0; border-radius: 8px; background: transparent;
+      color: var(--muted); cursor: pointer; text-align: left;
+    }
+    .nav-item:hover { background: rgba(15,109,84,.06); color: var(--text); }
+    .nav-item.active { background: var(--green-pale); color: var(--green-dark); font-weight: 700; }
+    .nav-item svg { width: 18px; height: 18px; stroke-width: 1.8; }
+    .nav-foot { margin-top: auto; padding: 14px 10px 0; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; } /* taste-skill-ignore: navigation grouping rule from the selected framed-sheet direction */
+    .nav-foot strong { display: block; margin-bottom: 2px; color: var(--text); font-size: 13px; }
+
+    main {
+      grid-column: 2; grid-row: 2;
+      margin: 0 8px 8px 0;
+      overflow: auto;
+      border: 1px solid var(--border); border-radius: 16px;
+      background: var(--sheet);
+    }
+    .page { display: none; padding: 24px; min-height: 100%; }
+    .page.active { display: block; }
+    .context-line { color: var(--muted); font-size: 12px; font-weight: 600; }
+    .title-row { display: flex; align-items: end; justify-content: space-between; gap: 20px; }
+    h1 { margin: 4px 0 3px; font-size: clamp(25px, 2.4vw, 34px); line-height: 1.08; letter-spacing: -.025em; }
+    .subtitle { margin: 0; color: var(--muted); font-size: 15px; }
+    .primary, .secondary {
+      height: 36px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 0 14px; border-radius: 8px; font-weight: 700; cursor: pointer;
+    }
+    .primary { border: 1px solid var(--green); background: var(--green); color: white; }
+    .secondary { border: 1px solid var(--border); background: var(--control); color: var(--text); }
+    .primary:hover { background: var(--green-dark); }
+    .secondary:hover { border-color: var(--quiet); }
+
+    .catalog-search {
+      margin-top: 24px; display: grid; grid-template-columns: minmax(260px, 1fr) 150px 150px 150px; gap: 8px;
+    }
+    .catalog-search > label { min-width: 0; }
+    .field { position: relative; }
+    .field svg { position: absolute; left: 12px; top: 11px; color: var(--muted); pointer-events: none; }
+    input, select {
+      width: 100%; height: 42px; border: 1px solid var(--border); border-radius: 8px;
+      min-width: 0; background: var(--control); color: var(--text); outline: none;
+    }
+    input { padding: 0 12px 0 38px; }
+    select { padding: 0 30px 0 11px; }
+    input:focus, select:focus { border-color: var(--green); outline: 2px solid color-mix(in srgb, var(--green) 16%, transparent); outline-offset: 1px; }
+
+    .catalog-grid { margin-top: 22px; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
+    .catalog-grid > * { min-width: 0; }
+    .result-head { height: 36px; display: flex; align-items: start; justify-content: space-between; border-bottom: 1px solid var(--border); } /* taste-skill-ignore: real result-list header rule */
+    .result-head strong { font-size: 16px; }
+    .result-head span { color: var(--muted); font-size: 13px; }
+    .dataset-row {
+      width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 118px 116px; gap: 18px;
+      padding: 17px 4px; border: 0; border-left: 2px solid transparent; border-bottom: 1px solid var(--rule); background: transparent; text-align: left; cursor: pointer; /* taste-skill-ignore: real dataset result-row rule */
+    }
+    .dataset-row:hover, .dataset-row.selected { background: var(--raised); }
+    .dataset-row.selected { border-left-color: var(--green); }
+    .dataset-title { margin: 0 0 4px; font-size: 16px; line-height: 1.25; font-weight: 720; }
+    .dataset-desc { margin: 0; max-width: 68ch; color: var(--muted); font-size: 13px; }
+    .meta-inline { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px 14px; color: var(--muted); font-size: 12px; }
+    .meta-inline span { display: inline-flex; align-items: center; gap: 5px; }
+    .side-meta { padding-top: 2px; color: var(--muted); font-size: 12px; }
+    .side-meta strong { display: block; margin-bottom: 3px; color: var(--text); font-size: 13px; font-weight: 650; }
+    .pill { display: inline-flex; align-items: center; gap: 5px; width: max-content; padding: 3px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .pill.good { background: var(--green-pale); color: var(--green-dark); }
+    .pill.warn { background: var(--amber-bg); color: var(--gold); }
+    .pill.bad { background: var(--red-bg); color: var(--red); }
+    .format { display: inline-block; margin-right: 4px; padding: 2px 5px; border: 1px solid var(--border); border-radius: 4px; font-size: 10px; font-weight: 700; }
+    .empty { display: none; padding: 36px 10px; color: var(--muted); text-align: center; }
+
+    .detail-rail { position: sticky; top: 0; border-left: 1px solid var(--border); padding-left: 22px; } /* taste-skill-ignore: structural split between result list and preview */
+    .detail-rail h2 { margin: 5px 0 8px; font-size: 20px; line-height: 1.2; }
+    .detail-owner { margin: 0 0 18px; color: var(--muted); font-size: 13px; }
+    .detail-section { padding: 15px 0; border-top: 1px solid var(--rule); } /* taste-skill-ignore: metadata section rule */
+    .detail-section h3 { margin: 0 0 10px; font-size: 13px; }
+    .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .fact span { display: block; color: var(--muted); font-size: 11px; }
+    .fact strong { display: block; margin-top: 2px; font-size: 13px; }
+    .preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .preview-table th, .preview-table td { padding: 7px 5px; border-bottom: 1px solid var(--rule); text-align: right; } /* taste-skill-ignore: real table row rule */
+    .preview-table th:first-child, .preview-table td:first-child { text-align: left; }
+    .preview-table th { color: var(--muted); font-weight: 650; }
+    .rail-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+
+    .kpi-strip { margin-top: 24px; display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--border); border-radius: var(--radius); }
+    .kpi { padding: 15px 17px; }
+    .kpi + .kpi { border-left: 1px solid var(--border); } /* taste-skill-ignore: one divided KPI strip from the selected direction */
+    .kpi-label { color: var(--muted); font-size: 12px; }
+    .kpi-value { margin-top: 2px; font-size: 25px; line-height: 1.2; font-weight: 680; font-variant-numeric: tabular-nums; }
+    .kpi-note { margin-top: 4px; color: var(--quiet); font-size: 11px; }
+    .workspace-grid { margin-top: 20px; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; }
+    .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 9px; }
+    .section-heading h2 { margin: 0; font-size: 17px; }
+    .section-heading span { color: var(--muted); font-size: 12px; }
+    .task-list { border-top: 1px solid var(--border); } /* taste-skill-ignore: real work-queue header rule */
+    .task-row { display: grid; grid-template-columns: 112px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 15px 3px; border-bottom: 1px solid var(--rule); } /* taste-skill-ignore: real work-queue row rule */
+    .task-row time { color: var(--muted); font-size: 12px; }
+    .task-title { font-weight: 700; }
+    .task-meta { margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .lineage { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+    .lineage-step { position: relative; padding: 10px 12px 10px 28px; border-bottom: 1px solid var(--rule); } /* taste-skill-ignore: lineage stages need an explicit sequential rule */
+    .lineage-step:last-child { border-bottom: 0; }
+    .lineage-step::before { content: ""; position: absolute; left: 8px; top: 16px; width: 7px; height: 7px; border: 2px solid var(--green); border-radius: 50%; background: var(--sheet); }
+    .lineage-step:not(:last-child)::after { content: ""; position: absolute; left: 12px; top: 25px; bottom: -7px; width: 1px; background: var(--border); }
+    .lineage-step strong { display: block; font-size: 13px; }
+    .lineage-step span { color: var(--muted); font-size: 11px; }
+    .quality-list { margin-top: 22px; }
+    .quality-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--rule); font-size: 13px; } /* taste-skill-ignore: real quality-measure row rule */
+    .quality-row span { color: var(--muted); }
+    .concept-note { margin-top: 22px; padding: 10px 12px; border-left: 2px solid var(--gold); background: var(--raised); color: var(--muted); font-size: 12px; }
+
+    @media (max-width: 980px) {
+      .app { grid-template-columns: 196px minmax(0, 1fr); }
+      .catalog-search { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+      .field:first-child { grid-column: 1 / -1; }
+      .catalog-grid, .workspace-grid { grid-template-columns: 1fr; }
+      .detail-rail { position: static; border-left: 0; border-top: 1px solid var(--border); padding: 20px 0 0; } /* taste-skill-ignore: responsive structural split */
+      .kpi-strip { grid-template-columns: 1fr 1fr; }
+      .kpi:nth-child(3) { border-left: 0; border-top: 1px solid var(--border); } /* taste-skill-ignore: divided KPI strip wraps to two rows */
+      .kpi:nth-child(4) { border-top: 1px solid var(--border); } /* taste-skill-ignore: divided KPI strip wraps to two rows */
+    }
+    @media (max-width: 720px) {
+      body { overflow: auto; }
+      .app { display: block; height: auto; min-height: 100dvh; }
+      .brand { height: 48px; padding: 0 12px; }
+      .brand small, .sidebar, .global-search, .profile-button span:last-child { display: none; }
+      .topbar { position: absolute; top: 0; right: 0; height: 48px; padding-right: 8px; }
+      main { margin: 0; min-height: calc(100dvh - 48px); border-width: 1px 0 0; border-radius: 0; overflow: visible; }
+      .page { padding: 18px 16px 26px; }
+      .title-row { display: block; }
+      .title-row .primary { margin-top: 14px; }
+      .catalog-search { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); margin-top: 20px; }
+      .catalog-search .field:first-child { grid-column: 1 / -1; }
+      .catalog-search .field:last-child { grid-column: 1 / -1; }
+      .catalog-grid { margin-top: 18px; }
+      .result-head > span { display: none; }
+      .dataset-row { grid-template-columns: minmax(0, 1fr); gap: 9px; }
+      .dataset-row .side-meta { display: inline-flex; align-items: center; justify-content: space-between; gap: 10px; }
+      .kpi-strip { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+      .kpi { padding: 13px; }
+      .kpi-value { font-size: 22px; }
+      .task-row { grid-template-columns: 1fr auto; }
+      .task-row time { grid-column: 1 / -1; }
+      .task-row .secondary { align-self: end; }
+      .mobile-tabs { display: flex !important; position: sticky; bottom: 8px; z-index: 5; margin: 18px auto 0; width: max-content; padding: 4px; border: 1px solid var(--border); border-radius: 10px; background: var(--sheet); }
+      .mobile-tabs .nav-item { width: auto; height: 36px; }
+      .mobile-tabs .nav-item span { display: inline; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="brand" aria-label="SABABUKA">
+      <svg class="brand-mark" viewBox="0 0 96 128" role="img" aria-label="Logo SABABUKA">
+        <path fill="#16304F" d="M48 2C25.6 2 11 17.4 11 39.5v49C11 111 25.6 126 48 126s37-15 37-37.5v-49C85 17.4 70.4 2 48 2Z"/><path fill="#0F6D54" d="M11 48.5c9.7 12.7 22.4 19.3 38.3 20.5C67 70.4 77.8 80.4 85 94v-3.8c0 21.2-13.3 35.8-34.1 35.8h-2.4c4.1-9.7 3.1-18.4-5-24.6C31.8 92.5 19.6 90 11 81.4V48.5Z"/><path fill="#FFF" d="M11 40.4c10.8 15.4 23.1 22.8 39.1 24.1C66.7 65.9 77.7 75.1 85 87v13.6C77 84.8 66.8 76.4 49.2 75 33.1 73.7 20.1 67.5 11 55.3V40.4Zm0 32.7c9.3 11.3 20.1 17.6 34.6 19 10.2 1 16.8 7.8 19.2 18.5l-8.7 5.1c-2-8-5.7-12.5-11.6-13.1-14.2-1.4-25.3-6.2-33.5-14V73.1Z"/><path fill="#FFF" d="M48 8.2c-4.1 9.3-10.3 15.8-18.1 21.8-7.4 5.7-7 14.7.8 19.1 7.5 4.2 11.5 9.5 12.1 17.2l.7 10h9l.7-10c.6-7.7 4.6-13 12.1-17.2 7.8-4.4 8.2-13.4.8-19.1C58.3 24 52.1 17.5 48 8.2Z"/><path fill="#C99A2E" d="M48 17.2c1.9 9.3 5.5 13.1 14.8 15-9.3 1.9-12.9 5.7-14.8 15-1.9-9.3-5.5-13.1-14.8-15 9.3-1.9 12.9-5.7 14.8-15Z"/><circle cx="48" cy="70" r="8" fill="#FFF"/><circle cx="48" cy="91.5" r="8" fill="#FFF"/><circle cx="48" cy="113" r="8" fill="#FFF"/>
+      </svg>
+      <span>SABABUKA<small>GERBANG DATA KAPUAS</small></span>
+    </div>
+
+    <header class="topbar">
+      <div class="global-search" aria-hidden="true">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <span>Cari dataset, indikator, atau OPD</span><span class="shortcut">Ctrl K</span>
+      </div>
+      <button class="icon-button" id="themeToggle" aria-label="Ganti tema" title="Ganti tema">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a9 9 0 1 0 9 9c0-.5-.04-1-.12-1.47A7 7 0 0 1 12 3Z"/></svg>
+      </button>
+      <button class="profile-button"><span class="avatar">RA</span><span>Admin Data</span></button>
+    </header>
+
+    <aside class="sidebar">
+      <div class="nav-label">Data Kabupaten</div>
+      <button class="nav-item active" data-page="catalog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><span>Katalog Data</span>
+      </button>
+      <button class="nav-item" data-page="workspace">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 5h16v14H4zM8 9h8M8 13h5"/></svg><span>Ruang Kerja</span>
+      </button>
+      <div class="nav-label">Tata Kelola</div>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v18M5 7h14M5 17h14"/></svg><span>Indikator</span>
+      </button>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5m0 14h16M8 15l3-4 3 2 4-6"/></svg><span>Kualitas Data</span>
+      </button>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="m8 7 3 9m5-9-3 9"/></svg><span>Lineage</span>
+      </button>
+      <div class="nav-foot"><strong>Konsep lokal</strong>Bukan data produksi · 25 Okt 2026</div>
+    </aside>
+
+    <main>
+      <section class="page active" id="catalog">
+        <div class="context-line">Data Kabupaten / Katalog</div>
+        <div class="title-row">
+          <div><h1>Temukan data Kabupaten Kapuas</h1><p class="subtitle">Cari berdasarkan kebutuhan, lalu periksa pemilik, periode, kualitas, dan sumbernya.</p></div>
+          <button class="primary">+ Usulkan dataset</button>
+        </div>
+
+        <div class="catalog-search">
+          <label class="field"><span class="sr-only">Cari data</span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="datasetSearch" type="search" placeholder="Contoh: kemiskinan, stunting, tenaga kerja…" /></label>
+          <label><span class="sr-only">Topik</span><select id="topicFilter"><option value="">Semua topik</option><option>Sosial</option><option>Kesehatan</option><option>Ekonomi</option><option>Pendidikan</option></select></label>
+          <label><span class="sr-only">Pemilik</span><select><option>Semua OPD</option><option>Bappeda</option><option>Dinas Kesehatan</option><option>Dinas Sosial</option></select></label>
+          <label><span class="sr-only">Status</span><select><option>Semua status</option><option>Siap digunakan</option><option>Perlu perhatian</option></select></label>
+        </div>
+
+        <div class="catalog-grid">
+          <div>
+            <div class="result-head"><strong><span id="resultCount">4</span> dataset ditemukan</strong><span>Diurutkan: Paling relevan</span></div>
+            <div id="datasetList">
+              <button class="dataset-row selected" data-key="poverty" data-topic="Sosial">
+                <div><h2 class="dataset-title">Persentase Penduduk Miskin Kabupaten Kapuas</h2><p class="dataset-desc">Persentase penduduk dengan pengeluaran per kapita per bulan di bawah garis kemiskinan.</p><div class="meta-inline"><span>Periode 2020–2025</span><span>Diperbarui 8 Okt 2026</span><span><b class="format">CSV</b><b class="format">XLSX</b></span></div></div>
+                <div class="side-meta"><strong>Dinas Sosial</strong>Sumber: BPS</div><div class="side-meta"><span class="pill good">● Siap digunakan</span></div>
+              </button>
+              <button class="dataset-row" data-key="stunting" data-topic="Kesehatan">
+                <div><h2 class="dataset-title">Prevalensi Stunting Balita</h2><p class="dataset-desc">Proporsi balita dengan status gizi pendek dan sangat pendek menurut kecamatan.</p><div class="meta-inline"><span>Periode 2021–2025</span><span>Diperbarui 2 Okt 2026</span><span><b class="format">CSV</b><b class="format">API</b></span></div></div>
+                <div class="side-meta"><strong>Dinas Kesehatan</strong>Sumber: e-PPGBM</div><div class="side-meta"><span class="pill warn">● Perlu tinjau</span></div>
+              </button>
+              <button class="dataset-row" data-key="labor" data-topic="Ekonomi">
+                <div><h2 class="dataset-title">Tingkat Partisipasi Angkatan Kerja</h2><p class="dataset-desc">Persentase penduduk usia kerja yang aktif secara ekonomi di Kabupaten Kapuas.</p><div class="meta-inline"><span>Periode 2019–2025</span><span>Diperbarui 30 Sep 2026</span><span><b class="format">CSV</b><b class="format">XLSX</b></span></div></div>
+                <div class="side-meta"><strong>Disnakertrans</strong>Sumber: Sakernas</div><div class="side-meta"><span class="pill good">● Siap digunakan</span></div>
+              </button>
+              <button class="dataset-row" data-key="school" data-topic="Pendidikan">
+                <div><h2 class="dataset-title">Angka Partisipasi Sekolah Usia 16–18 Tahun</h2><p class="dataset-desc">Proporsi penduduk usia 16–18 tahun yang masih mengikuti pendidikan formal.</p><div class="meta-inline"><span>Periode 2020–2025</span><span>Diperbarui 21 Sep 2026</span><span><b class="format">CSV</b></span></div></div>
+                <div class="side-meta"><strong>Dinas Pendidikan</strong>Sumber: Susenas</div><div class="side-meta"><span class="pill bad">● Terlambat</span></div>
+              </button>
+            </div>
+            <div class="empty" id="emptyState">Tidak ada dataset yang cocok. Coba kata kunci atau topik lain.</div>
+          </div>
+
+          <aside class="detail-rail" aria-live="polite">
+            <div class="context-line">Pratinjau dataset</div><h2 id="detailTitle">Persentase Penduduk Miskin</h2><p class="detail-owner" id="detailOwner">Dikelola Dinas Sosial · sumber utama BPS</p>
+            <div class="detail-section"><div class="facts"><div class="fact"><span>Status kualitas</span><strong id="detailQuality">Siap digunakan</strong></div><div class="fact"><span>Pemutakhiran</span><strong id="detailFrequency">Tahunan</strong></div><div class="fact"><span>Cakupan</span><strong id="detailCoverage">17 kecamatan</strong></div><div class="fact"><span>Lisensi</span><strong>Data pemerintah</strong></div></div></div>
+            <div class="detail-section"><h3>Cuplikan data</h3><table class="preview-table"><thead><tr><th>Tahun</th><th>Nilai</th><th>Satuan</th></tr></thead><tbody id="previewRows"><tr><td>2023</td><td>5,35</td><td>%</td></tr><tr><td>2024</td><td>5,18</td><td>%</td></tr><tr><td>2025</td><td>5,06</td><td>%</td></tr></tbody></table></div>
+            <div class="detail-section"><h3>Jejak singkat</h3><div class="lineage-step"><strong id="sourceLabel">BPS / tabel kemiskinan</strong><span>Sumber resmi</span></div><div class="lineage-step"><strong>Staging SABABUKA</strong><span>Validasi struktur dan periode</span></div><div class="lineage-step"><strong>Indikator RPJMD</strong><span>Terhubung ke target pembangunan</span></div></div>
+            <div class="rail-actions"><button class="secondary">Lihat metadata</button><button class="primary">Buka dataset</button></div>
+          </aside>
+        </div>
+        <div class="concept-note">Data pada layar ini adalah data contoh untuk mengevaluasi pola UI, bukan publikasi resmi SABABUKA.</div>
+        <div class="mobile-tabs" style="display:none"><button class="nav-item active" data-page="catalog">Katalog</button><button class="nav-item" data-page="workspace">Ruang kerja</button></div>
+      </section>
+
+      <section class="page" id="workspace">
+        <div class="context-line">Tata Kelola / Ruang Kerja Admin Data</div>
+        <div class="title-row"><div><h1>Pekerjaan data hari ini</h1><p class="subtitle">Prioritas disusun dari tenggat, dampak indikator, dan status validasi.</p></div><button class="primary">+ Tambah sumber data</button></div>
+        <div class="kpi-strip">
+          <div class="kpi"><div class="kpi-label">Perlu tindakan</div><div class="kpi-value">4</div><div class="kpi-note">2 melewati tenggat</div></div>
+          <div class="kpi"><div class="kpi-label">Sumber aktif</div><div class="kpi-value">12</div><div class="kpi-note">11 sinkron normal</div></div>
+          <div class="kpi"><div class="kpi-label">Uji kualitas lulus</div><div class="kpi-value">92%</div><div class="kpi-note">156 dari 169 pemeriksaan</div></div>
+          <div class="kpi"><div class="kpi-label">Publikasi bulan ini</div><div class="kpi-value">8</div><div class="kpi-note">Per 25 Okt 2026</div></div>
+        </div>
+        <div class="workspace-grid">
+          <div><div class="section-heading"><h2>Butuh tindakan</h2><span>Urutan prioritas</span></div><div class="task-list">
+            <div class="task-row"><time>Hari ini, 14.00</time><div><div class="task-title">Verifikasi data stunting triwulan III</div><div class="task-meta">Dinas Kesehatan · 2 anomali perlu konfirmasi</div></div><button class="primary">Periksa</button></div>
+            <div class="task-row"><time>Terlambat 4 hari</time><div><div class="task-title">Lengkapi cakupan APS usia 16–18</div><div class="task-meta">Dinas Pendidikan · 3 kecamatan belum terisi</div></div><button class="secondary">Tindak lanjuti</button></div>
+            <div class="task-row"><time>Besok</time><div><div class="task-title">Setujui pemetaan Kodref IP</div><div class="task-meta">BAPPERIDA · 6 indikator menunggu verifikasi</div></div><button class="secondary">Buka daftar</button></div>
+            <div class="task-row"><time>28 Okt 2026</time><div><div class="task-title">Tinjau perubahan sumber TPAK</div><div class="task-meta">Disnakertrans · sumber Sakernas versi terbaru</div></div><button class="secondary">Bandingkan</button></div>
+          </div></div>
+          <div><div class="section-heading"><h2>Aliran data terpilih</h2><span>Stunting balita</span></div><div class="lineage">
+            <div class="lineage-step"><strong>e-PPGBM</strong><span>Sumber · sinkron 25 Okt 2026, 06.15</span></div><div class="lineage-step"><strong>Konektor Dinas Kesehatan</strong><span>1.284 baris diterima</span></div><div class="lineage-step"><strong>Staging mentah</strong><span>Checksum tersimpan · 2 peringatan</span></div><div class="lineage-step"><strong>Transformasi wilayah</strong><span>Kode kecamatan distandardisasi</span></div><div class="lineage-step"><strong>Indikator stunting</strong><span>Menunggu verifikasi BAPPERIDA</span></div><div class="lineage-step"><strong>Dashboard pimpinan</strong><span>Belum dipublikasikan</span></div>
+          </div><div class="quality-list"><div class="section-heading"><h2>Kualitas sumber</h2></div><div class="quality-row"><span>Kelengkapan kolom wajib</span><strong>99,1%</strong></div><div class="quality-row"><span>Konsistensi periode</span><strong class="pill good">Lulus</strong></div><div class="quality-row"><span>Duplikasi baris</span><strong class="pill warn">2 temuan</strong></div></div></div>
+        </div>
+        <div class="concept-note">Konsep ini memisahkan pencarian data dari pekerjaan tata kelola, tetapi keduanya memakai objek dataset dan metadata yang sama.</div>
+        <div class="mobile-tabs" style="display:none"><button class="nav-item" data-page="catalog">Katalog</button><button class="nav-item active" data-page="workspace">Ruang kerja</button></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const data = {
+      poverty: { title: "Persentase Penduduk Miskin", owner: "Dikelola Dinas Sosial · sumber utama BPS", quality: "Siap digunakan", frequency: "Tahunan", coverage: "17 kecamatan", source: "BPS / tabel kemiskinan", rows: [["2023","5,35","%"],["2024","5,18","%"],["2025","5,06","%"]] },
+      stunting: { title: "Prevalensi Stunting Balita", owner: "Dikelola Dinas Kesehatan · sumber utama e-PPGBM", quality: "Perlu tinjau", frequency: "Triwulanan", coverage: "17 kecamatan", source: "e-PPGBM / rekap balita", rows: [["2023","20,6","%"],["2024","18,9","%"],["2025","17,2","%"]] },
+      labor: { title: "Tingkat Partisipasi Angkatan Kerja", owner: "Dikelola Disnakertrans · sumber utama Sakernas", quality: "Siap digunakan", frequency: "Tahunan", coverage: "Kabupaten", source: "BPS / Sakernas", rows: [["2023","70,12","%"],["2024","70,86","%"],["2025","71,04","%"]] },
+      school: { title: "Angka Partisipasi Sekolah 16–18 Tahun", owner: "Dikelola Dinas Pendidikan · sumber utama Susenas", quality: "Terlambat", frequency: "Tahunan", coverage: "14 dari 17 kecamatan", source: "BPS / Susenas", rows: [["2023","70,4","%"],["2024","71,6","%"],["2025","—","%"]] }
+    };
+    function showPage(id) {
+      document.querySelectorAll('.page').forEach(el => el.classList.toggle('active', el.id === id));
+      document.querySelectorAll('[data-page]').forEach(el => el.classList.toggle('active', el.dataset.page === id));
+      document.querySelector('main').scrollTop = 0;
+    }
+    document.querySelectorAll('[data-page]').forEach(button => button.addEventListener('click', () => showPage(button.dataset.page)));
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    });
+    function selectDataset(row) {
+      document.querySelectorAll('.dataset-row').forEach(el => el.classList.toggle('selected', el === row));
+      const item = data[row.dataset.key];
+      document.getElementById('detailTitle').textContent = item.title;
+      document.getElementById('detailOwner').textContent = item.owner;
+      document.getElementById('detailQuality').textContent = item.quality;
+      document.getElementById('detailFrequency').textContent = item.frequency;
+      document.getElementById('detailCoverage').textContent = item.coverage;
+      document.getElementById('sourceLabel').textContent = item.source;
+      document.getElementById('previewRows').innerHTML = item.rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('');
+    }
+    document.querySelectorAll('.dataset-row').forEach(row => row.addEventListener('click', () => selectDataset(row)));
+    function filterDatasets() {
+      const q = document.getElementById('datasetSearch').value.toLowerCase();
+      const topic = document.getElementById('topicFilter').value;
+      let shown = 0;
+      document.querySelectorAll('.dataset-row').forEach(row => {
+        const visible = row.textContent.toLowerCase().includes(q) && (!topic || row.dataset.topic === topic);
+        row.style.display = visible ? '' : 'none'; if (visible) shown++;
+      });
+      document.getElementById('resultCount').textContent = shown;
+      document.getElementById('emptyState').style.display = shown ? 'none' : 'block';
+    }
+    document.getElementById('datasetSearch').addEventListener('input', filterDatasets);
+    document.getElementById('topicFilter').addEventListener('change', filterDatasets);
+  </script>
+</body>
+</html>
