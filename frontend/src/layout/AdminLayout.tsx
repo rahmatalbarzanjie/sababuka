@@ -69,26 +69,11 @@ const iconByCode: Record<string, typeof LayoutDashboard> = {
   finance: WalletCards,
   "public-services": HeartHandshake,
   "statistical-guidance": BookCheck,
+  "system-dashboard": LayoutDashboard,
+  "opd-monitoring": Building2,
 };
 
 const supportedRoutes = new Set(["/admin", "/dashboard", "/executive", "/assistant", "/analysis", "/finance", "/public-services", "/notifications", "/audit", "/operations", "/opd-profile", "/admin/organizations", "/admin/opd-monitoring", "/admin/users", "/admin/roles", "/admin/menus", "/admin/system", "/admin/metadata-profiles", "/governance/focuses", "/governance/categories", "/governance/indicators", "/governance/datasets", "/submissions", "/reviews", "/guidance", "/publications", "/connectors"]);
-
-const navigationLabels: Record<string, string> = {
-  categories: "Kelompok Isu",
-  indicators: "Matriks Indikator",
-  operations: "Beranda Tugas",
-  "opd-profile": "Profil Data OPD",
-  submissions: "Pelaporan Realisasi",
-  reviews: "Verifikasi Pelaporan OPD",
-  publications: "Kurasi dan Publikasi",
-  assistant: "Asisten Data",
-  roles: "Peran dan Hak Akses",
-  connectors: "Ruang Walidata",
-  analysis: "Analisis dan Peta",
-  finance: "Keuangan Daerah",
-  "public-services": "Layanan Publik",
-  "statistical-guidance": "Pembinaan Statistik",
-};
 
 const roleLabels: Record<string, string> = {
   superadmin: "Pengelola Sistem",
@@ -135,10 +120,12 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
   const operationalEntries = useMemo(() => menu.filter((item) => ["operations", "opd-profile", "submissions", "reviews", "publications"].includes(item.code) && item.route_name && supportedRoutes.has(item.route_name) && !(!isSuperadmin && isBapperida && !isOpd && item.code === "submissions")), [menu, isSuperadmin, isBapperida, isOpd]);
   const sourceEntries = useMemo(() => menu.filter((item) => item.code === "connectors" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const primaryEntries = useMemo(() => menu.filter((item) => item.code === "dashboard" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
+  const systemEntries = useMemo(() => menu.filter((item) => ["system-dashboard", "opd-monitoring"].includes(item.code) && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const analysisEntries = useMemo(() => menu.filter((item) => ["analysis", "finance", "public-services"].includes(item.code) && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const auditEntries = useMemo(() => menu.filter((item) => item.code === "audit" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const isPimpinan = user?.roles.some((role) => role.code === "pimpinan") ?? false;
   const navigationSections = useMemo(() => [
+    { code: "system", label: "Administrasi sistem", entries: systemEntries },
     { code: "primary", label: "Ruang pimpinan", entries: primaryEntries },
     { code: "analysis", label: "Analisis keputusan", entries: analysisEntries },
     { code: "governance", label: "Tata kelola data", entries: governanceEntries },
@@ -146,8 +133,9 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     { code: "operations", label: isBapperida && !isSuperadmin ? "Pelaporan dan publikasi" : "Pelaporan capaian", entries: operationalEntries },
     { code: "audit", label: "Pengawasan", entries: auditEntries },
     { code: "administration", label: "Konfigurasi internal", entries: adminEntries },
-  ].filter((section) => section.entries.length > 0).sort((a, b) => Math.min(...a.entries.map((entry) => entry.display_order)) - Math.min(...b.entries.map((entry) => entry.display_order))), [adminEntries, analysisEntries, auditEntries, governanceEntries, isBapperida, isSuperadmin, operationalEntries, primaryEntries, sourceEntries]);
-  const areaLabel = pathname.startsWith("/admin") ? "Konfigurasi Internal"
+  ].filter((section) => section.entries.length > 0).sort((a, b) => Math.min(...a.entries.map((entry) => entry.display_order)) - Math.min(...b.entries.map((entry) => entry.display_order))), [adminEntries, analysisEntries, auditEntries, governanceEntries, isBapperida, isSuperadmin, operationalEntries, primaryEntries, sourceEntries, systemEntries]);
+  const areaLabel = ["/admin", "/admin/opd-monitoring"].includes(pathname) ? "Administrasi Sistem"
+    : pathname.startsWith("/admin") ? "Konfigurasi Internal"
     : ["/dashboard", "/executive", "/assistant"].includes(pathname) ? "Ruang Pimpinan"
     : ["/analysis", "/finance", "/public-services"].includes(pathname) ? "Analisis Keputusan"
     : pathname === "/connectors" ? "Walidata Diskominfosantik"
@@ -287,11 +275,9 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     <aside ref={sidebarRef} className={`sidebar ${mobile ? "mobile-open" : ""}`} aria-label="Navigasi utama">
       <div className="sidebar-brand"><SababukaLockup className="sidebar-lockup" /><button className="mobile-close" aria-label="Tutup menu" onClick={() => setMobile(false)}><X /></button></div>
       <nav>
-        {isSuperadmin && <button className={`nav-link ${pathname === "/admin" ? "active" : ""}`} aria-current={pathname === "/admin" ? "page" : undefined} title={collapsed ? "Beranda Administrasi" : undefined} onClick={() => go("/admin")}><LayoutDashboard /><span>Beranda Administrasi</span></button>}
-        {isSuperadmin && <button className={`nav-link ${pathname === "/admin/opd-monitoring" ? "active" : ""}`} aria-current={pathname === "/admin/opd-monitoring" ? "page" : undefined} title={collapsed ? "Kesiapan OPD" : undefined} onClick={() => go("/admin/opd-monitoring")}><Building2 /><span>Kesiapan OPD</span></button>}
         {navigationSections.map((section) => <div className="nav-section" key={section.code}><div className="nav-label">{section.label}</div>{section.entries.map((entry) => {
           const Icon = iconByCode[entry.code] ?? Settings2;
-          const label = isPimpinan && entry.code === "publications" ? "Rilis Data" : navigationLabels[entry.code] ?? entry.label;
+          const label = isPimpinan && entry.code === "publications" ? "Rilis Data" : entry.label;
           return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : entry.navigation_disabled ? `${label} — ${entry.badge ?? "Belum tersedia"}` : undefined} disabled={entry.navigation_disabled} aria-disabled={entry.navigation_disabled} onClick={() => { if (!entry.navigation_disabled) go(entry.route_name!); }}><Icon /><span>{label}</span>{entry.badge && <small className="nav-badge">{entry.badge}</small>}</button>;
         })}</div>)}
       </nav>

@@ -364,6 +364,44 @@ html[data-theme="dark"] .loading-brand-mark { filter: drop-shadow(0 10px 22px rg
 @media (max-width: 560px) {
   .loading-brand-mark { width: 104px; }
   .page-header h1 { font-size: 23px; }
+  .readiness-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .readiness-summary article { min-height: 96px; padding: 13px; }
+  .readiness-summary article > svg { display: none; }
+  .user-workflow-banner {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 12px;
+  }
+  .user-workflow-banner > span { width: 34px; height: 34px; }
+  .user-workflow-banner p { display: none; }
+  .user-workflow-banner .button {
+    width: auto;
+    min-height: 44px;
+    padding-inline: 10px;
+    font-size: 12px;
+  }
+  .data-toolbar:has(select[aria-label="Filter status pengguna"]) .table-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .data-toolbar:has(select[aria-label="Filter status pengguna"]) .search-box {
+    grid-column: 1 / -1;
+  }
+  .data-toolbar:has(select[aria-label="Filter status pengguna"]) .table-filters > select {
+    min-width: 0;
+    width: 100%;
+  }
+  .data-toolbar:has(select[aria-label="Filter status pengguna"]) .page-size-top { display: none; }
   .panel,
   .table-panel { border-radius: 13px; }
+}
+
+@media (max-width: 390px) {
+  .user-workflow-banner { grid-template-columns: 32px minmax(0, 1fr); }
+  .user-workflow-banner > span { width: 32px; height: 32px; }
+  .user-workflow-banner .button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
 }
