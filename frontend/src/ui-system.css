@@ -6,9 +6,9 @@
 :root {
   font-family: "Source Sans 3", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color-scheme: light;
-  --ui-ground: #f4f7fa;
+  --ui-ground: #ffffff;
   --ui-surface: #ffffff;
-  --ui-surface-subtle: #f7f9fc;
+  --ui-surface-subtle: #f5f8fb;
   --ui-text: #0a2241;
   --ui-muted: #5e7086;
   --ui-border: #dce5ee;
@@ -182,7 +182,7 @@ body,
 .sidebar {
   padding: 16px 12px 12px;
   border-right-color: var(--ui-border);
-  background: var(--ui-ground);
+  background: #f7fafc;
   box-shadow: none;
 }
 .sidebar-brand { min-height: 62px; border-bottom-color: var(--ui-border); }
@@ -256,6 +256,7 @@ body,
 .candidate-filters select,
 .search-field,
 .search-box { border-color: var(--ui-border); border-radius: var(--ui-radius-control); background: var(--ui-surface); color: var(--ui-text); }
+.field { color: var(--ui-text); }
 .field input:hover,
 .field select:hover,
 .field textarea:hover,
@@ -281,7 +282,27 @@ tbody tr:hover { background: var(--ui-primary-soft); }
 .notification-preview-list > button:hover,
 .notification-list > button:hover { background: var(--ui-surface-subtle); }
 .profile-button:hover { background: var(--ui-surface-subtle); }
-.workspace-footer { border-top-color: var(--ui-border); }
+.workspace-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  width: calc(100% - clamp(36px, 6vw, 88px));
+  max-width: 1392px;
+  margin: 0 auto;
+  padding: 24px 0 30px;
+  border-top: 1px solid var(--ui-border);
+  color: var(--ui-muted);
+}
+.workspace-footer-identity { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.workspace-footer-identity .sababuka-mark { width: 25px; height: 34px; flex: 0 0 25px; }
+.workspace-footer-identity > span,
+.workspace-footer-governance { display: grid; gap: 3px; }
+.workspace-footer-identity strong { color: var(--ui-text); font-size: 12px; letter-spacing: .055em; }
+.workspace-footer-identity small,
+.workspace-footer-governance small { color: var(--ui-muted); font-size: 11px; line-height: 1.4; }
+.workspace-footer-governance { justify-items: end; max-width: 560px; text-align: right; }
+.workspace-footer-governance > span { color: var(--ui-text); font-size: 12px; line-height: 1.45; }
 
 html[data-theme="dark"] {
   --ui-ground: #0e1116;
@@ -358,7 +379,9 @@ html[data-theme="dark"] .loading-brand-mark { filter: drop-shadow(0 10px 22px rg
   .topbar-actions > .theme-toggle { display: inline-grid; }
   .page-shell { padding: 20px 16px 38px; }
   .page-header { align-items: flex-start; }
-  .sidebar { width: min(88vw, 306px); background: var(--ui-ground); }
+  .sidebar { width: min(88vw, 306px); background: #f7fafc; }
+  .workspace-footer { width: calc(100% - 32px); align-items: flex-start; flex-direction: column; gap: 16px; }
+  .workspace-footer-governance { justify-items: start; text-align: left; }
 }
 
 @media (max-width: 560px) {

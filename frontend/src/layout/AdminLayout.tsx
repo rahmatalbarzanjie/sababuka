@@ -44,7 +44,7 @@ import type { LoginAnnouncement, MenuItem, NotificationItem } from "../types";
 import { api } from "../api";
 import { notificationDestination } from "../notification-routing";
 import { formatTanggal, Modal } from "../components";
-import { SababukaAssistantMark, SababukaLockup } from "../branding/SababukaBrand";
+import { SababukaAssistantMark, SababukaLockup, SababukaMark } from "../branding/SababukaBrand";
 import { applyTheme, readTheme, type ThemeMode } from "../theme";
 
 const iconByCode: Record<string, typeof LayoutDashboard> = {
@@ -318,7 +318,16 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
         {pathname !== "/governance/indicators" && <header className="page-header"><div><h1>{title}</h1><p>{subtitle}</p></div>{actions && <div className="page-actions">{actions}</div>}</header>}
         {children}
       </main>
-      <footer className="workspace-footer"><span>Dikembangkan oleh</span><strong>Tim Peneliti Kajian SABABUKA BERSINAR 2026</strong></footer>
+      <footer className="workspace-footer">
+        <div className="workspace-footer-identity">
+          <SababukaMark label="Logo SABABUKA" />
+          <span><strong>SABABUKA BERSINAR</strong><small>Sistem Analisis Big Data Kabupaten Kapuas</small></span>
+        </div>
+        <div className="workspace-footer-governance">
+          <span>Informasi mengikuti kewenangan, proses verifikasi, dan jejak audit.</span>
+          <small>Dikembangkan oleh Tim Peneliti Kajian SABABUKA BERSINAR 2026</small>
+        </div>
+      </footer>
     </section>
     {isPimpinan && <button type="button" className="assistant-floating-button" onClick={() => go("/assistant")} aria-label="Buka Asisten AI" title="Buka Asisten AI"><span className="assistant-floating-icon" aria-hidden><SababukaAssistantMark /><i /></span><span className="assistant-floating-label"><strong>Asisten AI</strong></span></button>}
     {helpOpen && <><button className="help-overlay" aria-label="Tutup bantuan" onClick={() => setHelpOpen(false)} /><aside ref={helpRef} tabIndex={-1} className="help-drawer" role="dialog" aria-modal="true" aria-labelledby="help-drawer-title"><header><div><h2 id="help-drawer-title">{help.title}</h2></div><button type="button" className="icon-button" aria-label="Tutup bantuan" onClick={() => setHelpOpen(false)}><X /></button></header><p>{help.intro}</p><ol>{help.steps.map((step) => <li key={step}><span>{help.steps.indexOf(step) + 1}</span><p>{step}</p></li>)}</ol><section><strong>Istilah penting</strong><dl><div><dt>Target</dt><dd>Sasaran RPJMD untuk tahun pelaporan.</dd></div><div><dt>Realisasi</dt><dd>Nilai yang benar-benar dicapai OPD.</dd></div><div><dt>Dipublikasikan</dt><dd>Sudah diperiksa, dikurasi, dan boleh dilihat pimpinan.</dd></div></dl></section><footer><small>Jika tugas atau data tidak sesuai, catat nama indikator, periode, dan OPD lalu hubungi Pengelola Sistem.</small><button type="button" className="button primary" onClick={() => setHelpOpen(false)}>Saya mengerti</button></footer></aside></>}

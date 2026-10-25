@@ -95,13 +95,13 @@ code { font-family: "SFMono-Regular", Consolas, monospace; }
 .sababuka-lockup > .sababuka-mark { width: 34px; height: 45px; flex: 0 0 34px; display: block; }
 .sababuka-lockup-copy { min-width: 0; display: grid; gap: 1px; line-height: 1; }
 .sababuka-lockup-copy strong { color: var(--navy-900); font-size: 18px; font-weight: 800; letter-spacing: .085em; }
-.sababuka-lockup-copy small { color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; }
+.sababuka-lockup-copy small { color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; }
 .loading-brand-mark { width: clamp(104px, 10vw, 132px); height: auto; filter: drop-shadow(0 10px 22px rgba(22, 48, 79, .12)); }
 .spinner { display: inline-flex; align-items: center; gap: 8px; }
 .spinner svg { animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .loading-screen { min-height: 100vh; display: flex; flex-direction: column; gap: 24px; align-items: center; justify-content: center; color: var(--muted); background: #f3f6fa; }
-.loading-brand-label { position: relative; padding-bottom: 13px; font-size: 14px; font-weight: 650; letter-spacing: .01em; }
+.loading-brand-label { position: relative; margin: 0; padding-bottom: 13px; font-size: 18px; font-weight: 650; letter-spacing: .01em; }
 .loading-brand-label::after { content: ""; position: absolute; left: 50%; bottom: 0; width: 54px; height: 3px; border-radius: 999px; background: var(--navy-700); transform: translateX(-50%) scaleX(.35); transform-origin: center; animation: sababuka-loading-progress 1.35s ease-in-out infinite; }
 .loading-brand-mark .sababuka-mark-star,
 .loading-brand-mark .sababuka-mark-eye,
@@ -135,8 +135,8 @@ code { font-family: "SFMono-Regular", Consolas, monospace; }
 .login-identity { display: flex; align-items: center; padding-bottom: 19px; border-bottom: 1px solid var(--line); }
 .login-lockup > .sababuka-mark { width: 42px; height: 56px; flex-basis: 42px; }
 .login-lockup .sababuka-lockup-copy strong { font-size: 19px; }
-.login-lockup .sababuka-lockup-copy small { margin-top: 3px; font-size: 10px; }
-.login-credit { display: block; color: #617086; text-align: center; font-size: 11px; }
+.login-lockup .sababuka-lockup-copy small { margin-top: 3px; font-size: 12px; }
+.login-credit { display: block; color: #617086; text-align: center; font-size: 12px; }
 .auth-layout { min-height: 100vh; display: grid; grid-template-columns: minmax(360px, 47%) 1fr; background: #f5f8fc; }
 .auth-brand { min-height: 100vh; color: #fff; padding: 48px clamp(38px, 6vw, 90px); display: flex; flex-direction: column; position: relative; overflow: hidden; background: var(--navy-950); }
 .auth-brand::before, .auth-brand::after { content: ""; position: absolute; border-radius: 999px; border: 1px solid rgba(255,255,255,.09); }
@@ -872,6 +872,7 @@ td small { color: var(--muted); margin-top: 3px; }
 }
 
 @media (max-width: 640px) {
+  .auth-card-heading h1, .auth-card-heading h2 { font-size: 24px; }
   .page-size-top { width: 100%; justify-content: space-between; }
   .account-modal { width: 100%; }
   .account-modal .account-status-summary, .account-edit-form, .account-management-actions, .account-modal-close { padding-inline: 18px; }
@@ -1999,7 +2000,7 @@ small, .metric-card small, .executive-panel > header > small,
   .login-illustration { width: 140vw; }
   .login-lockup > .sababuka-mark { width: 36px; height: 48px; flex-basis: 36px; }
   .login-lockup .sababuka-lockup-copy strong { font-size: 18px; }
-  .login-lockup .sababuka-lockup-copy small { font-size: 9px; }
+  .login-lockup .sababuka-lockup-copy small { font-size: 12px; }
 }
 
 /* Accessibility and responsive audit refinements - 2026-10-12 */

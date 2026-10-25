@@ -9,6 +9,8 @@ tmp/
 .build/
 .deploy/
 .tmp_sababuka/
+.taste-skill/
+.chart-data-*/
 
 # Local secrets
 .env
@@ -16,6 +18,14 @@ tmp/
 !.env.example
 !**/.env.example
 output/private/
+output/database-backups/
+output/**/*.docx
+output/**/*.pdf
+output/**/*.pptx
+output/**/*.xlsx
+output/**/*.png
+output/**/*.webp
+output/**/*.layout.json
 
 # Dependencies and generated frontend output
 node_modules/
@@ -35,3 +45,8 @@ __pycache__/
 Thumbs.db
 *.log
 *.inspect.ndjson
+~$*
+research/output/*-extract.txt
+research/output/*-audit.json
+research/output/*-audit-*.json
+research/output/*-ringkasan.csv

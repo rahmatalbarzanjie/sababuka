@@ -12,9 +12,9 @@ export function Spinner({ label = "Memuat" }: { label?: string }) {
 }
 
 export function LoadingScreen() {
-  return <div className="loading-screen" aria-busy="true">
+  return <div className="loading-screen" role="status" aria-live="polite" aria-busy="true">
     <SababukaMark className="loading-brand-mark" label="SABABUKA sedang menyiapkan ruang kerja" />
-    <span className="loading-brand-label" role="status" aria-live="polite">Menyiapkan ruang kerja</span>
+    <h1 className="loading-brand-label">Menyiapkan ruang kerja</h1>
   </div>;
 }
 
