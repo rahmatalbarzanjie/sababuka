@@ -46,8 +46,17 @@ test(
         items.flatMap((item) => [item, ...flattenMenu(item.children as typeof items)]);
       const menuItems = flattenMenu(menu.json().data);
       const placeholders = menuItems.filter((item) => item.navigation_disabled);
-      assert.deepEqual(placeholders.map((item) => item.code).sort(), ["datasets", "focuses", "metadata-profiles"]);
+      assert.deepEqual(placeholders.map((item) => item.code).sort(), ["metadata-profiles"]);
       assert.ok(placeholders.every((item) => item.badge === "Segera"));
+
+      const configuredPlaceholders = await db.query<{ code: string; badge: string | null }>(
+        `SELECT code, badge
+         FROM sababuka.menu_items
+         WHERE navigation_disabled = true
+         ORDER BY code`,
+      );
+      assert.deepEqual(configuredPlaceholders.rows.map((item) => item.code), ["datasets", "focuses", "metadata-profiles"]);
+      assert.ok(configuredPlaceholders.rows.every((item) => item.badge === "Segera"));
 
       const logout = await app.inject({
         method: "POST",
