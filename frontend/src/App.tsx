@@ -30,6 +30,7 @@ const FinancePage = lazy(() => import("./pages/DecisionPages").then((module) => 
 const PublicServicesPage = lazy(() => import("./pages/DecisionPages").then((module) => ({ default: module.PublicServicesPage })));
 const OpdProfilePage = lazy(() => import("./pages/OpdProfilePage").then((module) => ({ default: module.OpdProfilePage })));
 const OpdMonitoringPage = lazy(() => import("./pages/OpdMonitoringPage").then((module) => ({ default: module.OpdMonitoringPage })));
+const FreshDesignLabPage = lazy(() => import("./pages/FreshDesignLabPage").then((module) => ({ default: module.FreshDesignLabPage })));
 
 const pageMeta: Record<string, { title: string; subtitle: string; permission?: string }> = {
   "/admin": { title: "Dashboard Sistem", subtitle: "Kesehatan layanan dan pekerjaan administrasi yang perlu ditindaklanjuti.", permission: "system.configure" },
@@ -86,6 +87,7 @@ function ProtectedApp() {
   if (pathname === "/security/setup") return user ? <PasswordSetupPage /> : <LoginPage />;
   if (loading) return <LoadingScreen />;
   if (!user || pathname === "/login") return <LoginPage />;
+  if (pathname === "/design-lab/fresh") return <Suspense fallback={<LoadingScreen />}><FreshDesignLabPage /></Suspense>;
   const baseMeta = pageMeta[pathname] ?? { title: "Modul SABABUKA", subtitle: "Modul sedang disiapkan." };
   const meta = pathname === "/publications" && user.roles.some((role) => role.code === "pimpinan")
     ? { ...baseMeta, title: "Rilis Data", subtitle: "Rilis resmi yang aktif dan masih layak ditampilkan untuk pimpinan." }

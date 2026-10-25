@@ -96,12 +96,13 @@ code { font-family: "SFMono-Regular", Consolas, monospace; }
 .sababuka-lockup-copy { min-width: 0; display: grid; gap: 1px; line-height: 1; }
 .sababuka-lockup-copy strong { color: var(--navy-900); font-size: 18px; font-weight: 800; letter-spacing: .085em; }
 .sababuka-lockup-copy small { color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; }
-.loading-brand-mark { width: 64px; height: 85px; filter: drop-shadow(0 6px 12px rgba(22, 48, 79, .14)); }
+.loading-brand-mark { width: clamp(104px, 10vw, 132px); height: auto; filter: drop-shadow(0 10px 22px rgba(22, 48, 79, .12)); }
 .spinner { display: inline-flex; align-items: center; gap: 8px; }
 .spinner svg { animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.loading-screen { min-height: 100vh; display: flex; flex-direction: column; gap: 18px; align-items: center; justify-content: center; color: var(--muted); background: #f3f6fa; }
-.loading-brand-label { font-size: 13px; font-weight: 650; letter-spacing: .01em; }
+.loading-screen { min-height: 100vh; display: flex; flex-direction: column; gap: 24px; align-items: center; justify-content: center; color: var(--muted); background: #f3f6fa; }
+.loading-brand-label { position: relative; padding-bottom: 13px; font-size: 14px; font-weight: 650; letter-spacing: .01em; }
+.loading-brand-label::after { content: ""; position: absolute; left: 50%; bottom: 0; width: 54px; height: 3px; border-radius: 999px; background: var(--navy-700); transform: translateX(-50%) scaleX(.35); transform-origin: center; animation: sababuka-loading-progress 1.35s ease-in-out infinite; }
 .loading-brand-mark .sababuka-mark-star,
 .loading-brand-mark .sababuka-mark-eye,
 .loading-brand-mark .sababuka-mark-nodes circle { transform-box: fill-box; transform-origin: center; }
@@ -117,6 +118,7 @@ code { font-family: "SFMono-Regular", Consolas, monospace; }
 @keyframes sababuka-loading-river { 0%, 100% { opacity: .72; } 50% { opacity: 1; } }
 @keyframes sababuka-loading-node { 0%, 100% { opacity: .52; transform: scale(.76); } 50% { opacity: 1; transform: scale(1.08); } }
 @keyframes sababuka-loading-blink { 0%, 43%, 48%, 100% { transform: scaleY(1); } 45% { transform: scaleY(.16); } }
+@keyframes sababuka-loading-progress { 0%, 100% { opacity: .45; transform: translateX(-50%) scaleX(.35); } 50% { opacity: 1; transform: translateX(-50%) scaleX(1); } }
 
 /* Authentication */
 .login-page { min-height: 100vh; position: relative; isolation: isolate; display: grid; place-items: center; overflow: hidden; padding: 32px 20px; background: #f3f7fb; }

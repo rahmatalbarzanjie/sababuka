@@ -28,12 +28,14 @@ import {
   Plug,
   HelpCircle,
   MapPinned,
+  Moon,
   WalletCards,
   HeartHandshake,
   Eye,
   RotateCcw,
   Megaphone,
   BookCheck,
+  Sun,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "../auth";
@@ -43,6 +45,7 @@ import { api } from "../api";
 import { notificationDestination } from "../notification-routing";
 import { formatTanggal, Modal } from "../components";
 import { SababukaAssistantMark, SababukaLockup } from "../branding/SababukaBrand";
+import { applyTheme, readTheme, type ThemeMode } from "../theme";
 
 const iconByCode: Record<string, typeof LayoutDashboard> = {
   organizations: Building2,
@@ -115,6 +118,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
   const [previewBusy, setPreviewBusy] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState<LoginAnnouncement | null>(null);
+  const [theme, setTheme] = useState<ThemeMode>(readTheme);
   const profileRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
@@ -157,6 +161,9 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     : (user?.roles.some((role) => role.code === "kominfo") && isOpd) ? "Walidata + PIC OPD"
     : roleLabels[roleCode] ?? "Pengguna";
 
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
   useEffect(() => {
     setProfileOpen(false);
     setHelpOpen(false);
@@ -297,6 +304,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
         <nav className="topbar-context" aria-label="Lokasi halaman" title={subtitle}><span>{areaLabel}</span><i aria-hidden>/</i><strong tabIndex={-1}>{title}</strong></nav>
         <div className="topbar-actions">
           {actions}
+          <button className="icon-button theme-toggle" aria-label={theme === "dark" ? "Gunakan tema terang" : "Gunakan tema gelap"} title={theme === "dark" ? "Tema terang" : "Tema gelap"} onClick={() => setTheme((value) => value === "dark" ? "light" : "dark")}>{theme === "dark" ? <Sun /> : <Moon />}</button>
           <button ref={helpTriggerRef} className="icon-button" aria-label="Buka bantuan penggunaan" aria-haspopup="dialog" aria-expanded={helpOpen} onClick={() => setHelpOpen(true)}><HelpCircle /></button>
           {!isRolePreview && <div className="notification-wrap" ref={notificationRef}>
             <button className="icon-button notification" aria-label={`Buka notifikasi${unreadNotifications ? `, ${unreadNotifications} belum dibaca` : ""}`} aria-haspopup="dialog" aria-expanded={notificationOpen} onClick={() => { setNotificationOpen((value) => !value); setProfileOpen(false); if (!notificationOpen) void loadNotifications(); }}><Bell />{unreadNotifications > 0 && <span className="notification-count">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}</button>
