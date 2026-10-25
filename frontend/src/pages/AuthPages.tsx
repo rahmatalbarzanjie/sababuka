@@ -1,8 +1,8 @@
-import { ArrowRight, Check, Copy, Eye, EyeOff, KeyRound, LockKeyhole, ShieldCheck, Sparkles, UserRoundPlus } from "lucide-react";
+import { ArrowRight, Check, Copy, Eye, EyeOff, KeyRound, LockKeyhole, ShieldCheck, UserRoundPlus } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { api, ApiClientError, jsonBody } from "../api";
 import { useAuth } from "../auth";
-import { SababukaAssistantMark, SababukaLockup } from "../branding/SababukaBrand";
+import { SababukaLockup } from "../branding/SababukaBrand";
 import { Notice, Spinner } from "../components";
 import { navigate } from "../router";
 
@@ -14,13 +14,8 @@ function AuthBrand() {
       <div className="auth-copy">
         <span className="context-label light">Sistem Analisis Big Data Kabupaten Kapuas</span>
         <h2>Data bergerak, keputusan terjaga.</h2>
-        <p>Kelola metadata, validasi data OPD, indikator pembangunan, dan informasi pimpinan dalam satu alur yang tercatat.</p>
+        <p>Satu ruang bersama untuk memahami kondisi daerah dan membantu setiap keputusan pembangunan Kapuas menjadi lebih tepat.</p>
       </div>
-    </div>
-    <div className="auth-features">
-      <div><ShieldCheck /><span><strong>Akses berbasis peran</strong><small>Menu dan data mengikuti kewenangan pengguna.</small></span></div>
-      <div><Sparkles /><span><strong>Data terkurasi</strong><small>Setiap angka memiliki sumber dan status validasi.</small></span></div>
-      <div><SababukaAssistantMark className="auth-feature-assistant" state="verified" /><span><strong>Asisten untuk pimpinan</strong><small>Jawaban hanya dari data yang layak tayang.</small></span></div>
     </div>
     <small className="auth-foot">Pemerintah Kabupaten Kapuas<br /><strong>Tim Peneliti Kajian SABABUKA BERSINAR 2026</strong></small>
   </aside>;
@@ -111,7 +106,7 @@ export function LoginPage() {
     <section className="login-panel auth-panel">
       <form className="auth-card login-card" onSubmit={submit}>
         <div className="login-identity"><SababukaLockup className="login-lockup" /></div>
-        <div className="auth-card-heading"><span className="context-label">Akses aman</span><h1>{mfaMode ? "Verifikasi dua langkah" : "Masuk ke SABABUKA"}</h1><p>{mfaMode ? "Masukkan kode dari aplikasi Authenticator Anda." : "Masuk menggunakan akun SABABUKA yang telah diverifikasi."}</p></div>
+        <div className="auth-card-heading"><h1>{mfaMode ? "Verifikasi dua langkah" : "Masuk ke SABABUKA"}</h1>{mfaMode && <p>Masukkan kode dari aplikasi Authenticator Anda.</p>}</div>
         {error && <Notice tone="error">{error}</Notice>}
         {!mfaMode ? <>
           <label className="field"><span>Email atau username</span><input autoFocus autoComplete="username" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="nama@kapuaskab.go.id" required /></label>
@@ -124,7 +119,6 @@ export function LoginPage() {
         </>}
         <button className="button primary full" disabled={busy}>{busy ? <Spinner label="Memeriksa" /> : <>{mfaMode ? "Verifikasi" : "Masuk"}<ArrowRight size={17} /></>}</button>
         {!mfaMode && <button className="button secondary full" type="button" onClick={() => navigate("/register")}><UserRoundPlus size={17} />Daftar akun baru</button>}
-        <div className="security-note"><ShieldCheck size={17} /><span>Session dilindungi cookie HttpOnly, CSRF, dan pencatatan audit.</span></div>
         <small className="login-credit">Tim Peneliti Kajian SABABUKA BERSINAR 2026</small>
       </form>
     </section>
