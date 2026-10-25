@@ -45,6 +45,7 @@ __pycache__/
 Thumbs.db
 *.log
 *.inspect.ndjson
+*.ndjson
 ~$*
 research/output/*-extract.txt
 research/output/*-audit.json
