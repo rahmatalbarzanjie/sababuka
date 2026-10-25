@@ -791,7 +791,7 @@ html[data-theme="dark"] .topbar { background: var(--ui-ground); }
 /* Kapuas login story — lightweight SVG motion, calm enough for a work surface. */
 .login-page.auth-layout {
   display: grid;
-  grid-template-columns: minmax(500px, 54%) minmax(420px, 1fr);
+  grid-template-columns: minmax(540px, 58%) minmax(420px, 1fr);
   place-items: stretch;
   height: 100svh;
   min-height: 100svh;
@@ -814,9 +814,9 @@ html[data-theme="dark"] .topbar { background: var(--ui-ground); }
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(250px, 1.15fr) minmax(190px, .85fr);
+  grid-template-columns: minmax(250px, 1fr) minmax(230px, 1fr);
   align-items: center;
-  gap: clamp(16px, 3vw, 42px);
+  gap: 12px;
   min-height: 0;
 }
 .auth-brand-stage .auth-copy {
@@ -826,8 +826,8 @@ html[data-theme="dark"] .topbar { background: var(--ui-ground); }
   margin: 0;
 }
 .auth-brand-stage .auth-copy h2 {
-  margin: 12px 0 16px;
-  font-size: clamp(32px, 3vw, 48px);
+  margin: 0 0 16px;
+  font-size: clamp(32px, 2.8vw, 44px);
   line-height: 1.04;
   letter-spacing: -.035em;
 }
@@ -845,33 +845,40 @@ html[data-theme="dark"] .topbar { background: var(--ui-ground); }
   font-weight: 600;
   line-height: 1.35;
 }
-.auth-brand-stage .context-label.light { color: #8ec9dc; }
 .kapuas-data-illustration {
   grid-column: 2;
   grid-row: 1;
-  width: min(100%, 310px);
+  width: min(100%, 350px);
   margin: 0;
   justify-self: center;
 }
 .kapuas-data-illustration svg { display: block; width: 100%; overflow: visible; }
-.kapuas-data-rings { stroke: rgba(142, 201, 220, .22); stroke-width: 1.4; stroke-dasharray: 7 9; }
-.kapuas-data-rings ellipse:first-child { animation: kapuas-ring 16s linear infinite; }
-.kapuas-data-rings ellipse:last-child { animation: kapuas-ring-reverse 12s linear infinite; }
-.kapuas-data-stream { stroke: rgba(105, 185, 208, .48); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 3 8; }
-.kapuas-data-stream path { animation: kapuas-stream 7s linear infinite; }
+.kapuas-data-rings { stroke: rgba(142, 201, 220, .32); stroke-width: 1.8; stroke-dasharray: 8 10; }
+.kapuas-data-rings ellipse:first-child { animation: kapuas-ring 10s linear infinite; }
+.kapuas-data-rings ellipse:last-child { animation: kapuas-ring-reverse 8s linear infinite; }
+.kapuas-data-stream { stroke: rgba(105, 185, 208, .68); stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 4 9; }
+.kapuas-data-stream path { animation: kapuas-stream 5s linear infinite; }
 .kapuas-data-stream path:last-child { animation-delay: -2.5s; opacity: .65; }
-.kapuas-wing { fill: #2b8a80; opacity: .92; }
-.kapuas-wing-line { fill: none; stroke: #6a92a6; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-.kapuas-column { fill: #d6aa3e; }
-.kapuas-crown { fill: #f5d47f; transform-origin: 210px 38px; animation: kapuas-crown 3.8s ease-in-out infinite; }
-.kapuas-base { fill: #102f50; stroke: #69859e; stroke-width: 1.4; }
-.kapuas-base-line { fill: none; stroke: rgba(142,201,220,.64); stroke-width: 1.5; }
+.kapuas-monument { transform-origin: 210px 368px; animation: kapuas-arrive 1s cubic-bezier(.2,.8,.2,1) both; }
+.kapuas-wings { transform-box: fill-box; transform-origin: right bottom; animation: kapuas-unfold-left 1.25s .18s cubic-bezier(.2,.8,.2,1) both; }
+.kapuas-wings.right { animation-name: kapuas-unfold-right; }
+.kapuas-wing-panel { fill: #111c28; stroke: #d9e8ed; stroke-width: 2.2; stroke-linejoin: round; }
+.kapuas-wing-panel.outer { fill: #162535; }
+.kapuas-wing-panel.inner { fill: #0d1823; }
+.kapuas-motif { fill: none; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 165; animation: kapuas-motif-draw 1.7s .7s ease-out both, kapuas-motif-breathe 5s 2.4s ease-in-out infinite; }
+.kapuas-motif.red { stroke: #d9493f; }
+.kapuas-motif.green { stroke: #4b9a55; animation-delay: .85s, 2.65s; }
+.kapuas-motif.gold { stroke: #e2bb45; animation-delay: 1s, 2.9s; }
+.kapuas-railings { fill: none; stroke: #8a9aa5; stroke-width: 5; stroke-linecap: round; }
+.kapuas-column { fill: #d6aa3e; stroke: #f1cf72; stroke-width: 1.4; }
+.kapuas-column-light { fill: none; stroke: #fff0b0; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 34 190; animation: kapuas-light-rise 2.4s 1.1s linear infinite; }
+.kapuas-crown { fill: none; stroke: #efc75e; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; transform-origin: 210px 52px; animation: kapuas-crown 3s 1.2s ease-in-out infinite; }
+.kapuas-base path { fill: #101923; stroke: #73889a; stroke-width: 1.5; }
 .kapuas-data-nodes circle { fill: #8ed8e2; stroke: #0b2a4a; stroke-width: 3; transform-box: fill-box; transform-origin: center; animation: kapuas-node 2.8s ease-in-out infinite; }
 .kapuas-data-nodes circle:nth-child(2) { animation-delay: -.55s; }
 .kapuas-data-nodes circle:nth-child(3) { animation-delay: -1.1s; fill: #f5d47f; }
 .kapuas-data-nodes circle:nth-child(4) { animation-delay: -1.65s; }
 .kapuas-data-nodes circle:nth-child(5) { animation-delay: -2.2s; }
-.kapuas-spark { fill: #f5d47f; transform-box: fill-box; transform-origin: center; animation: kapuas-spark 3.8s ease-in-out infinite; }
 .kapuas-data-illustration figcaption { display: grid; gap: 2px; margin-top: -8px; text-align: center; }
 .kapuas-data-illustration figcaption span { color: #8ec9dc; font-size: 12px; font-weight: 700; letter-spacing: .03em; }
 .kapuas-data-illustration figcaption strong { color: #e8f1f8; font-size: 13px; font-weight: 600; }
@@ -886,6 +893,7 @@ html[data-theme="dark"] .topbar { background: var(--ui-ground); }
 }
 .login-page.auth-layout .auth-card.login-card { width: min(100%, 440px); }
 .login-page.auth-layout .login-identity { display: none; }
+.login-page.auth-layout .login-credit { display: none; }
 .login-page.auth-layout .auth-card-heading h1 { margin-bottom: 0; }
 .login-page.auth-layout .auth-lockup .sababuka-mark-star { transform-box: fill-box; transform-origin: center; animation: kapuas-spark 4.4s ease-in-out infinite; }
 .login-page.auth-layout .auth-lockup .sababuka-mark-nodes circle:nth-child(even) { transform-box: fill-box; transform-origin: center; animation: kapuas-node 3s ease-in-out infinite; }
@@ -896,7 +904,13 @@ html[data-theme="dark"] .topbar { background: var(--ui-ground); }
 @keyframes kapuas-ring-reverse { to { stroke-dashoffset: 96; } }
 @keyframes kapuas-stream { to { stroke-dashoffset: -88; } }
 @keyframes kapuas-node { 0%, 100% { opacity: .58; transform: scale(.82); } 50% { opacity: 1; transform: scale(1.08); } }
-@keyframes kapuas-crown { 0%, 100% { filter: none; } 50% { filter: brightness(1.14); } }
+@keyframes kapuas-arrive { from { opacity: 0; transform: translateY(34px) scale(.94); } to { opacity: 1; transform: none; } }
+@keyframes kapuas-unfold-left { from { opacity: 0; transform: rotate(8deg) scaleX(.55); } to { opacity: 1; transform: none; } }
+@keyframes kapuas-unfold-right { from { opacity: 0; transform: rotate(-8deg) scaleX(.55); } to { opacity: 1; transform: none; } }
+@keyframes kapuas-motif-draw { from { stroke-dashoffset: 165; opacity: 0; } to { stroke-dashoffset: 0; opacity: 1; } }
+@keyframes kapuas-motif-breathe { 0%, 100% { opacity: .72; } 50% { opacity: 1; } }
+@keyframes kapuas-light-rise { to { stroke-dashoffset: -224; } }
+@keyframes kapuas-crown { 0%, 100% { opacity: .72; transform: scale(.96); } 50% { opacity: 1; transform: scale(1.06); } }
 @keyframes kapuas-spark { 0%, 100% { opacity: .68; transform: scale(.82) rotate(0); } 50% { opacity: 1; transform: scale(1.08) rotate(45deg); } }
 
 html[data-theme="dark"] .login-page.auth-layout > .auth-brand { background: #081f37; color: #fff; }
@@ -905,9 +919,9 @@ html[data-theme="dark"] .login-page.auth-layout .auth-panel.login-panel { backgr
 @media (max-width: 1180px) {
   .login-page.auth-layout { grid-template-columns: minmax(470px, 52%) minmax(400px, 1fr); }
   .login-page.auth-layout > .auth-brand { padding: 32px; }
-  .auth-brand-stage { grid-template-columns: minmax(230px, 1.2fr) minmax(170px, .8fr); gap: 16px; }
+  .auth-brand-stage { grid-template-columns: minmax(230px, 1.08fr) minmax(190px, .92fr); gap: 12px; }
   .auth-brand-stage .auth-copy h2 { font-size: 34px; }
-  .kapuas-data-illustration { max-width: 230px; }
+  .kapuas-data-illustration { max-width: 270px; }
 }
 
 @media (max-width: 800px) {
@@ -916,6 +930,7 @@ html[data-theme="dark"] .login-page.auth-layout .auth-panel.login-panel { backgr
   .login-page.auth-layout > .login-illustration { display: block; }
   .login-page.auth-layout .auth-panel.login-panel { min-height: 100svh; padding: 22px 16px; }
   .login-page.auth-layout .login-identity { display: flex; }
+  .login-page.auth-layout .login-credit { display: block; }
 }
 
 @media (prefers-reduced-motion: reduce) {

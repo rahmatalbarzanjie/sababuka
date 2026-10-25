@@ -12,7 +12,6 @@ function AuthBrand() {
     <div className="auth-brand-stage">
       <KapuasDataIllustration />
       <div className="auth-copy">
-        <span className="context-label light">Sistem Analisis Big Data Kabupaten Kapuas</span>
         <h2>Data bergerak, keputusan terjaga.</h2>
         <p>Satu ruang bersama untuk memahami kondisi daerah dan membantu setiap keputusan pembangunan Kapuas menjadi lebih tepat.</p>
       </div>
@@ -23,32 +22,55 @@ function AuthBrand() {
 
 function KapuasDataIllustration() {
   return <figure className="kapuas-data-illustration" aria-hidden="true">
-    <svg viewBox="0 0 420 360" focusable="false">
+    <svg viewBox="0 0 420 400" focusable="false">
       <g className="kapuas-data-rings" fill="none">
-        <ellipse cx="210" cy="215" rx="174" ry="62" />
-        <ellipse cx="210" cy="215" rx="132" ry="44" />
+        <ellipse cx="210" cy="259" rx="187" ry="68" />
+        <ellipse cx="210" cy="259" rx="145" ry="48" />
       </g>
       <g className="kapuas-data-stream" fill="none">
-        <path d="M28 221C90 167 139 177 196 216s112 54 196-2" />
-        <path d="M42 259c67-30 121-23 166 4s92 27 166-7" />
+        <path d="M22 272c72-52 127-43 181-4s111 45 195-9" />
+        <path d="M36 310c69-31 126-24 173 3s98 27 175-8" />
       </g>
       <g className="kapuas-monument">
-        <path className="kapuas-wing left" d="M195 298H83l20-28-5-30 30-12-15-29 41-4-7-34 48 19Z" />
-        <path className="kapuas-wing right" d="M225 298h112l-20-28 5-30-30-12 15-29-41-4 7-34-48 19Z" />
-        <path className="kapuas-wing-line left" d="M185 279l-64-5 28-25-24-12 47-17-29-10 44-18" />
-        <path className="kapuas-wing-line right" d="M235 279l64-5-28-25 24-12-47-17 29-10-44-18" />
-        <path className="kapuas-column" d="M196 291 203 73h14l7 218Z" />
-        <path className="kapuas-crown" d="M210 47c8 0 13 5 13 12-7-4-12-1-13 7-1-8-6-11-13-7 0-7 5-12 13-12Zm0 0c-9-4-15-11-16-21 8 8 13 7 16-6 3 13 8 14 16 6-1 10-7 17-16 21Z" />
-        <path className="kapuas-base" d="M91 298h238l18 27H73Z" />
-        <path className="kapuas-base-line" d="M102 298h216M85 313h250" />
+        <g className="kapuas-wings left">
+          <path className="kapuas-wing-panel outer" d="M194 322H84l12-53 69 38Z" />
+          <path className="kapuas-wing-panel" d="M195 322h-89l10-101 65 77Z" />
+          <path className="kapuas-wing-panel" d="M197 322h-67l9-148 49 105Z" />
+          <path className="kapuas-wing-panel inner" d="M199 322h-45l15-178 25 114Z" />
+          <path className="kapuas-motif red" d="M98 294c19-19 35-18 52 4m-29-55c14 19 32 25 52 17m-20-81c5 21 14 37 29 49" />
+          <path className="kapuas-motif green" d="M111 307c10-30 29-44 56-43m-36-58c7 18 23 29 47 31m-10-66c-8 13-7 29 4 48" />
+          <path className="kapuas-motif gold" d="M93 282c25 8 46 2 62-17m-37-25c23 2 42-8 57-31m-23-23c13 5 24 2 34-9" />
+        </g>
+        <g transform="translate(420 0) scale(-1 1)">
+          <g className="kapuas-wings right">
+            <path className="kapuas-wing-panel outer" d="M194 322H84l12-53 69 38Z" />
+            <path className="kapuas-wing-panel" d="M195 322h-89l10-101 65 77Z" />
+            <path className="kapuas-wing-panel" d="M197 322h-67l9-148 49 105Z" />
+            <path className="kapuas-wing-panel inner" d="M199 322h-45l15-178 25 114Z" />
+            <path className="kapuas-motif red" d="M98 294c19-19 35-18 52 4m-29-55c14 19 32 25 52 17m-20-81c5 21 14 37 29 49" />
+            <path className="kapuas-motif green" d="M111 307c10-30 29-44 56-43m-36-58c7 18 23 29 47 31m-10-66c-8 13-7 29 4 48" />
+            <path className="kapuas-motif gold" d="M93 282c25 8 46 2 62-17m-37-25c23 2 42-8 57-31m-23-23c13 5 24 2 34-9" />
+          </g>
+        </g>
+        <g className="kapuas-railings">
+          <path d="M180 214h22m-29 22h29m-37 23h37m-46 23h46M240 214h-22m29 22h-29m37 23h-37m46 23h-46" />
+        </g>
+        <path className="kapuas-column" d="M198 322 203 72h14l5 250Z" />
+        <path className="kapuas-column-light" d="M210 306V84" />
+        <g className="kapuas-crown">
+          <path d="M210 73V49m0 5c-8-1-14-7-15-16 7 6 12 6 15-4m0 20c8-1 14-7 15-16-7 6-12 6-15-4m0 10c-5-7-5-15 0-24 5 9 5 17 0 24Z" />
+          <path d="M197 46c-9 1-15-2-20-9 8 2 13 0 16-7m30 16c9 1 15-2 20-9-8 2-13 0-16-7" />
+        </g>
+        <g className="kapuas-base">
+          <path d="M152 316h116l11 14H141Z" />
+          <path d="M127 330h166l14 16H113Z" />
+          <path d="M96 346h228l18 22H78Z" />
+        </g>
       </g>
       <g className="kapuas-data-nodes">
-        <circle cx="61" cy="213" r="6" /><circle cx="141" cy="185" r="5" />
-        <circle cx="210" cy="216" r="7" /><circle cx="286" cy="246" r="5" />
-        <circle cx="365" cy="221" r="6" />
-      </g>
-      <g className="kapuas-spark">
-        <path d="M210 4c2 12 7 17 19 19-12 2-17 7-19 19-2-12-7-17-19-19 12-2 17-7 19-19Z" />
+        <circle cx="45" cy="268" r="6" /><circle cx="119" cy="223" r="5" />
+        <circle cx="210" cy="264" r="7" /><circle cx="304" cy="291" r="5" />
+        <circle cx="378" cy="264" r="6" />
       </g>
     </svg>
     <figcaption><span>Kapuas terhubung</span><strong>Dari sumber data menuju kebijakan.</strong></figcaption>
