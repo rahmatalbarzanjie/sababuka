@@ -2,7 +2,7 @@ import { ArrowRight, Building2, CheckCircle2, CloudCog, Database, Download, File
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { api, jsonBody } from "../api";
 import { useAuth } from "../auth";
-import { Badge, EmptyState, ErrorState, formatDate, Modal, Notice, SortableHeader, Spinner, useAsync, type SortDirection } from "../components";
+import { Badge, ContextHelp, EmptyState, ErrorState, formatDate, Modal, Notice, SortableHeader, Spinner, useAsync, type SortDirection } from "../components";
 import type { Indicator, Organization, PageResponse } from "../types";
 
 interface Candidate { type: "category" | "indicator"; code: string; name: string; source_title: string; score: number; reason: string; status: "mapped" | "unmapped" | "ambiguous" }
@@ -21,12 +21,13 @@ const sourceLabel = (status: string) => status === "connected" ? "Terhubung" : s
 export function ConnectorsPage() {
   const { user } = useAuth();
   const isSuperadmin = user?.roles.some((role) => role.code === "superadmin" && role.scope_type === "global") ?? false;
+  const canView = user?.permissions.includes("connector.view") ?? false;
   const canManage = isSuperadmin && (user?.permissions.includes("connector.manage") ?? false);
-  const sources = useAsync(() => isSuperadmin ? api<{ data: SourceStatus[] }>("/connectors/status") : Promise.resolve({ data: [] }), [isSuperadmin]);
-  const integrations = useAsync(() => isSuperadmin ? api<{ data: IntegrationProfile[] }>("/connectors/integrations") : Promise.resolve({ data: [] }), [isSuperadmin]);
+  const sources = useAsync(() => canView ? api<{ data: SourceStatus[] }>("/connectors/status") : Promise.resolve({ data: [] }), [canView]);
+  const integrations = useAsync(() => canView ? api<{ data: IntegrationProfile[] }>("/connectors/integrations") : Promise.resolve({ data: [] }), [canView]);
   const organizations = useAsync(() => canManage ? api<PageResponse<Organization>>("/organizations?page_size=100&active=true&sort_by=name&sort_order=asc") : Promise.resolve({ data: [], meta: { page: 1, page_size: 100, total_items: 0, total_pages: 0 } } as PageResponse<Organization>), [canManage]);
   const indicators = useAsync(() => canManage ? api<PageResponse<Indicator>>("/indicators?page=1&page_size=100&sort_by=name&sort_order=asc") : Promise.resolve({ data: [], meta: { page: 1, page_size: 100, total_items: 0, total_pages: 0 } } as PageResponse<Indicator>), [canManage]);
-  const mappings = useAsync(() => isSuperadmin ? api<{ data: Mapping[] }>("/connectors/mappings") : Promise.resolve({ data: [] }), [isSuperadmin]);
+  const mappings = useAsync(() => canView ? api<{ data: Mapping[] }>("/connectors/mappings") : Promise.resolve({ data: [] }), [canView]);
   const [query, setQuery] = useState(""); const [results, setResults] = useState<CkanPackage[]>([]); const [searchBusy, setSearchBusy] = useState(false); const [error, setError] = useState(""); const [run, setRun] = useState<Run | null>(null); const [profiles, setProfiles] = useState<Record<string, ConnectionProfile>>({}); const [profileBusy, setProfileBusy] = useState<string | null>(null);
   const [integrationOpen, setIntegrationOpen] = useState(false); const [editingIntegration, setEditingIntegration] = useState<IntegrationProfile | null>(null);
   const [integrationQuery, setIntegrationQuery] = useState(""); const [readinessFilter, setReadinessFilter] = useState("all");
@@ -79,8 +80,8 @@ export function ConnectorsPage() {
     {error && <Notice tone="error">{error}</Notice>}
     <Notice tone="warning">Ruang staging privat Developer/Superadmin. Preview belum menjadi data resmi, tidak tampil pada dashboard atau publikasi, dan nilai mentahnya dihapus otomatis setelah 90 hari.</Notice>
     <section className="walidata-identity"><span><FileCheck2 /></span><div><small>Peran resmi</small><h2>Diskominfosantik sebagai Walidata Kabupaten Kapuas</h2><p>Walidata memastikan data lintas OPD memiliki metadata, struktur, sumber, dan aliran teknis yang dapat dipertanggungjawabkan. BAPPERIDA tetap memutuskan substansi indikator; OPD tetap bertanggung jawab atas isi data; Pengelola Sistem menjaga akun, keamanan, dan konfigurasi rahasia.</p></div></section>
-    {!canManage && <Notice tone="warning">Akses data staging hanya tersedia untuk Developer atau Superadmin global.</Notice>}
-    <section className="sync-pipeline" aria-label="Pipeline sinkronisasi data"><header><h2>Pipeline data end-to-end</h2><p>Setiap nilai dapat ditelusuri dari sumber sampai capaian. Data mentah tetap terisolasi di staging sebelum lolos validasi.</p></header><div><PipelineStep icon={<Building2 />} label="Sumber" detail="OPD, BPS, portal data" /><ArrowRight /><PipelineStep icon={<CloudCog />} label="Konektor" detail="Ambil sesuai jadwal" /><ArrowRight /><PipelineStep icon={<TableProperties />} label="Staging mentah" detail="Simpan 90 hari" /><ArrowRight /><PipelineStep icon={<Filter />} label="Transformasi" detail="Validasi dan normalisasi" /><ArrowRight /><PipelineStep icon={<Link2 />} label="Indikator" detail="Mapping eksplisit" /><ArrowRight /><PipelineStep icon={<Gauge />} label="Capaian" detail="Impor setelah disetujui" /></div></section>
+    {!canManage && <Notice tone="info">Anda dapat memantau sumber, pemetaan, dan hasil pemeriksaan. Perubahan konfigurasi serta impor data tetap dilakukan oleh Developer atau Superadmin global.</Notice>}
+    <section className="sync-pipeline" aria-label="Pipeline sinkronisasi data"><header><h2>Alur sinkronisasi data</h2><p>Setiap nilai dapat ditelusuri dari sumber resmi sampai capaian. Data mentah tetap terisolasi sebelum lolos pemeriksaan.</p></header><div><PipelineStep icon={<Building2 />} label="Sumber resmi" detail="OPD, BPS, portal data" /><ArrowRight /><PipelineStep icon={<CloudCog />} label="Konektor" detail="Ambil sesuai jadwal" help="Penghubung teknis yang mengambil data dari API, portal, file, atau sistem OPD tanpa langsung mengubah capaian." /><ArrowRight /><PipelineStep icon={<TableProperties />} label="Data mentah" detail="Simpan 90 hari" help="Salinan privat dari sumber sebelum dirapikan. Data ini belum resmi dan tidak tampil pada dashboard pimpinan." /><ArrowRight /><PipelineStep icon={<Filter />} label="Pengolahan" detail="Periksa dan rapikan" help="Tahap validasi, normalisasi, dan pemetaan kolom agar struktur data dapat dipakai secara konsisten." /><ArrowRight /><PipelineStep icon={<Link2 />} label="Indikator" detail="Pemetaan eksplisit" /><ArrowRight /><PipelineStep icon={<Gauge />} label="Capaian" detail="Impor setelah disetujui" /></div></section>
     <section className="panel integration-registry">
       <header className="panel-heading"><div><h2>Peta kesiapan sumber data OPD</h2><p>Website hanya diperiksa sebagai kandidat sumber. Data tidak langsung masuk ke indikator tanpa mapping dan persetujuan Walidata.</p></div>{canManage && <button className="button primary" onClick={() => { setEditingIntegration(null); setIntegrationOpen(true); }}><Plus />Daftarkan sumber OPD</button>}</header>
       {!integrations.loading && Boolean(integrations.data?.data.length) && <><div className="opd-source-summary"><div><small>Sumber terdaftar</small><strong>{integrations.data!.data.filter((item) => item.connector_kind === "html_scrape").length} OPD</strong></div><div><small>Siap dipetakan (A)</small><strong>{integrations.data!.data.filter((item) => item.connection_config?.data_readiness_grade === "A").length}</strong></div><div><small>Perlu dilengkapi (C-D)</small><strong>{integrations.data!.data.filter((item) => ["C", "D"].includes(item.connection_config?.data_readiness_grade ?? "")).length}</strong></div><div><small>Otomasi aktif</small><strong>0</strong></div></div><div className="toolbar integration-filter"><label className="search-field"><Search /><input aria-label="Cari OPD atau sumber" value={integrationQuery} onChange={(event) => setIntegrationQuery(event.target.value)} placeholder="Cari OPD atau nama sumber" /></label><label className="field compact-field"><span>Kesiapan data</span><select value={readinessFilter} onChange={(event) => setReadinessFilter(event.target.value)}><option value="all">Semua tingkat</option><option value="A">A - siap dipetakan</option><option value="B">B - sumber tersedia</option><option value="C">C - perlu dilengkapi</option><option value="D">D - belum siap</option></select></label></div></>}
@@ -114,8 +115,8 @@ export function ConnectorsPage() {
   </>;
 }
 
-function PipelineStep({ icon, label, detail }: { icon: ReactNode; label: string; detail: string }) {
-  return <div><span>{icon}</span><strong>{label}</strong><small>{detail}</small></div>;
+function PipelineStep({ icon, label, detail, help }: { icon: ReactNode; label: string; detail: string; help?: string }) {
+  return <div><span>{icon}</span><strong>{label}{help && <ContextHelp label={label}>{help}</ContextHelp>}</strong><small>{detail}</small></div>;
 }
 
 function ConnectionProfileCard({ profile }: { profile: ConnectionProfile }) {

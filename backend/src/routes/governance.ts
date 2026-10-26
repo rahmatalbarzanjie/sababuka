@@ -94,6 +94,12 @@ const indicatorTechnicalMetadataBody = {
 } as const;
 
 export async function governanceRoutes(app: FastifyInstance): Promise<void> {
+  app.get<{ Querystring: PageQueryInput & { organization_id?: string } }>("/datasets", {
+    schema: { querystring: { type: "object", additionalProperties: false, properties: { ...pageProperties, organization_id: uuid } } },
+  }, async (request) => {
+    requirePermission(request, "dataset.view");
+    return service(request).listDatasets(request.auth!, { ...pageQuery(request.query), organizationId: request.query.organization_id });
+  });
   app.get<{ Querystring: PageQueryInput }>("/policy-focuses", { schema: { querystring: { type: "object", additionalProperties: false, properties: pageProperties } } }, async (request) => {
     requirePermission(request, "policy_focus.view"); return service(request).listPolicyFocuses(pageQuery(request.query));
   });

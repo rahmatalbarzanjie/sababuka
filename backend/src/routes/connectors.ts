@@ -5,7 +5,7 @@ import { ConnectorService, type IntegrationProfileInput, type MappingInput } fro
 
 const uuid = { type: "string", format: "uuid" } as const;
 const service = (request: FastifyRequest) => new ConnectorService(request.server.db, request.server.config);
-const view = (request: FastifyRequest) => { requireSuperadmin(request); requirePermission(request, "connector.view"); };
+const view = (request: FastifyRequest) => { requirePermission(request, "connector.view"); };
 const mutate = (request: FastifyRequest) => { requireCsrf(request); requireSuperadmin(request); requirePermission(request, "connector.manage"); };
 
 const mappingBody = {

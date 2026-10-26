@@ -672,11 +672,7 @@ export interface paths {
          */
         get: operations["listDatasets"];
         put?: never;
-        /**
-         * Membuat dataset dan versi draft
-         * @description Membutuhkan `dataset.manage`; scope organisasi tetap diperiksa.
-         */
-        post: operations["createDataset"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2891,35 +2887,6 @@ export interface operations {
                     "application/json": components["schemas"]["DatasetPage"];
                 };
             };
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    createDataset: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
-                "X-CSRF-Token": components["parameters"]["CsrfToken"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DatasetCreateInput"];
-            };
-        };
-        responses: {
-            /** @description Dataset dibuat */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DatasetDetail"];
-                };
-            };
-            400: components["responses"]["ValidationError"];
             403: components["responses"]["Forbidden"];
         };
     };

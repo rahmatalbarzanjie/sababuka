@@ -31,10 +31,9 @@
 Baseline implementasi adalah kode pada branch aktif, bukan situs live yang dapat tertinggal dari deployment terbaru. Placeholder sebenarnya hanya route yang jatuh ke komponen `ComingSoon` di `App.tsx`:
 
 - `Fokus Kebijakan` (`/governance/focuses`)
-- `Dataset` (`/governance/datasets`)
 - `Profil Metadata` (`/admin/metadata-profiles`)
 
-Hanya tiga menu tersebut yang diberi badge `Segera` dan dinonaktifkan. `Profil Data OPD` (`/opd-profile`) adalah ruang kerja utama PIC OPD yang sudah dibangun melalui `OpdProfilePage.tsx` dan migration 036/039; jangan dihapus atau ditandai sebagai placeholder. `Keuangan Daerah` dan `Layanan Publik` juga sudah memiliki implementasi analisis domain.
+Hanya dua menu tersebut yang diberi badge `Segera` dan dinonaktifkan. `Dataset` (`/governance/datasets`) sudah menjadi katalog data aktif; registrasi sumber dan pengolahan data mentah tetap dilakukan satu pintu melalui Pusat Sinkronisasi Data. `Profil Data OPD` (`/opd-profile`) adalah ruang kerja utama PIC OPD yang sudah dibangun melalui `OpdProfilePage.tsx` dan migration 036/039; jangan dihapus atau ditandai sebagai placeholder. `Keuangan Daerah` dan `Layanan Publik` juga sudah memiliki implementasi analisis domain.
 
 ### 2.2 Nama kanonik (samakan sidebar = judul = breadcrumb)
 | Kode sistem | Nama kanonik (pakai di SEMUA tempat) |
@@ -167,7 +166,7 @@ Prinsip urutan: **beranda/overview → kerja harian → setelan → audit**. Uru
 
 | Peran | Urutan menu |
 |---|---|
-| **OPD** | Beranda Tugas · Profil Data OPD · Pelaporan Realisasi · Matriks Indikator · Dataset (Segera) |
+| **OPD** | Beranda Tugas · Profil Data OPD · Pelaporan Realisasi · Matriks Indikator · Dataset |
 | **Pimpinan** | Dashboard Pimpinan · Kurasi & Publikasi · Analisis & Peta · Keuangan Daerah · Layanan Publik — Asisten AI melayang |
 | **Walidata/BAPPERIDA** | Beranda Tugas · Verifikasi Pelaporan OPD · Kurasi & Publikasi · Tata Kelola/Matriks Indikator · Pusat Sinkronisasi Data · Audit |
 | **Pembina Data (BPS)** | Beranda Pembinaan · Tata Kelola/Matriks Indikator · Pelaporan Realisasi |

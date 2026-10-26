@@ -56,6 +56,17 @@ if (Test-Path $connectorKeyPath) {
 }
 $env:EVIDENCE_STORAGE_PATH = Join-Path $backendRoot "tmp\evidence"
 
+# Simpan snapshot lokal sebelum migration agar perubahan skema dapat dipulihkan.
+$backupDirectory = Join-Path $projectRoot ".tmp\db-backups"
+New-Item -ItemType Directory -Force -Path $backupDirectory | Out-Null
+$backupName = "sababuka-before-migrate-$((Get-Date).ToString('yyyyMMdd-HHmmss')).dump"
+$containerBackup = "/tmp/$backupName"
+wsl -d Ubuntu -- docker exec sababuka-local-db pg_dump -U $dbUser -d $dbName -Fc -f $containerBackup
+if ($LASTEXITCODE -ne 0) { throw "Backup database lokal gagal." }
+wsl -d Ubuntu -- docker cp "sababuka-local-db:$containerBackup" "/mnt/d/Projects/SABABUKA Bersinar/.tmp/db-backups/$backupName" | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "Salinan backup database lokal gagal." }
+Write-Host "Backup lokal: $backupName" -ForegroundColor DarkGray
+
 Push-Location $backendRoot
 try {
   pnpm db:migrate
