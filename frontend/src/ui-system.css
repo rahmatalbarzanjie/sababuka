@@ -1096,3 +1096,17 @@ html[data-theme="dark"] .check-group-locked { border-color: var(--ui-border); ba
 html[data-theme="dark"] .readiness-mobile-card > p { color: var(--dark-warning-ink); }
 html[data-theme="dark"] .check-group-locked, html[data-theme="dark"] .check-group-locked label { color: var(--ui-muted); }
 html[data-theme="dark"] .executive-trend-chart svg text { fill: var(--ui-text); }
+
+/* Filter Audit di layar kecil: tiap kontrol satu baris penuh, bukan terhimpit di grid dua kolom bawaan toolbar. */
+@media (max-width: 760px) {
+  .data-toolbar.audit-filter { grid-template-columns: minmax(0, 1fr); }
+  .data-toolbar.audit-filter > * { grid-column: 1 / -1; min-width: 0; }
+}
+
+/* Kolom yang gagal validasi tetap bertanda setelah gelembung bawaan browser hilang. */
+input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] {
+  border-color: #b53037; box-shadow: 0 0 0 1px #b53037;
+}
+html[data-theme="dark"] :is(input, select, textarea)[aria-invalid="true"] {
+  border-color: var(--dark-danger-ink); box-shadow: 0 0 0 1px var(--dark-danger-ink);
+}
