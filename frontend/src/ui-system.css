@@ -938,3 +938,125 @@ html[data-theme="dark"] .login-page.auth-layout .auth-panel.login-panel { backgr
   .login-page.auth-layout .auth-lockup .sababuka-mark-star,
   .login-page.auth-layout .auth-lockup .sababuka-mark-nodes circle:nth-child(even) { animation: none !important; }
 }
+
+/* Perbaikan mode terang: pemisah breadcrumb dan lencana netral wajib terbaca (WCAG 1.4.3). */
+.topbar-context i { color: var(--ui-muted); }
+.badge.neutral { color: #3d5369; }
+
+/* Tabel di layar kecil: kolom identitas tidak boleh menempel dan menutupi kolom lain. */
+@media (max-width: 560px) {
+  .table-scroll th:first-child,
+  .table-scroll td:first-child { position: static; box-shadow: none; }
+}
+
+/* Mode gelap: komponen status, panduan, dan kontrol yang sebelumnya tetap berlatar terang. */
+html[data-theme="dark"] {
+  --dark-success-ink: #8fe0bd;
+  --dark-success-bg: #12342a;
+  --dark-success-line: #1f5a43;
+  --dark-warning-ink: #f1d48a;
+  --dark-warning-bg: #2a2210;
+  --dark-warning-line: #5a4818;
+  --dark-danger-ink: #ffb4ba;
+  --dark-danger-bg: #301619;
+  --dark-danger-line: #6a2d33;
+  --dark-info-ink: #b9d7f3;
+  --dark-info-bg: #14263a;
+  --dark-info-line: #2b4c6e;
+}
+html[data-theme="dark"] .notice.error { color: var(--dark-danger-ink); background: var(--dark-danger-bg); border-color: var(--dark-danger-line); }
+html[data-theme="dark"] .notice.success { color: var(--dark-success-ink); background: var(--dark-success-bg); border-color: var(--dark-success-line); }
+html[data-theme="dark"] .notice.warning { color: var(--dark-warning-ink); background: var(--dark-warning-bg); border-color: var(--dark-warning-line); }
+html[data-theme="dark"] .notice.info { color: var(--dark-info-ink); background: var(--dark-info-bg); border-color: var(--dark-info-line); }
+html[data-theme="dark"] .badge.success { color: var(--dark-success-ink); background: var(--dark-success-bg); }
+html[data-theme="dark"] .badge.warning { color: var(--dark-warning-ink); background: #33280d; }
+html[data-theme="dark"] .badge.danger { color: var(--dark-danger-ink); background: #38191d; }
+html[data-theme="dark"] .badge.info { color: var(--dark-info-ink); background: var(--ui-primary-soft); }
+html[data-theme="dark"] .badge.neutral { color: #c9d5e1; background: #252f3a; }
+html[data-theme="dark"] .empty-topic,
+html[data-theme="dark"] .topic-list .empty-topic { color: var(--dark-warning-ink); background: #33280d; }
+html[data-theme="dark"] .executive-signal { color: var(--dark-success-ink); background: var(--dark-success-bg); }
+html[data-theme="dark"] .executive-signal.attention { color: var(--dark-warning-ink); background: #33280d; }
+html[data-theme="dark"] .flag-icon { color: #8fa3b8; background: #252f3a; }
+html[data-theme="dark"] .flag-icon.on { color: var(--dark-success-ink); background: var(--dark-success-bg); }
+
+html[data-theme="dark"] .pagination { background: var(--ui-surface); color: var(--ui-muted); }
+html[data-theme="dark"] .pagination strong { color: var(--ui-text); }
+html[data-theme="dark"] .task-home { border-color: var(--dark-info-line); background: var(--dark-info-bg); }
+html[data-theme="dark"] .task-home h2 { color: var(--ui-text); }
+html[data-theme="dark"] .task-home header p,
+html[data-theme="dark"] .task-card small,
+html[data-theme="dark"] .task-card p { color: var(--ui-muted); }
+html[data-theme="dark"] .task-card:hover { border-color: var(--ui-accent); background: var(--ui-surface-subtle); }
+
+html[data-theme="dark"] :where(
+  .user-workflow-banner, .review-guidance, .walidata-identity, .section-guidance,
+  .baseline-explanation, .mapping-guide, .menu-root, .readiness-metrics, .check-group-locked
+) { border-color: var(--ui-border); background: var(--ui-surface-subtle); color: var(--ui-text); }
+html[data-theme="dark"] :where(.user-workflow-banner, .review-guidance, .walidata-identity) > span,
+html[data-theme="dark"] .mapping-guide li b { background: var(--ui-primary-soft); color: var(--dark-info-ink); }
+html[data-theme="dark"] :where(.user-workflow-banner, .review-guidance) strong,
+html[data-theme="dark"] .baseline-explanation :where(strong, p),
+html[data-theme="dark"] .mapping-guide li { color: var(--ui-text); }
+html[data-theme="dark"] .walidata-identity small { color: var(--dark-success-ink); }
+html[data-theme="dark"] .readiness-metrics { background: transparent; }
+
+html[data-theme="dark"] :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  border-color: var(--ui-border); background: var(--ui-surface-subtle); color: var(--ui-text);
+}
+html[data-theme="dark"] :where(.dataset-search, .search-field) input { background: transparent; }
+html[data-theme="dark"] code { color: var(--ui-text); background: var(--ui-surface-subtle); }
+html[data-theme="dark"] .sticky-form-actions { border-color: var(--ui-border); background: rgba(21, 26, 33, .97); color: var(--ui-text); }
+html[data-theme="dark"] .status-filter button { border-color: var(--ui-border); background: var(--ui-surface-subtle); color: var(--ui-muted); }
+html[data-theme="dark"] .status-filter button:hover { border-color: var(--ui-accent); color: var(--ui-text); }
+html[data-theme="dark"] .status-filter button.active { border-color: var(--ui-primary-strong); background: var(--ui-primary); color: #fff; }
+
+html[data-theme="dark"] .nav-link { color: #b8c6d6; }
+html[data-theme="dark"] .nav-link svg { color: #8fa3b8; }
+html[data-theme="dark"] .nav-badge { border-color: var(--ui-control); color: var(--ui-muted); }
+html[data-theme="dark"] .topbar-context i { color: var(--ui-muted); }
+html[data-theme="dark"] .assistant-floating-button { border-color: var(--ui-control); }
+
+/* Paginasi boleh membungkus agar tidak melebihi lebar layar tablet. */
+.pagination { flex-wrap: wrap; }
+.pagination-summary { min-width: 0; }
+
+/* Mode gelap: tombol utama dan tombol Asisten AI memakai biru yang lolos kontras 4,5:1 dengan teks putih. */
+html[data-theme="dark"] .button.primary,
+html[data-theme="dark"] .assistant-floating-button { background: #2f6ba3; color: #fff; }
+html[data-theme="dark"] .button.primary:hover:not(:disabled),
+html[data-theme="dark"] .assistant-floating-button:hover { background: #3774ac; }
+
+/* Mode gelap: sisa panel dan chip yang masih memakai latar terang tertanam. */
+html[data-theme="dark"] :where(
+  .opd-profile-section > header, .opd-profile-subsection > header, .permission-groups > section > header,
+  .candidate-section, .detail-grid > div, .target-grid > div,
+  .reconciliation-list article, .recommendation-list article
+) { border-color: var(--ui-border); background: var(--ui-surface-subtle); color: var(--ui-text); }
+html[data-theme="dark"] .executive-priorities article { border-color: var(--dark-danger-line); background: var(--dark-danger-bg); }
+html[data-theme="dark"] .readiness-summary article > svg { background: var(--ui-primary-soft); color: var(--dark-info-ink); }
+html[data-theme="dark"] .topic-list > span { background: var(--ui-primary-soft); color: var(--dark-info-ink); }
+html[data-theme="dark"] .permission-row:hover,
+html[data-theme="dark"] tbody tr:hover { background: var(--ui-primary-soft); }
+html[data-theme="dark"] :where(.field-locked input:disabled, .field-locked select:disabled, .field-locked textarea:disabled, .check-group-locked) {
+  border-color: var(--ui-border); background: var(--ui-surface-subtle); color: var(--ui-muted);
+}
+html[data-theme="dark"] .field-lock-message,
+html[data-theme="dark"] .source-warning { color: var(--dark-warning-ink); }
+.field-lock-message { color: #5f4a14; }
+html[data-theme="dark"] .readiness-state.complete { color: var(--dark-success-ink); }
+html[data-theme="dark"] .readiness-state.incomplete,
+html[data-theme="dark"] .missing-text { color: var(--dark-warning-ink); }
+html[data-theme="dark"] .status-filter button.active { background: #2f6ba3; }
+
+/* Bilah alat boleh membungkus di tablet agar kontrol ukuran halaman tidak keluar dari layar. */
+.toolbar { flex-wrap: wrap; }
+.table-filters { flex-wrap: wrap; }
+
+/* Mode gelap: selektor ini harus lebih spesifik daripada aturan panel di styles.css. */
+html[data-theme="dark"] .permission-groups > section > header,
+html[data-theme="dark"] .trend-values span { border-color: var(--ui-border); background: var(--ui-surface-subtle); color: var(--ui-text); }
+html[data-theme="dark"] .field-locked input:disabled,
+html[data-theme="dark"] .field-locked select:disabled,
+html[data-theme="dark"] .field-locked textarea:disabled,
+html[data-theme="dark"] .check-group-locked { border-color: var(--ui-border); background: var(--ui-surface-subtle); color: var(--ui-muted); }
