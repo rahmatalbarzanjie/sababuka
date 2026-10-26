@@ -62,3 +62,12 @@ Pengembangan lokal memakai backend port 3001 dan frontend port 5173.
 - Repository pribadi pemilik adalah sumber utama; repository organisasi menjadi mirror. Verifikasi tujuan remote sebelum push.
 
 Gunakan `frontend/src/ui-system.css` dan `frontend/src/styles.css` sebagai implementasi token visual yang berjalan. Keputusan pengguna terbaru mengungguli catatan lama, lalu dokumentasikan perubahan agar `AGENTS.md`, `CLAUDE.md`, dan spesifikasi tetap sinkron.
+
+## Skill bersama
+
+Skill proyek berada di `.claude/skills/` dan dipakai bersama dengan Codex (lihat `AGENTS.md`).
+
+- `impeccable`: audit, critique, polish, dan hardening antarmuka; konteks produk ada di `PRODUCT.md`.
+- `webapp-testing`: uji aplikasi lokal dengan Playwright untuk desktop, tablet, dan mobile.
+
+Hasil audit berupa tangkapan layar atau cache alat (`.impeccable/`) tidak di-commit.

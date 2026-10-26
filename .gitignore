@@ -1,5 +1,6 @@
 # Local assistant and build workspaces
-.claude/
+.claude/*
+!.claude/skills/
 .codex-*/
 tmp/
 .pnpm-store/
