@@ -22,6 +22,12 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | null>(null);
 
+// Pengguna berperan ganda menerima entri menu yang sama dari beberapa peran; satu kode cukup tampil sekali.
+function uniqueMenu(items: MenuItem[]): MenuItem[] {
+  const seen = new Set<string>();
+  return items.filter((item) => !seen.has(item.code) && seen.add(item.code)).map((item) => ({ ...item, children: uniqueMenu(item.children ?? []) }));
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [menu, setMenu] = useState<MenuItem[]>([]);
@@ -32,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const current = await api<CurrentUser>("/me");
       const effectiveMenu = await api<{ data: MenuItem[] }>("/me/menu");
       setUser(current);
-      setMenu(effectiveMenu.data);
+      setMenu(uniqueMenu(effectiveMenu.data));
     } catch (error) {
       if (!(error instanceof ApiClientError) || error.status !== 401) throw error;
       setUser(null);
@@ -54,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCsrfToken(session.csrf_token);
     setUser(session.user);
     const effectiveMenu = await api<{ data: MenuItem[] }>("/me/menu");
-    setMenu(effectiveMenu.data);
+    setMenu(uniqueMenu(effectiveMenu.data));
     window.sessionStorage.setItem("sababuka.just_logged_in", "true");
   }, []);
 

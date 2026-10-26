@@ -22,6 +22,7 @@ export class ApiClientError extends Error {
     public readonly code: string,
     message: string,
     public readonly requestId?: string,
+    public readonly details?: Array<Record<string, unknown>>,
   ) {
     super(message);
     this.name = "ApiClientError";
@@ -68,6 +69,7 @@ export async function api<T>(
       body?.error.code ?? "HTTP_ERROR",
       body?.error.message ?? `Permintaan gagal (${response.status}).`,
       body?.error.request_id,
+      body?.error.details,
     );
   }
   if (options.mutation && typeof window !== "undefined") window.dispatchEvent(new CustomEvent("sababuka:notifications-changed"));

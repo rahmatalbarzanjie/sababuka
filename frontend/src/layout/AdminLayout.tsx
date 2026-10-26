@@ -166,11 +166,46 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
         container.setAttribute("role", "region");
         if (!container.hasAttribute("aria-label")) container.setAttribute("aria-label", "Tabel data; dapat digeser horizontal");
       });
+      // Label kolom per sel agar CSS layar kecil dapat menampilkan setiap baris sebagai kartu.
+      mainRef.current?.querySelectorAll<HTMLTableElement>(".table-scroll table").forEach((table) => {
+        table.querySelectorAll("thead th:not([scope])").forEach((header) => header.setAttribute("scope", "col"));
+        const headers = Array.from(table.querySelectorAll("thead tr:last-child th"));
+        if (!headers.length) return;
+        table.querySelectorAll("tbody tr").forEach((row) => {
+          if (row.children.length !== headers.length) return;
+          Array.from(row.children).forEach((cell, index) => {
+            const label = headers[index]?.textContent?.trim() ?? "";
+            if (cell instanceof HTMLElement && cell.dataset.label !== label) cell.dataset.label = label;
+          });
+        });
+      });
     };
     prepareScrollableTables();
     const observer = new MutationObserver(prepareScrollableTables);
     if (mainRef.current) observer.observe(mainRef.current, { childList: true, subtree: true });
     return () => observer.disconnect();
+  }, [pathname]);
+  useEffect(() => {
+    // Validasi bawaan browser (required, pattern) diteruskan sebagai aria-invalid agar terbaca pembaca layar.
+    const root = mainRef.current;
+    if (!root) return;
+    const markInvalid = (event: Event) => {
+      if (event.target instanceof HTMLElement) event.target.setAttribute("aria-invalid", "true");
+    };
+    const clearWhenValid = (event: Event) => {
+      const target = event.target;
+      if ((target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement) && target.checkValidity()) {
+        target.removeAttribute("aria-invalid");
+      }
+    };
+    root.addEventListener("invalid", markInvalid, true);
+    root.addEventListener("input", clearWhenValid, true);
+    root.addEventListener("change", clearWhenValid, true);
+    return () => {
+      root.removeEventListener("invalid", markInvalid, true);
+      root.removeEventListener("input", clearWhenValid, true);
+      root.removeEventListener("change", clearWhenValid, true);
+    };
   }, [pathname]);
   useEffect(() => {
     if (!helpOpen) return;
