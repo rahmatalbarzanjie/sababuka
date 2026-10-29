@@ -1110,3 +1110,6 @@ input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="
 html[data-theme="dark"] :is(input, select, textarea)[aria-invalid="true"] {
   border-color: var(--dark-danger-ink); box-shadow: 0 0 0 1px var(--dark-danger-ink);
 }
+
+/* Tombol Asisten AI melayang di pojok bawah; beri ruang agar aksi terakhir di halaman tidak tertutup. */
+.workspace:has(.assistant-floating-button) .page-shell { padding-bottom: 96px; }

@@ -40,7 +40,10 @@ interface CandidateSummary {
 
 interface BpsSecretRow extends QueryResultRow { encrypted_secret: string; masked_hint: string | null; last_tested_at: string | null; last_test_status: string; last_test_error: string | null }
 
-const YEARS = new Set([2025, 2026, 2027, 2028, 2029]);
+// Rentang tahun konektor mengikuti periode jabatan bupati; batas yang sama dijaga CHECK connector_staging_year_check.
+export const CONNECTOR_YEAR_MIN = 2024;
+export const CONNECTOR_YEAR_MAX = 2029;
+const YEARS = new Set(Array.from({ length: CONNECTOR_YEAR_MAX - CONNECTOR_YEAR_MIN + 1 }, (_, index) => CONNECTOR_YEAR_MIN + index));
 
 function hash(value: string): string { return createHash("sha256").update(value, "utf8").digest("hex"); }
 function asText(value: unknown): string { return value === null || value === undefined ? "" : String(value).trim(); }
@@ -310,12 +313,18 @@ export class ConnectorService {
     if (secret.length < 8 || secret.length > 512) throw new ApiError(400, "VALIDATION_ERROR", "API key BPS harus berisi 8-512 karakter.");
     const source = await this.source("BPS_KAPUAS");
     const profile = await this.buildBpsProfile(source, secret);
-    if (!profile.reachable) throw new ApiError(502, "SOURCE_UNAVAILABLE", profile.error ?? "Uji koneksi BPS gagal.");
+    // Key tetap disimpan terenkripsi walau uji gagal agar operator tidak perlu mengetik ulang; hasil uji dicatat sebagai riwayat.
+    const testStatus = profile.reachable ? "connected" : "failed";
     const encrypted = encryptSecret(secret, this.config.connectorEncryptionKey);
-    await this.db.query(`INSERT INTO sababuka.connector_secrets (source_id, encrypted_secret, masked_hint, last_tested_at, last_test_status, last_test_error, updated_by) VALUES ($1,$2,$3,now(),'connected',NULL,$4) ON CONFLICT (source_id) DO UPDATE SET encrypted_secret=EXCLUDED.encrypted_secret, masked_hint=EXCLUDED.masked_hint, last_tested_at=now(), last_test_status='connected', last_test_error=NULL, updated_by=EXCLUDED.updated_by, updated_at=now()`, [source.id, encrypted, maskSecret(secret), auth.user.id]);
-    await recordAudit(this.db, { ...audit, eventType: "connector.bps_secret_saved", entityType: "data_source", entityId: source.id, afterData: { configured: true, test_status: "connected" }, metadata: { source_code: source.code } });
-    await this.persistProfile(source, profile);
+    await this.db.query(`INSERT INTO sababuka.connector_secrets (source_id, encrypted_secret, masked_hint, last_tested_at, last_test_status, last_test_error, updated_by) VALUES ($1,$2,$3,now(),$5,$6,$4) ON CONFLICT (source_id) DO UPDATE SET encrypted_secret=EXCLUDED.encrypted_secret, masked_hint=EXCLUDED.masked_hint, last_tested_at=now(), last_test_status=EXCLUDED.last_test_status, last_test_error=EXCLUDED.last_test_error, updated_by=EXCLUDED.updated_by, updated_at=now()`, [source.id, encrypted, maskSecret(secret), auth.user.id, testStatus, profile.reachable ? null : profile.error]);
+    await recordAudit(this.db, { ...audit, eventType: "connector.bps_secret_saved", entityType: "data_source", entityId: source.id, afterData: { configured: true, test_status: testStatus, reachable: profile.reachable }, metadata: { source_code: source.code } });
+    await this.persistProfile(source, profile, auth.user.id);
     return { status: await this.getBpsSecretStatus(), profile };
+  }
+
+  async listBpsChecks(limit = 10) {
+    const result = await this.db.query<QueryResultRow & Record<string, unknown>>(`SELECT c.checked_at::text, c.reachable, c.response_ms, c.error_text, c.dataset_count FROM sababuka.connector_check_history c JOIN sababuka.data_sources s ON s.id=c.source_id WHERE s.code='BPS_KAPUAS' ORDER BY c.checked_at DESC, c.id DESC LIMIT $1`, [Math.min(Math.max(limit, 1), 50)]);
+    return { data: result.rows };
   }
 
   async clearBpsSecret(auth: AuthContext, audit: AuditContext) {
@@ -328,7 +337,7 @@ export class ConnectorService {
   async testSource(sourceCode: "SATUDATA_KAPUAS" | "BPS_KAPUAS", audit: AuditContext) {
     const source = await this.source(sourceCode);
     const profile = source.source_type === "ckan" ? await this.buildCkanProfile(source) : await this.buildBpsProfile(source);
-    await this.persistProfile(source, profile);
+    await this.persistProfile(source, profile, audit.actorId ?? null);
     if (sourceCode === "BPS_KAPUAS") await this.db.query(`UPDATE sababuka.connector_secrets SET last_tested_at=$2, last_test_status=$3, last_test_error=$4, updated_at=now() WHERE source_id=$1`, [source.id, profile.checked_at, profile.reachable ? "connected" : "failed", profile.error]);
     await recordAudit(this.db, { ...audit, eventType: "connector.connection_tested", entityType: "data_source", entityId: source.id, afterData: { reachable: profile.reachable, response_ms: profile.response_ms, candidate_summary: profile.candidate_summary }, metadata: { source_code: source.code } });
     if (!profile.reachable) {
@@ -421,8 +430,10 @@ export class ConnectorService {
     return { source_code: sourceCode, reachable: false, response_ms: Date.now() - started, platform: null, dataset_count: null, resource_count: null, publishers: [], years: [], checked_at: new Date().toISOString(), error: message, candidate_summary: { candidate_count: 0, mapped_count: 0, unmapped_count: 0, ambiguous_count: 0, candidates: [], annual_series_count: 0, structured_series_count: 0, series_candidates: [] } };
   }
 
-  private async persistProfile(source: SourceRow, profile: ConnectionProfile): Promise<void> {
+  private async persistProfile(source: SourceRow, profile: ConnectionProfile, actorId: string | null = null): Promise<void> {
     await this.db.query(`INSERT INTO sababuka.connector_connection_checks (source_id,checked_at,reachable,response_ms,platform,dataset_count,resource_count,publishers,years,error_text,candidate_summary) VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::jsonb,$10,$11::jsonb) ON CONFLICT (source_id) DO UPDATE SET checked_at=EXCLUDED.checked_at, reachable=EXCLUDED.reachable, response_ms=EXCLUDED.response_ms, platform=EXCLUDED.platform, dataset_count=EXCLUDED.dataset_count, resource_count=EXCLUDED.resource_count, publishers=EXCLUDED.publishers, years=EXCLUDED.years, error_text=EXCLUDED.error_text, candidate_summary=EXCLUDED.candidate_summary`, [source.id, profile.checked_at, profile.reachable, profile.response_ms, profile.platform, profile.dataset_count, profile.resource_count, JSON.stringify(profile.publishers), JSON.stringify(profile.years), profile.error, JSON.stringify(profile.candidate_summary)]);
+    await this.db.query(`INSERT INTO sababuka.connector_check_history (source_id,checked_at,reachable,response_ms,platform,dataset_count,resource_count,error_text,checked_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`, [source.id, profile.checked_at, profile.reachable, profile.response_ms, profile.platform, profile.dataset_count, profile.resource_count, profile.error, actorId]);
+    await this.db.query(`DELETE FROM sababuka.connector_check_history WHERE source_id=$1 AND id NOT IN (SELECT id FROM sababuka.connector_check_history WHERE source_id=$1 ORDER BY checked_at DESC, id DESC LIMIT 100)`, [source.id]);
   }
 
   private async matchCandidates(titles: string[], sourceId: string): Promise<CandidateSummary> {
@@ -542,7 +553,7 @@ export class ConnectorService {
       const geography = mapping.geography_field ? asText(raw[mapping.geography_field]) : mapping.geography_code;
       const rawValue = raw[mapping.value_field]; const numberValue = asNumber(rawValue);
       const errors: string[] = [];
-      if (!YEARS.has(year)) errors.push("Tahun harus berada dalam rentang 2025-2029.");
+      if (!YEARS.has(year)) errors.push(`Tahun harus berada dalam rentang ${CONNECTOR_YEAR_MIN}-${CONNECTOR_YEAR_MAX}.`);
       if (mapping.geography_field && geography !== mapping.geography_code) errors.push("Wilayah bukan Kabupaten Kapuas (6203).");
       if (numberValue === null && !asText(rawValue)) errors.push("Nilai kosong atau bukan angka.");
       const unit = mapping.unit_field ? asText(raw[mapping.unit_field]) : null;
