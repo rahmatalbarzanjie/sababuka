@@ -881,7 +881,7 @@ export class ConnectorService {
       // Lewati nilai yang sudah tercatat identik (indikator, periode, wilayah, nilai) agar impor ulang tidak menggandakan observasi.
       const values: typeof staging.rows = [];
       for (const item of staging.rows.filter((candidate) => Number(candidate.year) === year)) {
-        const same = await this.db.query(`SELECT 1 FROM sababuka.observations WHERE indicator_version_id=$1 AND period_id=$2 AND geography_id=$3 AND numeric_value IS NOT DISTINCT FROM $4::numeric AND text_value IS NOT DISTINCT FROM $5::text LIMIT 1`, [row.indicator_version_id, period.rows[0].id, geographyIds.get(String(item.geography_code)), item.numeric_value ?? null, item.text_value ?? null]);
+        const same = await this.db.query(`SELECT 1 FROM sababuka.observations WHERE indicator_version_id=$1 AND period_id=$2 AND (geography_id=$3 OR geography_id IS NULL) AND numeric_value IS NOT DISTINCT FROM $4::numeric AND text_value IS NOT DISTINCT FROM $5::text LIMIT 1`, [row.indicator_version_id, period.rows[0].id, geographyIds.get(String(item.geography_code)), item.numeric_value ?? null, item.text_value ?? null]);
         if (same.rows.length) skipped.push({ year, geography_code: String(item.geography_code) }); else values.push(item);
       }
       if (!values.length) continue;

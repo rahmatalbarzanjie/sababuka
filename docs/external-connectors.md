@@ -64,3 +64,7 @@ Detail teknis:
 - Ringkasan run, checksum, URL sumber, waktu pengambilan, dan audit event tetap disimpan untuk ketertelusuran.
 - Jika preview masih dibutuhkan setelah masa retensi, Developer harus mengambil ulang sumber untuk membuat run baru.
 - Perubahan masa retensi harus dibuat melalui migration baru dan dicatat pada dokumen ini; jangan menonaktifkan pembersihan hanya dari UI.
+
+### Impor tidak menggandakan data
+
+Saat impor, baris staging yang nilainya sudah tercatat identik (indikator, periode, nilai; wilayah sama atau kosong pada data lama) dilewati dan dicatat di audit sebagai `skipped_existing`. Batch tidak dibuat bila semua baris dilewati, sehingga impor ulang aman. Nilai yang berbeda tetap masuk sebagai observasi baru agar bisa direkonsiliasi.
