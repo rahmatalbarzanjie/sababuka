@@ -171,3 +171,23 @@ test("transisi mapping memberi tipe eksplisit pada $2 agar PostgreSQL tidak meno
   assert.ok(update.includes("status=$2::text"));
   assert.ok(update.includes("$2::text IN ('approved','active')"));
 });
+
+test("impor melewati nilai yang sudah tercatat identik dan tidak membuat batch kosong", async () => {
+  const statements: string[] = [];
+  const fakeDb: Database = {
+    query: async <R extends QueryResultRow>(sql: string) => {
+      statements.push(sql);
+      if (sql.includes("FROM sababuka.connector_runs r JOIN")) return result<R>([{ id: "r1", status: "ready", mapping_id: "m1", dataset_version_id: "dv1", indicator_version_id: "iv1", source_id: "s1", mapping_status: "active", indicator_status: "active", source_name: "BPS", organization_id: "o1" }] as unknown as R[]);
+      if (sql.includes("FROM sababuka.connector_staging_values WHERE run_id=$1 AND validation_status")) return result<R>([{ year: 2024, geography_code: "6203", numeric_value: "5.25", text_value: null, unit_value: "persen", validation_errors: [], source_url: "u", source_retrieved_at: "2026-01-01" }] as unknown as R[]);
+      if (sql.includes("FROM sababuka.geographies")) return result<R>([{ id: "g1" }] as unknown as R[]);
+      if (sql.includes("FROM sababuka.periods")) return result<R>([{ id: "p1" }] as unknown as R[]);
+      if (sql.includes("FROM sababuka.observations WHERE indicator_version_id")) return result<R>([{ "?column?": 1 }] as unknown as R[]);
+      return result<R>([{ id: "r1" }] as unknown as R[]);
+    },
+    connect: async () => { throw new Error("connect tidak digunakan"); },
+    end: async () => undefined,
+  };
+  await new ConnectorService(fakeDb, testConfig).importRun({ user: { id: "u1" } } as never, "r1", { actorId: "u1", requestId: "r", ipAddress: null, userAgent: null });
+  assert.ok(!statements.some((sql) => sql.includes("INSERT INTO sababuka.data_batches")));
+  assert.ok(!statements.some((sql) => sql.includes("INSERT INTO sababuka.observations")));
+});

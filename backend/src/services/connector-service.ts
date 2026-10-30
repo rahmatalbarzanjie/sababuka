@@ -874,9 +874,17 @@ export class ConnectorService {
       }
     }
     let firstBatch: string | null = null;
+    const skipped: Array<{ year: number; geography_code: string }> = [];
     for (const year of [...new Set(staging.rows.map((item) => Number(item.year)))]) {
       const period = await this.db.query<QueryResultRow & Record<string, unknown>>(`SELECT id::text FROM sababuka.periods WHERE code=$1`, [String(year)]);
       if (!period.rows[0]) throw new ApiError(400, "VALIDATION_ERROR", `Periode ${year} belum tersedia.`);
+      // Lewati nilai yang sudah tercatat identik (indikator, periode, wilayah, nilai) agar impor ulang tidak menggandakan observasi.
+      const values: typeof staging.rows = [];
+      for (const item of staging.rows.filter((candidate) => Number(candidate.year) === year)) {
+        const same = await this.db.query(`SELECT 1 FROM sababuka.observations WHERE indicator_version_id=$1 AND period_id=$2 AND geography_id=$3 AND numeric_value IS NOT DISTINCT FROM $4::numeric AND text_value IS NOT DISTINCT FROM $5::text LIMIT 1`, [row.indicator_version_id, period.rows[0].id, geographyIds.get(String(item.geography_code)), item.numeric_value ?? null, item.text_value ?? null]);
+        if (same.rows.length) skipped.push({ year, geography_code: String(item.geography_code) }); else values.push(item);
+      }
+      if (!values.length) continue;
       const existing = await this.db.query<QueryResultRow & Record<string, unknown>>(`SELECT id::text FROM sababuka.data_batches WHERE source_metadata->>'connector_run_id'=$1 AND reporting_period_id=$2`, [runId, period.rows[0].id]);
       let batchId = existing.rows[0]?.id as string | undefined;
       if (!batchId) {
@@ -884,7 +892,6 @@ export class ConnectorService {
         batchId = batch.rows[0]!.id as string;
       }
       if (!firstBatch) firstBatch = batchId;
-      const values = staging.rows.filter((item) => Number(item.year) === year);
       for (const item of values) {
         const warnings = Array.isArray(item.validation_errors) ? item.validation_errors.map(asText).filter(Boolean) : [];
         await this.db.query(`INSERT INTO sababuka.observations (batch_id,indicator_version_id,period_id,geography_id,numeric_value,text_value,quality_status,notes,created_by,source_name,source_url,source_status,source_retrieved_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'verified_calculated',$12) ON CONFLICT (batch_id,indicator_version_id,period_id,geography_id,dimension_hash) DO NOTHING`, [batchId, row.indicator_version_id, period.rows[0].id, geographyIds.get(String(item.geography_code)), item.numeric_value ?? null, item.text_value ?? null, warnings.length ? "warning" : "valid", warnings.length ? `Perlu rekonsiliasi: ${warnings.join(" ")}` : null, auth.user.id, row.source_name, item.source_url, item.source_retrieved_at]);
@@ -892,7 +899,7 @@ export class ConnectorService {
       await this.db.query(`UPDATE sababuka.data_batches SET row_count=(SELECT count(*) FROM sababuka.observations WHERE batch_id=$1), updated_at=now() WHERE id=$1`, [batchId]);
     }
     await this.db.query(`UPDATE sababuka.connector_runs SET status='imported', dry_run=false, approved_by=$2, approved_at=now(), imported_batch_id=$3, updated_at=now() WHERE id=$1`, [runId, auth.user.id, firstBatch]);
-    await recordAudit(this.db, { ...audit, eventType: "connector.import_approved", entityType: "connector_run", entityId: runId, afterData: { imported_batch_id: firstBatch, status: "imported" }, metadata: { mapping_id: row.mapping_id } });
+    await recordAudit(this.db, { ...audit, eventType: "connector.import_approved", entityType: "connector_run", entityId: runId, afterData: { imported_batch_id: firstBatch, status: "imported", skipped_existing: skipped }, metadata: { mapping_id: row.mapping_id } });
     return this.getRun(runId);
   }
 
