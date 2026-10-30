@@ -1113,3 +1113,8 @@ html[data-theme="dark"] :is(input, select, textarea)[aria-invalid="true"] {
 
 /* Tombol Asisten AI melayang di pojok bawah; beri ruang agar aksi terakhir di halaman tidak tertutup. */
 .workspace:has(.assistant-floating-button) .page-shell { padding-bottom: 96px; }
+
+.connector-form .field, .connector-form select, .connector-form input { min-width: 0; max-width: 100%; }
+/* WebKit menghitung isi opsi select panjang sebagai luapan halaman; contain memotongnya, garis fokus digeser ke dalam. */
+.connector-form select { contain: paint; text-overflow: ellipsis; }
+.connector-form select:focus-visible { outline-offset: -2px; }

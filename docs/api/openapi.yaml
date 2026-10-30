@@ -42,6 +42,8 @@ tags:
     description: Asisten AI berbasis data yang telah dipublikasikan.
   - name: Audit
     description: Penelusuran dan ekspor jejak perubahan.
+  - name: Connectors
+    description: Konektor sumber eksternal (Satu Data, BPS, situs OPD), mapping, dan staging.
 security:
   - sessionCookie: []
 paths:
@@ -1279,6 +1281,251 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/AuditPage"}
         "403": {$ref: "#/components/responses/Forbidden"}
+  /connectors/status:
+    get:
+      tags: [Connectors]
+      operationId: listConnectorSources
+      summary: Daftar sumber konektor dan status koneksinya
+      description: Membutuhkan `connector.view`.
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /connectors/integrations:
+    get:
+      tags: [Connectors]
+      operationId: listIntegrationProfiles
+      summary: Daftar profil integrasi digital OPD
+      description: Membutuhkan `connector.view`.
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    post:
+      tags: [Connectors]
+      operationId: createIntegrationProfile
+      summary: Membuat profil integrasi OPD
+      description: Hanya Superadmin dengan `connector.manage`.
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, additionalProperties: true}
+      responses:
+        "201": {$ref: "#/components/responses/ConnectorObject"}
+        "400": {$ref: "#/components/responses/ValidationError"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /connectors/integrations/{integration_id}:
+    put:
+      tags: [Connectors]
+      operationId: updateIntegrationProfile
+      summary: Memperbarui profil integrasi OPD
+      description: Hanya Superadmin dengan `connector.manage`.
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+        - name: integration_id
+          in: path
+          required: true
+          schema: {$ref: "#/components/schemas/Uuid"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, additionalProperties: true}
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "400": {$ref: "#/components/responses/ValidationError"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /connectors/integrations/{integration_id}/scrape-preview:
+    post:
+      tags: [Connectors]
+      operationId: previewWebsiteIntegration
+      summary: Pratinjau kandidat data dari situs web OPD
+      description: Hanya menghasilkan kandidat; tidak ada data yang diimpor.
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+        - name: integration_id
+          in: path
+          required: true
+          schema: {$ref: "#/components/schemas/Uuid"}
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /connectors/ckan/search:
+    get:
+      tags: [Connectors]
+      operationId: searchCkan
+      summary: Mencari dataset di Satu Data Kapuas (CKAN)
+      description: Membutuhkan `connector.view`.
+      parameters:
+        - name: q
+          in: query
+          schema: {type: string, maxLength: 200}
+        - name: rows
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 50, default: 10}
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "400": {$ref: "#/components/responses/ValidationError"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /connectors/mappings:
+    get:
+      tags: [Connectors]
+      operationId: listConnectorMappings
+      summary: Daftar mapping indikator ke sumber eksternal
+      description: Membutuhkan `connector.view`.
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    post:
+      tags: [Connectors]
+      operationId: createConnectorMapping
+      summary: Membuat mapping (status draf)
+      description: |
+        Hanya Superadmin dengan `connector.manage`. Tahun data yang diterima
+        2024-2029; target RPJMD tetap 2025-2029.
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, additionalProperties: true}
+      responses:
+        "201": {$ref: "#/components/responses/ConnectorObject"}
+        "400": {$ref: "#/components/responses/ValidationError"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /connectors/mappings/{mapping_id}/actions/{action}:
+    post:
+      tags: [Connectors]
+      operationId: transitionConnectorMapping
+      summary: Menyetujui, mengaktifkan, atau menonaktifkan mapping
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+        - name: mapping_id
+          in: path
+          required: true
+          schema: {$ref: "#/components/schemas/Uuid"}
+        - name: action
+          in: path
+          required: true
+          schema: {type: string, enum: [approve, activate, retire]}
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/InvalidTransition"}
+  /connectors/mappings/{mapping_id}/sync:
+    post:
+      tags: [Connectors]
+      operationId: syncConnectorMapping
+      summary: Mengambil data ke staging privat (preview)
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+        - name: mapping_id
+          in: path
+          required: true
+          schema: {$ref: "#/components/schemas/Uuid"}
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /connectors/runs/{run_id}:
+    get:
+      tags: [Connectors]
+      operationId: getConnectorRun
+      summary: Detail satu proses sinkronisasi
+      parameters:
+        - name: run_id
+          in: path
+          required: true
+          schema: {$ref: "#/components/schemas/Uuid"}
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /connectors/runs/{run_id}/import:
+    post:
+      tags: [Connectors]
+      operationId: importConnectorRun
+      summary: Mengimpor hasil preview yang disetujui
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+        - name: run_id
+          in: path
+          required: true
+          schema: {$ref: "#/components/schemas/Uuid"}
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/InvalidTransition"}
+  /connectors/{source_code}/test:
+    post:
+      tags: [Connectors]
+      operationId: testConnectorSource
+      summary: Menguji koneksi sumber dan mencatat riwayatnya
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+        - name: source_code
+          in: path
+          required: true
+          schema: {type: string, enum: [SATUDATA_KAPUAS, BPS_KAPUAS]}
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /connectors/bps/secret:
+    get:
+      tags: [Connectors]
+      operationId: getBpsSecretStatus
+      summary: Status kunci BPS (tanpa menampilkan kunci)
+      description: Hanya Superadmin dengan `connector_secret.view`.
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    put:
+      tags: [Connectors]
+      operationId: saveBpsSecret
+      summary: Menyimpan kunci BPS terenkripsi
+      description: |
+        Kunci tetap tersimpan walau uji koneksi gagal; hasil uji dicatat di
+        riwayat. Hanya Superadmin dengan `connector_secret.manage`.
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [api_key]
+              properties:
+                api_key: {type: string, minLength: 8, maxLength: 512, writeOnly: true}
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "400": {$ref: "#/components/responses/ValidationError"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    delete:
+      tags: [Connectors]
+      operationId: clearBpsSecret
+      summary: Menghapus kunci BPS
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /connectors/bps/checks:
+    get:
+      tags: [Connectors]
+      operationId: listBpsChecks
+      summary: Riwayat uji koneksi BPS (10 terakhir)
+      description: Hanya Superadmin dengan `connector_secret.view`.
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
   /notifications:
     get:
       tags: [System]
@@ -1374,6 +1621,11 @@ components:
       required: true
       schema: {$ref: "#/components/schemas/Uuid"}
   responses:
+    ConnectorObject:
+      description: Hasil operasi konektor (bentuk detail mengikuti operasi)
+      content:
+        application/json:
+          schema: {type: object, additionalProperties: true}
     Unauthorized:
       description: Sesi tidak tersedia atau kedaluwarsa
       content:

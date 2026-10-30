@@ -105,6 +105,22 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
       });
     }
 
+    if (fastifyError.statusCode === 413) {
+      return reply.code(413).send({
+        error: { code: "PAYLOAD_TOO_LARGE", message: "Isi permintaan terlalu besar.", request_id: request.id },
+      });
+    }
+
+    if (
+      typeof fastifyError.statusCode === "number" &&
+      fastifyError.statusCode >= 400 &&
+      fastifyError.statusCode < 500
+    ) {
+      return reply.code(fastifyError.statusCode).send({
+        error: { code: "BAD_REQUEST", message: "Permintaan tidak valid.", request_id: request.id },
+      });
+    }
+
     request.log.error({ error }, "Unhandled request error");
     return reply.code(500).send({
       error: {
