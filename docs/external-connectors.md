@@ -32,6 +32,14 @@ Ruang konektor, mapping kandidat, dan isi preview staging hanya dapat dibuka ole
 
 Mapping kandidat boleh dibuat untuk indikator berstatus `opd_verification`. Mapping draf boleh menjalankan preview, tetapi tidak dapat disetujui, diaktifkan, dijadwalkan, atau diimpor sampai indikator berstatus `approved` atau `active`. Preview tidak menulis ke `data_batches`, `observations`, dashboard pimpinan, maupun publikasi.
 
+## Rujukan data untuk OPD (hanya-baca)
+
+Saat mengusulkan atau menyusun indikator, OPD dapat membuka panel "Cari rujukan data" di formulir indikator untuk menelusuri katalog Satu Data Kapuas. Endpoint `GET /reference/datasets` memakai izin `reference.search` (OPD, BAPPERIDA, Superadmin) dan dibatasi 20 permintaan per menit.
+
+- Hanya metadata yang dikembalikan: judul, deskripsi singkat, organisasi, format, jumlah resource, dan tautan halaman dataset. URL resource, kredensial, dan nilai data tidak pernah ikut.
+- Tombol "Pakai sebagai sumber data" hanya mengisi kolom teks sumber data; OPD tetap mengisi dan menyetujui seluruh isi indikator secara manual.
+- Panel ini tidak membuat mapping, staging, atau impor. Rujukan BPS menyusul setelah penelusur BPS tersedia.
+
 ## Retensi dan penghapusan staging
 
 - Nilai mentah pada `connector_staging_values` disimpan maksimal 90 hari sejak connector run dibuat.

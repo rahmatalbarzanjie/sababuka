@@ -1526,6 +1526,28 @@ paths:
       responses:
         "200": {$ref: "#/components/responses/ConnectorObject"}
         "403": {$ref: "#/components/responses/Forbidden"}
+  /reference/datasets:
+    get:
+      tags: [Connectors]
+      operationId: searchReferenceDatasets
+      summary: Mencari rujukan metadata dataset (hanya-baca) untuk usulan indikator OPD
+      description: |
+        Membutuhkan `reference.search`. Hanya mengembalikan metadata dataset Satu Data
+        (judul, deskripsi singkat, organisasi, format, jumlah resource, tautan halaman).
+        Tidak memuat URL resource, kredensial, ataupun nilai data. Dibatasi 20 permintaan per menit.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: {type: string, minLength: 2, maxLength: 120}
+        - name: rows
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 10, default: 8}
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "400": {$ref: "#/components/responses/ValidationError"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "429": {$ref: "#/components/responses/RateLimited"}
   /notifications:
     get:
       tags: [System]
