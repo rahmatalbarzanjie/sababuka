@@ -55,7 +55,7 @@ test(
          WHERE navigation_disabled = true
          ORDER BY code`,
       );
-      assert.deepEqual(configuredPlaceholders.rows.map((item) => item.code), ["datasets", "focuses", "metadata-profiles"]);
+      assert.deepEqual(configuredPlaceholders.rows.map((item) => item.code), ["focuses", "metadata-profiles"]);
       assert.ok(configuredPlaceholders.rows.every((item) => item.badge === "Segera"));
 
       const logout = await app.inject({

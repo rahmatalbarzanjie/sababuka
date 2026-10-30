@@ -70,3 +70,12 @@ Untuk pengembangan lokal, jalankan `pnpm dev` masing-masing dari `backend/` dan 
 ## Repository dan sinkronisasi
 
 Repository pribadi pemilik adalah sumber utama. Repository organisasi adalah mirror. Sebelum push, pastikan remote lokal menunjuk ke tujuan yang benar, hindari force-push tanpa cadangan branch, dan verifikasi hash commit remote setelah sinkronisasi.
+
+## Skill bersama
+
+Skill proyek disimpan di `.claude/skills/` dan dipakai bersama oleh Codex dan Claude agar penilaian UI konsisten. Codex dapat membacanya langsung dari folder ini.
+
+- `impeccable`: audit, critique, polish, dan hardening antarmuka (hierarki, aksesibilitas, responsive, state kosong dan galat). Konteks produknya ada di `PRODUCT.md`.
+- `webapp-testing`: uji aplikasi lokal dengan Playwright (tangkapan layar desktop, tablet, mobile, log browser). Jalankan backend port 3001 dan frontend port 5173 lebih dulu.
+
+Hasil audit yang berupa tangkapan layar atau cache alat (`.impeccable/`) tidak di-commit.

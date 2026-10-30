@@ -18,6 +18,10 @@ export interface GovernancePageQuery {
   sortOrder?: "asc" | "desc" | undefined;
 }
 
+export interface DatasetPageQuery extends GovernancePageQuery {
+  organizationId?: string | undefined;
+}
+
 export type CategoryTransitionAction = "submit" | "approve" | "reject" | "reopen";
 export type IndicatorTransitionAction = "submit" | "approve" | "verify" | "activate" | "retire";
 
@@ -152,6 +156,48 @@ function translateDatabaseError(error: unknown): never {
 
 export class GovernanceService {
   constructor(private readonly db: Database) {}
+
+  async listDatasets(auth: AuthContext, query: DatasetPageQuery) {
+    const scopedOrganizations = organizationScope(auth);
+    const result = await this.db.query<CountedRow & Record<string, unknown>>(
+      `SELECT d.id::text, d.code, d.title, d.owner_organization_id::text, d.source_id::text,
+              d.is_active, d.created_at::text, d.updated_at::text,
+              owner.name AS owner_organization_name,
+              source.name AS source_name, source.source_type,
+              version.id::text AS version_id, version.version_number, version.name AS version_name,
+              version.status AS version_status, version.visibility, version.metadata_json AS metadata,
+              version.effective_from::text, version.effective_until::text,
+              COALESCE(resources.resource_count, 0)::int AS resource_count,
+              COALESCE(indicators.indicator_count, 0)::int AS indicator_count,
+              count(*) OVER()::text AS total_count,
+              count(*) FILTER (WHERE version.status IN ('approved', 'active')) OVER()::text AS active_count
+       FROM sababuka.datasets d
+       JOIN sababuka.organizations owner ON owner.id = d.owner_organization_id
+       JOIN sababuka.data_sources source ON source.id = d.source_id
+       LEFT JOIN LATERAL (
+         SELECT dv.* FROM sababuka.dataset_versions dv
+         WHERE dv.dataset_id = d.id
+         ORDER BY dv.version_number DESC LIMIT 1
+       ) version ON true
+       LEFT JOIN LATERAL (
+         SELECT count(*)::int AS resource_count FROM sababuka.data_resources dr
+         WHERE dr.dataset_version_id = version.id
+       ) resources ON true
+       LEFT JOIN LATERAL (
+         SELECT count(*)::int AS indicator_count FROM sababuka.indicator_datasets link
+         WHERE link.dataset_version_id = version.id
+       ) indicators ON true
+       WHERE d.archived_at IS NULL
+         AND ($1::text IS NULL OR d.code ILIKE '%' || $1 || '%' OR d.title ILIKE '%' || $1 || '%'
+              OR owner.name ILIKE '%' || $1 || '%' OR source.name ILIKE '%' || $1 || '%')
+         AND ($2::uuid IS NULL OR d.owner_organization_id = $2)
+         AND ($3::boolean OR d.owner_organization_id = ANY($4::uuid[]))
+       ORDER BY d.updated_at DESC, d.title ASC
+       LIMIT $5 OFFSET $6`,
+      [query.search?.trim() || null, query.organizationId ?? null, isGlobal(auth), scopedOrganizations, query.pageSize, (query.page - 1) * query.pageSize],
+    );
+    return pageEnvelope(result.rows, query.page, query.pageSize);
+  }
 
   async listPolicyFocuses(query: GovernancePageQuery) {
     const result = await this.db.query<CountedRow & Record<string, unknown>>(

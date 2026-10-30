@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight, Inbox, LoaderCircle, RefreshCw, X } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight, Inbox, Info, LoaderCircle, RefreshCw, X } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { SababukaMark } from "./branding/SababukaBrand";
 import { formatTanggal } from "./utils/date";
@@ -43,6 +43,39 @@ export function ErrorState({ title = "Data belum dapat dimuat", children, onRetr
 
 export function Badge({ tone = "neutral", children }: { tone?: "success" | "warning" | "danger" | "info" | "neutral"; children: ReactNode }) {
   return <span className={`badge ${tone}`}>{children}</span>;
+}
+
+export function ContextHelp({ label, children }: { label: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLSpanElement>(null);
+  const popoverRef = useRef<HTMLSpanElement>(null);
+  const helpId = useId();
+  useEffect(() => {
+    const closeFromPointer = (event: MouseEvent) => { if (!rootRef.current?.contains(event.target as Node)) setOpen(false); };
+    const closeFromKeyboard = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    const closeFromScroll = () => setOpen(false);
+    document.addEventListener("mousedown", closeFromPointer);
+    document.addEventListener("keydown", closeFromKeyboard);
+    window.addEventListener("scroll", closeFromScroll, true);
+    return () => {
+      document.removeEventListener("mousedown", closeFromPointer);
+      document.removeEventListener("keydown", closeFromKeyboard);
+      window.removeEventListener("scroll", closeFromScroll, true);
+    };
+  }, []);
+  useEffect(() => {
+    if (!open || !rootRef.current || !popoverRef.current) return;
+    const anchor = rootRef.current.getBoundingClientRect();
+    const popover = popoverRef.current.getBoundingClientRect();
+    const left = Math.min(Math.max(anchor.left + (anchor.width / 2) - (popover.width / 2), 12), window.innerWidth - popover.width - 12);
+    const top = anchor.bottom + popover.height + 12 > window.innerHeight ? anchor.top - popover.height - 8 : anchor.bottom + 8;
+    popoverRef.current.style.left = `${left}px`;
+    popoverRef.current.style.top = `${Math.max(12, top)}px`;
+  }, [open]);
+  return <span className="context-help" ref={rootRef}>
+    <button type="button" aria-label={`Penjelasan ${label}`} aria-expanded={open} aria-describedby={open ? helpId : undefined} onClick={() => setOpen((value) => !value)} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={(event) => { if (!rootRef.current?.contains(event.relatedTarget)) setOpen(false); }}><Info aria-hidden /></button>
+    {open && <span ref={popoverRef} id={helpId} role="tooltip" className="context-help-popover"><strong>{label}</strong><span>{children}</span></span>}
+  </span>;
 }
 
 export type SortDirection = "asc" | "desc";

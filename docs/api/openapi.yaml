@@ -835,26 +835,6 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/DatasetPage"}
         "403": {$ref: "#/components/responses/Forbidden"}
-    post:
-      tags: [Catalog]
-      operationId: createDataset
-      summary: Membuat dataset dan versi draft
-      description: Membutuhkan `dataset.manage`; scope organisasi tetap diperiksa.
-      parameters:
-        - $ref: "#/components/parameters/CsrfToken"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: {$ref: "#/components/schemas/DatasetCreateInput"}
-      responses:
-        "201":
-          description: Dataset dibuat
-          content:
-            application/json:
-              schema: {$ref: "#/components/schemas/DatasetDetail"}
-        "400": {$ref: "#/components/responses/ValidationError"}
-        "403": {$ref: "#/components/responses/Forbidden"}
   /submissions:
     get:
       tags: [Submissions]

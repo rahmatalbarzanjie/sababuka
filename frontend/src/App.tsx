@@ -25,6 +25,7 @@ const AuditPage = lazy(() => import("./pages/MonitoringPages").then((module) => 
 const NotificationsPage = lazy(() => import("./pages/MonitoringPages").then((module) => ({ default: module.NotificationsPage })));
 const OperationsPage = lazy(() => import("./pages/OperationsPage").then((module) => ({ default: module.OperationsPage })));
 const ConnectorsPage = lazy(() => import("./pages/ConnectorsPage").then((module) => ({ default: module.ConnectorsPage })));
+const DatasetPage = lazy(() => import("./pages/DatasetPage").then((module) => ({ default: module.DatasetPage })));
 const AnalysisPage = lazy(() => import("./pages/DecisionPages").then((module) => ({ default: module.AnalysisPage })));
 const FinancePage = lazy(() => import("./pages/DecisionPages").then((module) => ({ default: module.FinancePage })));
 const PublicServicesPage = lazy(() => import("./pages/DecisionPages").then((module) => ({ default: module.PublicServicesPage })));
@@ -52,7 +53,7 @@ const pageMeta: Record<string, { title: string; subtitle: string; permission?: s
   "/governance/categories": { title: "Kategori", subtitle: "Kelompokkan indikator berdasarkan fokus pembangunan daerah.", permission: "category.view" },
   "/governance/indicators": { title: "Matriks Indikator", subtitle: "Finalisasi definisi, sumber, target tahunan, serta OPD penanggung jawab indikator pembangunan.", permission: "indicator.view" },
   "/governance/focuses": { title: "Fokus Kebijakan", subtitle: "Modul fokus kebijakan sedang disiapkan.", permission: "policy_focus.view" },
-  "/governance/datasets": { title: "Dataset", subtitle: "Modul dataset sedang disiapkan.", permission: "dataset.view" },
+  "/governance/datasets": { title: "Dataset", subtitle: "Temukan dataset resmi, sumber, versi, dan keterkaitannya dengan indikator pembangunan.", permission: "dataset.view" },
   "/admin/metadata-profiles": { title: "Profil Metadata", subtitle: "Modul profil metadata sedang disiapkan.", permission: "metadata_profile.manage" },
   "/submissions": { title: "Pelaporan Realisasi", subtitle: "Isi, simpan, dan kirim realisasi indikator OPD untuk periode pelaporan.", permission: "submission.view" },
   "/reviews": { title: "Verifikasi Pelaporan OPD", subtitle: "Periksa, kembalikan, atau setujui pelaporan yang dikirim perangkat daerah.", permission: "submission.review" },
@@ -103,6 +104,7 @@ function ProtectedApp() {
   else if (pathname === "/admin/profile") content = <SecurityPage />;
   else if (pathname === "/governance/categories") content = <CategoriesPage />;
   else if (pathname === "/governance/indicators") content = <IndicatorsPage />;
+  else if (pathname === "/governance/datasets") content = <DatasetPage />;
   else if (pathname === "/submissions") content = <SubmissionsPage />;
   else if (pathname === "/reviews") content = <SubmissionsPage review />;
   else if (pathname === "/guidance") content = <SubmissionsPage guidance />;
