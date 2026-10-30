@@ -539,7 +539,7 @@ export class ConnectorService {
     if (["approve", "activate"].includes(action) && (!current.rows[0].indicator_is_active || !current.rows[0].category_is_active || current.rows[0].review_status !== "approved" || !["approved", "active"].includes(String(current.rows[0].indicator_status)))) throw new ApiError(409, "CONFLICT", "Mapping kandidat belum dapat disetujui atau diaktifkan sebelum indikator selesai diverifikasi OPD dan disetujui.");
     if (action === "approve" && current.rows[0].status !== "draft") throw new ApiError(409, "CONFLICT", "Mapping hanya dapat disetujui dari draf.");
     if (action === "activate" && !["approved", "active"].includes(current.rows[0].status as string)) throw new ApiError(409, "CONFLICT", "Mapping harus disetujui sebelum diaktifkan.");
-    await this.db.query(`UPDATE sababuka.indicator_source_mappings SET status=$2, approved_by=CASE WHEN $2 IN ('approved','active') THEN $3 ELSE approved_by END, approved_at=CASE WHEN $2 IN ('approved','active') THEN now() ELSE approved_at END, updated_at=now() WHERE id=$1`, [id, next, auth.user.id]);
+    await this.db.query(`UPDATE sababuka.indicator_source_mappings SET status=$2::text, approved_by=CASE WHEN $2::text IN ('approved','active') THEN $3::uuid ELSE approved_by END, approved_at=CASE WHEN $2::text IN ('approved','active') THEN now() ELSE approved_at END, updated_at=now() WHERE id=$1`, [id, next, auth.user.id]);
     await recordAudit(this.db, { ...audit, eventType: `connector.mapping_${action}d`, entityType: "indicator_source_mapping", entityId: id, afterData: { status: next } });
     return this.getMapping(id);
   }

@@ -153,3 +153,21 @@ test("izin reference.search hanya diberikan ke OPD, BAPPERIDA, dan Superadmin", 
   assert.ok(migration.includes("r.code IN ('opd', 'bapperida', 'superadmin')"));
   for (const forbidden of ["pimpinan", "kominfo", "connector.manage"]) assert.equal(migration.includes(forbidden), false);
 });
+
+test("transisi mapping memberi tipe eksplisit pada $2 agar PostgreSQL tidak menolak (42P08)", async () => {
+  const statements: string[] = [];
+  const row = { id: "m1", status: "draft", indicator_status: "active", indicator_is_active: true, category_is_active: true, review_status: "approved" };
+  const fakeDb: Database = {
+    query: async <R extends QueryResultRow>(sql: string) => {
+      statements.push(sql);
+      return result<R>([row] as unknown as R[]);
+    },
+    connect: async () => { throw new Error("connect tidak digunakan"); },
+    end: async () => undefined,
+  };
+  await new ConnectorService(fakeDb, testConfig).transitionMapping({ user: { id: "u1" } } as never, "m1", "approve", { actorId: "u1", requestId: "r1", ipAddress: null, userAgent: null });
+  const update = statements.find((sql) => sql.includes("UPDATE sababuka.indicator_source_mappings SET status="));
+  assert.ok(update, "UPDATE status mapping tidak dijalankan");
+  assert.ok(update.includes("status=$2::text"));
+  assert.ok(update.includes("$2::text IN ('approved','active')"));
+});
