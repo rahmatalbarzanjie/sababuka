@@ -857,7 +857,7 @@ td small { color: var(--muted); margin-top: 3px; }
   .readiness-mobile-card > footer input { width: 17px; height: 17px; accent-color: var(--navy-700); }
   .bulk-action-bar { position: static; align-items: stretch; flex-direction: column; }
   .bulk-action-bar > div { justify-content: flex-start; }
-  .connector-form { grid-template-columns: 1fr; }
+  .connector-form { grid-template-columns: minmax(0, 1fr); }
   .connector-form .connector-wide { grid-column: auto; }
   .integration-flow { grid-template-columns: 1fr 1fr; }
   .integration-flow > svg { display: none; }

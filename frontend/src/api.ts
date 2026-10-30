@@ -29,6 +29,18 @@ export class ApiClientError extends Error {
   }
 }
 
+// Detail validasi Fastify/AJV memuat instancePath ("/year_field") atau params.missingProperty.
+function invalidFieldNames(details?: Array<Record<string, unknown>>): string[] {
+  const names = new Set<string>();
+  for (const detail of details ?? []) {
+    const params = detail.params as { missingProperty?: unknown; additionalProperty?: unknown } | undefined;
+    const path = typeof detail.instancePath === "string" ? detail.instancePath.replace(/^\//, "").replace(/\//g, ".") : "";
+    const name = [path, params?.missingProperty, params?.additionalProperty].find((part) => typeof part === "string" && part !== "");
+    if (typeof name === "string") names.add(path && name !== path ? `${path}.${name}` : name);
+  }
+  return [...names].slice(0, 8);
+}
+
 export function setCsrfToken(token: string | null): void {
   if (token) sessionStorage.setItem(CSRF_KEY, token);
   else sessionStorage.removeItem(CSRF_KEY);
@@ -64,10 +76,12 @@ export async function api<T>(
     } catch {
       // The fallback below keeps network/proxy errors understandable.
     }
+    const fields = invalidFieldNames(body?.error.details);
+    const baseMessage = body?.error.message ?? `Permintaan gagal (${response.status}).`;
     throw new ApiClientError(
       response.status,
       body?.error.code ?? "HTTP_ERROR",
-      body?.error.message ?? `Permintaan gagal (${response.status}).`,
+      fields.length ? `${baseMessage} Kolom bermasalah: ${fields.join(", ")}.` : baseMessage,
       body?.error.request_id,
       body?.error.details,
     );

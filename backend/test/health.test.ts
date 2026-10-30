@@ -40,3 +40,17 @@ test("GET /api/v1/me tanpa sesi ditolak", async () => {
   assert.equal(response.headers["x-request-id"], response.json().error.request_id);
   await app.close();
 });
+
+test("galat 4xx Fastify tanpa validation dilaporkan sebagai 400, bukan 500", async () => {
+  const app = await buildApp({ config: testConfig, db: fakeDb, logger: false });
+  const response = await app.inject({
+    method: "POST",
+    url: "/api/v1/auth/login",
+    headers: { "content-type": "application/json" },
+    payload: "",
+  });
+  assert.equal(response.statusCode, 400);
+  assert.equal(response.json().error.code, "BAD_REQUEST");
+  assert.equal(response.json().error.request_id, response.headers["x-request-id"]);
+  await app.close();
+});

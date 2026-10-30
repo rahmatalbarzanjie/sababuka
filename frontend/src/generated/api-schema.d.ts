@@ -1021,6 +1021,266 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/connectors/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Daftar sumber konektor dan status koneksinya
+         * @description Membutuhkan `connector.view`.
+         */
+        get: operations["listConnectorSources"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connectors/integrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Daftar profil integrasi digital OPD
+         * @description Membutuhkan `connector.view`.
+         */
+        get: operations["listIntegrationProfiles"];
+        put?: never;
+        /**
+         * Membuat profil integrasi OPD
+         * @description Hanya Superadmin dengan `connector.manage`.
+         */
+        post: operations["createIntegrationProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connectors/integrations/{integration_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Memperbarui profil integrasi OPD
+         * @description Hanya Superadmin dengan `connector.manage`.
+         */
+        put: operations["updateIntegrationProfile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connectors/integrations/{integration_id}/scrape-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pratinjau kandidat data dari situs web OPD
+         * @description Hanya menghasilkan kandidat; tidak ada data yang diimpor.
+         */
+        post: operations["previewWebsiteIntegration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connectors/ckan/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mencari dataset di Satu Data Kapuas (CKAN)
+         * @description Membutuhkan `connector.view`.
+         */
+        get: operations["searchCkan"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connectors/mappings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Daftar mapping indikator ke sumber eksternal
+         * @description Membutuhkan `connector.view`.
+         */
+        get: operations["listConnectorMappings"];
+        put?: never;
+        /**
+         * Membuat mapping (status draf)
+         * @description Hanya Superadmin dengan `connector.manage`. Tahun data yang diterima
+         *     2024-2029; target RPJMD tetap 2025-2029.
+         */
+        post: operations["createConnectorMapping"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connectors/mappings/{mapping_id}/actions/{action}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Menyetujui, mengaktifkan, atau menonaktifkan mapping */
+        post: operations["transitionConnectorMapping"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connectors/mappings/{mapping_id}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mengambil data ke staging privat (preview) */
+        post: operations["syncConnectorMapping"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connectors/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detail satu proses sinkronisasi */
+        get: operations["getConnectorRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connectors/runs/{run_id}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mengimpor hasil preview yang disetujui */
+        post: operations["importConnectorRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connectors/{source_code}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Menguji koneksi sumber dan mencatat riwayatnya */
+        post: operations["testConnectorSource"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connectors/bps/secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Status kunci BPS (tanpa menampilkan kunci)
+         * @description Hanya Superadmin dengan `connector_secret.view`.
+         */
+        get: operations["getBpsSecretStatus"];
+        /**
+         * Menyimpan kunci BPS terenkripsi
+         * @description Kunci tetap tersimpan walau uji koneksi gagal; hasil uji dicatat di
+         *     riwayat. Hanya Superadmin dengan `connector_secret.manage`.
+         */
+        put: operations["saveBpsSecret"];
+        post?: never;
+        /** Menghapus kunci BPS */
+        delete: operations["clearBpsSecret"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connectors/bps/checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Riwayat uji koneksi BPS (10 terakhir)
+         * @description Hanya Superadmin dengan `connector_secret.view`.
+         */
+        get: operations["listBpsChecks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/notifications": {
         parameters: {
             query?: never;
@@ -1674,6 +1934,17 @@ export interface components {
         };
     };
     responses: {
+        /** @description Hasil operasi konektor (bentuk detail mengikuti operasi) */
+        ConnectorObject: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
         /** @description Sesi tidak tersedia atau kedaluwarsa */
         Unauthorized: {
             headers: {
@@ -3461,6 +3732,312 @@ export interface operations {
                     "application/json": components["schemas"]["AuditPage"];
                 };
             };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listConnectorSources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listIntegrationProfiles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createIntegrationProfile: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            201: components["responses"]["ConnectorObject"];
+            400: components["responses"]["ValidationError"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    updateIntegrationProfile: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path: {
+                integration_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            400: components["responses"]["ValidationError"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    previewWebsiteIntegration: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path: {
+                integration_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    searchCkan: {
+        parameters: {
+            query?: {
+                q?: string;
+                rows?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            400: components["responses"]["ValidationError"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listConnectorMappings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createConnectorMapping: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            201: components["responses"]["ConnectorObject"];
+            400: components["responses"]["ValidationError"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    transitionConnectorMapping: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path: {
+                mapping_id: components["schemas"]["Uuid"];
+                action: "approve" | "activate" | "retire";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["InvalidTransition"];
+        };
+    };
+    syncConnectorMapping: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path: {
+                mapping_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getConnectorRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    importConnectorRun: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path: {
+                run_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["InvalidTransition"];
+        };
+    };
+    testConnectorSource: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path: {
+                source_code: "SATUDATA_KAPUAS" | "BPS_KAPUAS";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getBpsSecretStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    saveBpsSecret: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    api_key: string;
+                };
+            };
+        };
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            400: components["responses"]["ValidationError"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    clearBpsSecret: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listBpsChecks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
             403: components["responses"]["Forbidden"];
         };
     };
