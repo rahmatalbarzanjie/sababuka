@@ -1118,3 +1118,17 @@ html[data-theme="dark"] :is(input, select, textarea)[aria-invalid="true"] {
 /* WebKit menghitung isi opsi select panjang sebagai luapan halaman; contain memotongnya, garis fokus digeser ke dalam. */
 .connector-form select { contain: paint; text-overflow: ellipsis; }
 .connector-form select:focus-visible { outline-offset: -2px; }
+
+/* Rujukan data OPD (form usul indikator): hanya-baca, memakai token agar ikut mode gelap. */
+.reference-panel { border: 1px solid var(--ui-border); border-radius: var(--ui-radius-control); background: var(--ui-surface-subtle); }
+.reference-panel > summary { cursor: pointer; padding: 11px 14px; color: var(--ui-text); font-weight: 600; }
+.reference-body { display: grid; gap: 12px; padding: 0 14px 14px; min-width: 0; }
+.reference-hint, .reference-empty { margin: 0; color: var(--ui-muted); font-size: 13px; line-height: 1.5; }
+.reference-search { display: flex; flex-wrap: wrap; gap: 8px; }
+.reference-search input { flex: 1 1 200px; min-width: 0; }
+.reference-results { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.reference-results li { display: grid; gap: 4px; min-width: 0; padding: 12px; border: 1px solid var(--ui-border); border-radius: var(--ui-radius-control); background: var(--ui-surface); overflow-wrap: anywhere; }
+.reference-results small, .reference-results p { margin: 0; color: var(--ui-muted); font-size: 13px; line-height: 1.5; }
+.reference-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 4px; }
+.reference-actions a { display: inline-flex; align-items: center; gap: 4px; color: var(--ui-accent); font-size: 13px; }
+.reference-actions a svg { width: 14px; height: 14px; }

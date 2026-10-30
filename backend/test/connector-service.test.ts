@@ -115,3 +115,41 @@ test("API key BPS tetap tersimpan terenkripsi dan uji gagal tercatat sebagai riw
     globalThis.fetch = originalFetch;
   }
 });
+
+test("rujukan data OPD hanya memuat metadata dan tidak membocorkan URL resource", async () => {
+  const originalFetch = globalThis.fetch;
+  const fakeDb: Database = {
+    query: async <R extends QueryResultRow>() => result<R>([{ id: "s1", code: "SATUDATA_KAPUAS", name: "Satu Data Kapuas", source_type: "ckan", base_url: "https://satudata.example.test/", connection_config: {}, credential_reference: null, last_checked_at: null }] as unknown as R[]),
+    connect: async () => { throw new Error("connect tidak digunakan"); },
+    end: async () => undefined,
+  };
+  globalThis.fetch = async (input) => {
+    const url = new URL(String(input));
+    assert.equal(url.searchParams.get("q"), "stunting");
+    return new Response(JSON.stringify({ success: true, result: { count: 1, results: [{
+      id: "d1", name: "angka-stunting", title: "Angka <b>Stunting</b>", notes: "**Prevalensi** stunting\n\nbalita",
+      organization: { title: "Dinas Kesehatan" },
+      resources: [{ format: "csv", url: "https://rahasia.example.test/file.csv" }, { format: "CSV", url: "https://rahasia.example.test/b.csv" }, { format: "xlsx" }],
+    }] } }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const found = await new ConnectorService(fakeDb, testConfig).searchReferenceDatasets("stunting", 5);
+    assert.equal(found.results.length, 1);
+    const item = found.results[0]!;
+    assert.equal(item.title, "Angka Stunting");
+    assert.equal(item.description, "Prevalensi stunting balita");
+    assert.deepEqual(item.formats, ["CSV", "XLSX"]);
+    assert.equal(item.resource_count, 3);
+    assert.equal(item.page_url, "https://satudata.example.test/dataset/angka-stunting");
+    assert.equal(JSON.stringify(found).includes("rahasia.example.test"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("izin reference.search hanya diberikan ke OPD, BAPPERIDA, dan Superadmin", () => {
+  const migration = readFileSync(new URL("../database/migrations/055_reference_search_permission.sql", import.meta.url), "utf8");
+  assert.ok(migration.includes("'reference.search'"));
+  assert.ok(migration.includes("r.code IN ('opd', 'bapperida', 'superadmin')"));
+  for (const forbidden of ["pimpinan", "kominfo", "connector.manage"]) assert.equal(migration.includes(forbidden), false);
+});

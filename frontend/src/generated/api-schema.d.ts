@@ -1281,6 +1281,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reference/datasets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mencari rujukan metadata dataset (hanya-baca) untuk usulan indikator OPD
+         * @description Membutuhkan `reference.search`. Hanya mengembalikan metadata dataset Satu Data
+         *     (judul, deskripsi singkat, organisasi, format, jumlah resource, tautan halaman).
+         *     Tidak memuat URL resource, kredensial, ataupun nilai data. Dibatasi 20 permintaan per menit.
+         */
+        get: operations["searchReferenceDatasets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/notifications": {
         parameters: {
             query?: never;
@@ -4039,6 +4061,24 @@ export interface operations {
         responses: {
             200: components["responses"]["ConnectorObject"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    searchReferenceDatasets: {
+        parameters: {
+            query: {
+                q: string;
+                rows?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            400: components["responses"]["ValidationError"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
         };
     };
     listNotifications: {

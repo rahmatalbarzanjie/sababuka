@@ -290,6 +290,33 @@ export class ConnectorService {
     return { source: { code: source.code, name: source.name, base_url: source.base_url }, count: payload.result.count ?? 0, results: (payload.result.results ?? []).map((item) => ({ id: item.id, name: item.name, title: item.title, notes: item.notes, organization: item.organization, resources: item.resources })) };
   }
 
+  /** Rujukan hanya-baca untuk OPD: metadata dataset saja, tanpa URL resource, kredensial, atau nilai data. */
+  async searchReferenceDatasets(query: string, rows: number) {
+    const found = await this.searchCkan(query, rows);
+    const base = (found.source.base_url ?? "").replace(/\/$/u, "");
+    const plain = (value: unknown, max: number) => {
+      const text = typeof value === "string" ? value.replace(/<[^>]*>/gu, " ").replace(/[*_#>`]/gu, "").replace(/\s+/gu, " ").trim() : "";
+      return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+    };
+    return {
+      source: { code: found.source.code, name: found.source.name },
+      count: found.count,
+      results: found.results.map((item) => {
+        const resources = Array.isArray(item.resources) ? item.resources as Array<{ format?: unknown }> : [];
+        const organization = item.organization as { title?: unknown } | null | undefined;
+        return {
+          id: String(item.id ?? ""),
+          title: plain(item.title, 200) || plain(item.name, 200),
+          description: plain(item.notes, 320),
+          organization: plain(organization?.title, 160) || null,
+          formats: [...new Set(resources.map((resource) => plain(resource.format, 16).toUpperCase()).filter(Boolean))].slice(0, 6),
+          resource_count: resources.length,
+          page_url: item.name ? `${base}/dataset/${encodeURIComponent(String(item.name))}` : null,
+        };
+      }),
+    };
+  }
+
   async getBpsSecretStatus() {
     const result = await this.db.query<BpsSecretRow>(`SELECT cs.encrypted_secret, cs.masked_hint, cs.last_tested_at::text, cs.last_test_status, cs.last_test_error FROM sababuka.connector_secrets cs JOIN sababuka.data_sources s ON s.id=cs.source_id WHERE s.code='BPS_KAPUAS'`);
     const row = result.rows[0];
