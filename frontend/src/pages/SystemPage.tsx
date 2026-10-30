@@ -32,18 +32,22 @@ function featureImpact(flag: FeatureFlag): string {
   return impacts[flag.code] ?? "Perubahan berlaku pada menu atau proses yang terkait dengan fitur ini.";
 }
 
+interface BpsCheck { checked_at: string; reachable: boolean; response_ms: number | null; error_text: string | null; }
+interface BpsSaveResult { profile: { reachable: boolean; error: string | null } }
+
 export function SystemPage() {
   const { user } = useAuth();
   const result = useAsync(() => api<Configuration>("/system/configuration"), []);
   const isSuperadmin = user?.roles.some((role) => role.code === "superadmin") ?? false;
   const bps = useAsync<BpsSecretStatus | null>(() => isSuperadmin ? api<BpsSecretStatus>("/connectors/bps/secret") : Promise.resolve(null), [isSuperadmin]);
+  const bpsChecks = useAsync<{ data: BpsCheck[] } | null>(() => isSuperadmin ? api<{ data: BpsCheck[] }>("/connectors/bps/checks") : Promise.resolve(null), [isSuperadmin]);
   const [settingOpen, setSettingOpen] = useState(false);
   const [busyCode, setBusyCode] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
   const [bpsKey, setBpsKey] = useState("");
   const [bpsEditing, setBpsEditing] = useState(false);
   const [bpsBusy, setBpsBusy] = useState(false);
-  const [bpsFeedback, setBpsFeedback] = useState<{ tone: "error" | "success"; text: string } | null>(null);
+  const [bpsFeedback, setBpsFeedback] = useState<{ tone: "error" | "success" | "warning"; text: string } | null>(null);
   async function toggleFlag(flag: FeatureFlag) {
     setBusyCode(flag.code); setMessage(null);
     try {
@@ -56,15 +60,21 @@ export function SystemPage() {
   async function saveBpsKey() {
     setBpsBusy(true); setMessage(null); setBpsFeedback(null);
     try {
-      await api<BpsSecretStatus>("/connectors/bps/secret", { method: "PUT", mutation: true, body: jsonBody({ api_key: bpsKey }) });
-      setBpsKey(""); setBpsEditing(false); bps.reload();
-      setBpsFeedback({ tone: "success", text: "API key BPS tersimpan terenkripsi dan koneksi berhasil diuji." });
+      const saved = await api<BpsSaveResult>("/connectors/bps/secret", { method: "PUT", mutation: true, body: jsonBody({ api_key: bpsKey }) });
+      setBpsKey(""); setBpsEditing(false); bps.reload(); bpsChecks.reload();
+      setBpsFeedback(saved.profile.reachable
+        ? { tone: "success", text: "API key BPS tersimpan terenkripsi dan koneksi berhasil diuji." }
+        : { tone: "warning", text: `API key tersimpan terenkripsi, tetapi uji koneksi gagal: ${saved.profile.error ?? "penyebab tidak diketahui"} Anda tidak perlu memasukkan ulang; perbaiki key lalu pilih Ganti key, atau coba Uji koneksi lagi.` });
     } catch (reason) { setBpsFeedback({ tone: "error", text: reason instanceof Error ? reason.message : "API key BPS gagal disimpan." }); }
     finally { setBpsBusy(false); }
   }
   async function testBps() {
     setBpsBusy(true); setMessage(null); setBpsFeedback(null);
-    try { await api("/connectors/BPS_KAPUAS/test", { method: "POST", mutation: true }); bps.reload(); setBpsFeedback({ tone: "success", text: "Koneksi BPS berhasil diuji." }); }
+    try {
+      const tested = await api<BpsSaveResult["profile"]>("/connectors/BPS_KAPUAS/test", { method: "POST", mutation: true });
+      bps.reload(); bpsChecks.reload();
+      setBpsFeedback(tested.reachable ? { tone: "success", text: "Koneksi BPS berhasil diuji." } : { tone: "error", text: `Koneksi BPS gagal: ${tested.error ?? "penyebab tidak diketahui"}` });
+    }
     catch (reason) { setBpsFeedback({ tone: "error", text: reason instanceof Error ? reason.message : "Uji koneksi BPS gagal." }); }
     finally { setBpsBusy(false); }
   }
@@ -80,7 +90,7 @@ export function SystemPage() {
     <section className="panel feature-settings"><header className="panel-heading"><div><span className="eyebrow">Kendali fitur</span><h2>Aktif/nonaktifkan modul</h2><p>Atur modul yang tersedia bagi pengguna.</p></div><Flag /></header><div className="flag-list">{result.data.feature_flags.map((flag) => <div key={flag.code}><span className={`flag-icon ${flag.is_enabled ? "on" : ""}`}><Flag /></span><span><strong>{flag.name}</strong><small>{flag.description || featureImpact(flag)}</small></span><span className="flag-state"><Badge tone={flag.is_enabled ? "success" : "neutral"}>{flag.is_enabled ? "Aktif" : "Nonaktif"}</Badge><label className="switch"><input aria-label={`Aktifkan ${flag.name}`} type="checkbox" checked={flag.is_enabled} disabled={busyCode === flag.code} onChange={() => toggleFlag(flag)} /><i /></label></span></div>)}</div></section>
     {isSuperadmin && <AnnouncementSettings key={result.data.settings.find((item) => item.key === "dashboard.login_announcement")?.updated_at ?? "new"} setting={result.data.settings.find((item) => item.key === "dashboard.login_announcement")} onSaved={result.reload} />}
     <section className="panel advanced-settings"><header className="panel-heading"><div><span className="eyebrow">Pengaturan lanjutan</span><h2>Parameter nonrahasia</h2><p>Untuk nilai perilaku aplikasi seperti interval penyegaran, batas tampilan, atau mode bawaan. Password, token, dan API key disimpan pada bagian Secret Konektor-bukan di sini.</p></div><button className="button secondary" onClick={() => setSettingOpen(true)}><Plus />Tambah parameter</button></header>{result.data.settings.length ? <div className="setting-list">{result.data.settings.map((setting) => <div key={setting.key}><span className="setting-icon"><Settings2 /></span><span><strong>{setting.description || setting.key}</strong><small>Kode: {setting.key}</small></span><code>{JSON.stringify(setting.value)}</code><small>{formatDate(setting.updated_at)}</small></div>)}</div> : <div className="empty-inline"><strong>Tidak ada parameter khusus.</strong><span>Aplikasi sedang memakai nilai bawaan yang aman; bagian ini boleh dibiarkan kosong.</span></div>}</section>
-    {isSuperadmin && <section className="panel"><header className="panel-heading"><div><span className="eyebrow">Secret konektor</span><h2>API BPS Kabupaten Kapuas</h2><p>Hanya Developer yang dapat melihat status atau mengubah API key. Nilai key tidak pernah ditampilkan.</p></div><KeyRound /></header>{bps.loading ? <div className="panel-loading"><Spinner label="Memuat status API BPS" /></div> : bps.data && <div className="secret-panel"><div className="detail-grid"><div><span>Status</span><strong>{bps.data.configured ? "Terkonfigurasi" : "Belum dikonfigurasi"}</strong></div><div><span>Penyimpanan</span><strong>{bps.data.storage === "encrypted_database" ? "Terenkripsi" : bps.data.storage === "environment_compatibility" ? "Environment lama" : "-"}</strong></div><div><span>Wilayah</span><strong>{bps.data.domain_code}</strong></div><div><span>Uji terakhir</span><strong>{bps.data.last_tested_at ? formatDate(bps.data.last_tested_at) : "Belum pernah"}</strong></div></div>{bps.data.masked && <p className="muted-text">Key tersimpan sebagai {bps.data.masked}.</p>}{!bps.data.master_key_configured && <Notice tone="warning">Master key konektor belum diatur. Simpan key baru akan ditolak sampai CONNECTOR_ENCRYPTION_KEY tersedia.</Notice>}{bps.data.last_test_error && <Notice tone="error">Uji terakhir: {bps.data.last_test_error}</Notice>}{bpsEditing ? <form className="form-stack" onSubmit={(event) => { event.preventDefault(); void saveBpsKey(); }}><label className="field"><span>API key BPS</span><input type="password" value={bpsKey} onChange={(event) => setBpsKey(event.target.value)} autoComplete="new-password" minLength={8} maxLength={512} required placeholder="Tempel API key BPS" /></label><div className="modal-actions"><button type="button" className="button secondary" onClick={() => { setBpsEditing(false); setBpsKey(""); }} disabled={bpsBusy}>Batal</button><button className="button primary" disabled={bpsBusy}>{bpsBusy ? "Menguji…" : "Simpan & Uji Koneksi"}</button></div></form> : <div className="modal-actions"><button className="button primary" onClick={() => setBpsEditing(true)} disabled={bpsBusy}>{bps.data.configured ? "Ganti key" : "Masukkan key"}</button><button className="button secondary" onClick={() => void testBps()} disabled={bpsBusy || !bps.data.configured}>Uji koneksi</button>{bps.data.configured && <button className="button danger" onClick={() => void removeBpsKey()} disabled={bpsBusy}>Nonaktifkan / Hapus key</button>}</div>}</div>}</section>}
+    {isSuperadmin && <section className="panel"><header className="panel-heading"><div><span className="eyebrow">Secret konektor</span><h2>API BPS Kabupaten Kapuas</h2><p>Hanya Developer yang dapat melihat status atau mengubah API key. Nilai key tidak pernah ditampilkan.</p></div><KeyRound /></header>{bps.loading ? <div className="panel-loading"><Spinner label="Memuat status API BPS" /></div> : bps.data && <div className="secret-panel"><div className="detail-grid"><div><span>Status</span><strong>{bps.data.configured ? "Terkonfigurasi" : "Belum dikonfigurasi"}</strong></div><div><span>Penyimpanan</span><strong>{bps.data.storage === "encrypted_database" ? "Terenkripsi" : bps.data.storage === "environment_compatibility" ? "Environment lama" : "-"}</strong></div><div><span>Wilayah</span><strong>{bps.data.domain_code}</strong></div><div><span>Uji terakhir</span><strong>{bps.data.last_tested_at ? formatDate(bps.data.last_tested_at) : "Belum pernah"}</strong></div></div>{bps.data.masked && <p className="muted-text">Key tersimpan sebagai {bps.data.masked}.</p>}{!bps.data.master_key_configured && <Notice tone="warning">Master key konektor belum diatur. Simpan key baru akan ditolak sampai CONNECTOR_ENCRYPTION_KEY tersedia.</Notice>}{bps.data.last_test_error && <Notice tone="error">Uji terakhir: {bps.data.last_test_error}</Notice>}{Boolean(bpsChecks.data?.data.length) && <div className="table-scroll" aria-label="Riwayat uji koneksi BPS"><table><thead><tr><th>Waktu</th><th>Hasil</th><th>Respons</th><th>Catatan</th></tr></thead><tbody>{bpsChecks.data!.data.map((check) => <tr key={check.checked_at}><td>{formatDate(check.checked_at)}</td><td><Badge tone={check.reachable ? "success" : "danger"}>{check.reachable ? "Terhubung" : "Gagal"}</Badge></td><td>{check.response_ms === null ? "-" : `${check.response_ms} ms`}</td><td>{check.error_text ?? "-"}</td></tr>)}</tbody></table></div>}{bpsEditing ? <form className="form-stack" onSubmit={(event) => { event.preventDefault(); void saveBpsKey(); }}><label className="field"><span>API key BPS</span><input type="password" value={bpsKey} onChange={(event) => setBpsKey(event.target.value)} autoComplete="new-password" minLength={8} maxLength={512} required placeholder="Tempel API key BPS" /></label><div className="modal-actions"><button type="button" className="button secondary" onClick={() => { setBpsEditing(false); setBpsKey(""); }} disabled={bpsBusy}>Batal</button><button className="button primary" disabled={bpsBusy}>{bpsBusy ? "Menguji…" : "Simpan & Uji Koneksi"}</button></div></form> : <div className="modal-actions"><button className="button primary" onClick={() => setBpsEditing(true)} disabled={bpsBusy}>{bps.data.configured ? "Ganti key" : "Masukkan key"}</button><button className="button secondary" onClick={() => void testBps()} disabled={bpsBusy || !bps.data.configured}>Uji koneksi</button>{bps.data.configured && <button className="button danger" onClick={() => void removeBpsKey()} disabled={bpsBusy}>Nonaktifkan / Hapus key</button>}</div>}</div>}</section>}
     {settingOpen && <SettingForm onClose={() => setSettingOpen(false)} onSaved={() => { setSettingOpen(false); result.reload(); }} />}
   </div>;
 }

@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import type { QueryResult } from "pg";
 import type { Database, QueryResultRow } from "../src/database.js";
-import { buildBpsDomainUrl, ConnectorService, extractBpsDomains, parseCsv } from "../src/services/connector-service.js";
+import { readFileSync } from "node:fs";
+import { buildBpsDomainUrl, CONNECTOR_YEAR_MAX, CONNECTOR_YEAR_MIN, ConnectorService, extractBpsDomains, parseCsv } from "../src/services/connector-service.js";
 import { testConfig } from "./test-config.js";
 
 function result<R extends QueryResultRow>(rows: R[]): QueryResult<R> {
@@ -71,5 +72,46 @@ test("BPS connection profile exposes sanitized metrics and candidate summary", a
   } finally {
     globalThis.fetch = originalFetch;
     if (originalKey === undefined) delete process.env.BPS_API_KEY; else process.env.BPS_API_KEY = originalKey;
+  }
+});
+
+test("rentang tahun konektor 2024-2029 konsisten dengan CHECK database", () => {
+  assert.equal(CONNECTOR_YEAR_MIN, 2024);
+  assert.equal(CONNECTOR_YEAR_MAX, 2029);
+  const migration = readFileSync(new URL("../database/migrations/053_connector_year_range_2024.sql", import.meta.url), "utf8");
+  assert.ok(migration.includes(`CHECK (year BETWEEN ${CONNECTOR_YEAR_MIN} AND ${CONNECTOR_YEAR_MAX})`));
+});
+
+test("API key BPS tetap tersimpan terenkripsi dan uji gagal tercatat sebagai riwayat", async () => {
+  const originalFetch = globalThis.fetch;
+  const plaintext = "kunci-bps-uji-gagal-2026";
+  const statements: Array<{ sql: string; params: unknown[] }> = [];
+  const fakeDb: Database = {
+    query: async <R extends QueryResultRow>(sql: string, params: unknown[] = []) => {
+      statements.push({ sql, params });
+      if (sql.includes("FROM sababuka.data_sources WHERE code")) return result<R>([{ id: "source-1", code: "BPS_KAPUAS", name: "BPS", source_type: "bps", base_url: "https://example.test/v1/api", connection_config: { domain_code: "6203" }, credential_reference: null, last_checked_at: null }] as unknown as R[]);
+      if (sql.includes("FROM sababuka.connector_secrets")) return result<R>([]);
+      return result<R>([]);
+    },
+    connect: async () => { throw new Error("connect tidak digunakan"); },
+    end: async () => undefined,
+  };
+  globalThis.fetch = async () => new Response("unauthorized", { status: 401 });
+  try {
+    const outcome = await new ConnectorService(fakeDb, testConfig).saveBpsSecret({ user: { id: "user-1" } } as never, plaintext, { actorId: "user-1", requestId: "req-save", ipAddress: null, userAgent: null });
+    assert.equal(outcome.profile.reachable, false);
+    const secretWrite = statements.find((item) => item.sql.includes("INSERT INTO sababuka.connector_secrets"));
+    assert.ok(secretWrite, "key harus tetap disimpan walau uji gagal");
+    assert.equal(secretWrite.params[4], "failed");
+    assert.match(String(secretWrite.params[5]), /ditolak/u);
+    assert.notEqual(secretWrite.params[1], plaintext);
+    assert.equal(JSON.stringify(statements.map((item) => item.params)).includes(plaintext), false, "key asli tidak boleh muncul di parameter query mana pun");
+    assert.ok(statements.some((item) => item.sql.includes("INSERT INTO sababuka.connector_connection_checks")), "hasil uji terakhir harus diperbarui");
+    const history = statements.find((item) => item.sql.includes("INSERT INTO sababuka.connector_check_history"));
+    assert.ok(history, "setiap uji gagal harus menambah riwayat");
+    assert.equal(history.params[2], false);
+    assert.equal(history.params[8], "user-1");
+  } finally {
+    globalThis.fetch = originalFetch;
   }
 });

@@ -9,13 +9,15 @@ SABABUKA memakai konektor eksplisit untuk menghubungkan indikator tahunan dengan
 
 Superadmin dapat mengelola key BPS dari **Konfigurasi Sistem → API BPS Kabupaten Kapuas**. Tombol **Simpan & Uji Koneksi** menguji key lebih dulu, lalu menyimpannya dalam bentuk terenkripsi dengan `CONNECTOR_ENCRYPTION_KEY`. Nilai key tidak pernah dikembalikan ke browser, log, audit, atau pesan error. Tombol **Nonaktifkan / Hapus key** menghapus ciphertext dari database. `BPS_API_KEY` environment tetap dibaca sebagai fallback kompatibilitas, tetapi tidak dapat ditulis dari aplikasi.
 
+Tombol **Simpan & Uji Koneksi** menyimpan key terenkripsi walau uji koneksi gagal, sehingga operator tidak perlu mengetik ulang; status gagal dan alasannya ditampilkan. Setiap uji dicatat sebagai riwayat append-only pada `connector_check_history` (maksimal 100 entri terakhir per sumber, migration 054) dan ditampilkan di panel API BPS. Key dan respons mentah tidak ikut tersimpan di riwayat.
+
 Contoh konfigurasi lokal ada di `backend/.env.example`. Jangan menyimpan API key di Git, seed, atau metadata dataset.
 Skrip demo menyimpan master key konektor di `backend/tmp/connector-encryption-key` yang di-ignore Git agar ciphertext tetap bisa dibuka setelah restart lokal; environment produksi harus menyediakan `CONNECTOR_ENCRYPTION_KEY` dari secret manager.
 
 ## Alur penggunaan
 
 1. Cari resource di katalog atau siapkan endpoint BPS.
-2. Buat mapping draf ke satu versi indikator tahunan. Mapping wajib mencantumkan field tahun, nilai, dan kode wilayah; rentang yang diterima saat ini 2025-2029 dan wilayah default Kabupaten Kapuas `6203`.
+2. Buat mapping draf ke satu versi indikator tahunan. Mapping wajib mencantumkan field tahun, nilai, dan kode wilayah; rentang yang diterima 2024-2029 (periode jabatan bupati; konstanta `CONNECTOR_YEAR_MIN`/`CONNECTOR_YEAR_MAX` dan CHECK `connector_staging_year_check`, migration 053). Target RPJMD tetap 2025-2029 dan wilayah default Kabupaten Kapuas `6203`.
 3. BAPPERIDA menyetujui lalu mengaktifkan mapping.
 4. Jalankan **Preview sinkronisasi**. Data diambil ke staging, divalidasi tahun, wilayah, nilai numerik, dan satuan. Baris yang tidak valid ditahan dan tidak masuk batch.
 5. Tinjau preview, lalu impor. Impor membuat batch `api_import` terpisah dengan checksum, URL, waktu pengambilan, dan status sumber `verified_direct`; batch manual tidak diubah.
