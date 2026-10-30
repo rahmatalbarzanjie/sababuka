@@ -11,6 +11,8 @@ import { notifyRole } from "./notification-service.js";
 
 interface SourceRow extends QueryResultRow { id: string; code: string; name: string; source_type: string; base_url: string | null; connection_config: Record<string, unknown>; credential_reference: string | null; last_checked_at: string | null }
 interface MappingRow extends QueryResultRow { id: string; indicator_version_id: string; indicator_code: string; indicator_name: string; indicator_status: string; source_id: string; source_code: string; source_type: string; external_dataset_id: string; external_resource_id: string | null; resource_url: string | null; geography_field: string | null; geography_code: string; year_field: string; value_field: string; unit_field: string | null; expected_unit: string | null; frequency: string; transform_json: Record<string, unknown>; source_priority: number; relation_type: string; status: string; dataset_version_id: string | null; created_at: string; updated_at: string }
+import { BPS_MAX_YEARS_PER_REQUEST, bpsYearWindows, buildBpsDataUrl, buildBpsVariableSearchUrl, findAmbiguousYears, findKapuasOption, parseBpsDataContent, redactBpsUrl, summarizeBpsVariables, type BpsDataFilter } from "./bps-adapter.js";
+
 type JsonObject = Record<string, unknown>;
 
 export interface ConnectionProfile {
@@ -567,8 +569,9 @@ export class ConnectorService {
           ? this.resolveGenericResource(source, mapping)
           : (() => { throw new ApiError(409, "CONNECTOR_NOT_READY", "Jenis sumber ini memakai unggah manual atau adaptor database khusus."); })();
     const format = resource.format.toLowerCase();
-    const fetched = format === "xlsx" ? await fetchBuffer(resource.url) : await fetchText(resource.url);
-    const rows = format === "json" ? this.parseJson((fetched as { text: string }).text, asText(source.connection_config.data_path))
+    const bpsData = format === "bps_data" ? await this.fetchBpsRows(source, mapping) : null;
+    const fetched = bpsData ? { checksum: bpsData.checksum } : format === "xlsx" ? await fetchBuffer(resource.url) : await fetchText(resource.url);
+    const rows = bpsData ? bpsData.rows : format === "json" ? this.parseJson((fetched as { text: string }).text, asText(source.connection_config.data_path))
       : format === "csv" ? parseCsv((fetched as { text: string }).text)
         : format === "xlsx" ? await this.parseXlsx((fetched as { buffer: Buffer }).buffer, mapping.transform_json)
           : (() => { throw new ApiError(400, "UNSUPPORTED_FORMAT", "Sinkronisasi otomatis menerima CSV, JSON, atau Excel XLSX terstruktur."); })();
@@ -714,12 +717,124 @@ export class ConnectorService {
     return { id: resource.id, url: resource.url, public_url: resource.url, format: resource.format ?? "" };
   }
 
+  private async bpsJson(source: SourceRow, buildUrl: (apiKey: string) => string): Promise<JsonObject> {
+    const secret = await this.resolveBpsSecret();
+    if (!secret) throw new ApiError(409, "CONNECTOR_WAITING_KEY", "API key BPS belum dikonfigurasi.");
+    const url = buildUrl(secret.value);
+    let response: Response;
+    try {
+      response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+    } catch {
+      throw new ApiError(502, "SOURCE_UNAVAILABLE", "WebAPI BPS tidak dapat dijangkau. Coba lagi sebentar lagi.");
+    }
+    if (response.status === 401 || response.status === 403) throw new ApiError(502, "SOURCE_UNAVAILABLE", "API key ditolak oleh WebAPI BPS.");
+    const raw = await response.text();
+    let payload: JsonObject;
+    try { payload = JSON.parse(raw) as JsonObject; } catch { throw new ApiError(502, "SOURCE_INVALID", `Respons BPS bukan JSON (${redactBpsUrl(url).slice(0, 120)}).`); }
+    if (!response.ok || asText(payload.status).toLowerCase() === "error") {
+      throw new ApiError(502, "SOURCE_UNAVAILABLE", `BPS menolak permintaan: ${asText(payload.message).replaceAll(secret.value, "***").slice(0, 200) || `HTTP ${response.status}`}`);
+    }
+    return payload;
+  }
+
+  private bpsDomain(source: SourceRow): string { return asText(source.connection_config.domain_code) || "6203"; }
+
+  /** Pencarian variabel BPS (metadata saja). Dipakai Penelusur BPS dan panel rujukan OPD. */
+  async searchBpsVariables(keyword: string, page: number) {
+    const source = await this.source("BPS_KAPUAS");
+    const payload = await this.bpsJson(source, (key) => buildBpsVariableSearchUrl(source.base_url!, this.bpsDomain(source), keyword, page, key));
+    return { source: { code: source.code, name: source.name }, domain_code: this.bpsDomain(source), ...summarizeBpsVariables(payload) };
+  }
+
+  /** Rujukan hanya-baca untuk OPD dari BPS: metadata variabel saja, tanpa nilai data. */
+  async searchReferenceBps(query: string, rows: number) {
+    const found = await this.searchBpsVariables(query, 1);
+    const clip = (value: string, max: number) => value.length > max ? `${value.slice(0, max - 1)}…` : value;
+    return {
+      source: { code: found.source.code, name: "BPS Kabupaten Kapuas" },
+      count: found.total,
+      results: found.results.slice(0, rows).map((item) => ({
+        id: item.id,
+        title: clip(item.title, 200),
+        description: clip([item.subject, item.unit ? `satuan ${item.unit}` : null, item.description].filter(Boolean).join(" · "), 320),
+        organization: "BPS Kabupaten Kapuas",
+        formats: [] as string[],
+        resource_count: 0,
+        page_url: null,
+      })),
+    };
+  }
+
+  /** Detail satu variabel: kategori (vervar/turvar), tahun tersedia, dan contoh baris agar mapping dapat dipilih tanpa menebak. */
+  async getBpsVariable(variableId: string) {
+    const source = await this.source("BPS_KAPUAS");
+    const domain = this.bpsDomain(source);
+    const windows = bpsYearWindows(CONNECTOR_YEAR_MIN - 3, CONNECTOR_YEAR_MAX);
+    let merged: ReturnType<typeof parseBpsDataContent> | null = null;
+    for (const window of windows) {
+      const payload = await this.bpsJson(source, (key) => buildBpsDataUrl(source.base_url!, domain, variableId, window, key));
+      const parsed = parseBpsDataContent(payload, {}, domain);
+      if (!merged) merged = parsed;
+      else {
+        merged.rows.push(...parsed.rows);
+        if (!merged.variable.title) merged.variable = parsed.variable;
+        if (!merged.vervars.length) merged.vervars = parsed.vervars;
+        if (!merged.turvars.length) merged.turvars = parsed.turvars;
+        if (!merged.turtahuns.length) merged.turtahuns = parsed.turtahuns;
+        if (!merged.vervar_label) merged.vervar_label = parsed.vervar_label;
+      }
+    }
+    if (!merged || !merged.variable.title) throw new ApiError(404, "NOT_FOUND", "Variabel BPS tidak ditemukan untuk Kabupaten Kapuas.");
+    merged.years = [...new Set(merged.rows.map((row) => row.tahun))].sort((a, b) => a - b);
+    const kapuas = findKapuasOption(merged.vervars);
+    const suggestedVervar = merged.vervars.length === 1 ? merged.vervars[0]!.val : kapuas?.val ?? null;
+    return {
+      variable: merged.variable,
+      vervar_label: merged.vervar_label,
+      vervars: merged.vervars,
+      turvars: merged.turvars,
+      turtahuns: merged.turtahuns,
+      years: merged.years,
+      row_count: merged.rows.length,
+      suggested_vervar: suggestedVervar,
+      suggested_vervar_reason: merged.vervars.length === 1 ? "single" : kapuas ? "kapuas" : null,
+      rows: merged.rows.slice(0, 600),
+      mapping_suggestion: {
+        source_code: source.code,
+        external_dataset_id: variableId,
+        resource_url: `${source.base_url!.replace(/\/$/u, "")}/list/model/data/domain/${domain}/var/${variableId}`,
+        year_field: "tahun",
+        value_field: "nilai",
+        unit_field: "satuan",
+        geography_code: domain,
+        expected_unit: merged.variable.unit,
+        transform_json: { bps: { vervar: suggestedVervar, turvar: merged.turvars.length === 1 ? merged.turvars[0]!.val : null, turtahun: merged.turtahuns.length === 1 ? merged.turtahuns[0]!.val : null } },
+      },
+    };
+  }
+
+  private async fetchBpsRows(source: SourceRow, mapping: MappingRow): Promise<{ rows: JsonObject[]; checksum: string }> {
+    const domain = this.bpsDomain(source);
+    const variableId = mapping.external_dataset_id;
+    const bps = (mapping.transform_json?.bps ?? {}) as Record<string, unknown>;
+    const filter: BpsDataFilter = { vervar: asText(bps.vervar) || null, turvar: asText(bps.turvar) || null, turtahun: asText(bps.turtahun) || null };
+    const rows: JsonObject[] = [];
+    for (const window of bpsYearWindows(CONNECTOR_YEAR_MIN, CONNECTOR_YEAR_MAX)) {
+      const payload = await this.bpsJson(source, (key) => buildBpsDataUrl(source.base_url!, domain, variableId, window, key));
+      rows.push(...parseBpsDataContent(payload, filter, domain).rows);
+    }
+    const ambiguous = findAmbiguousYears(rows as never);
+    if (ambiguous.length) throw new ApiError(400, "VALIDATION_ERROR", `Variabel BPS punya lebih dari satu baris pada tahun ${ambiguous.join(", ")}. Pilih kategori (vervar/turvar) pada mapping agar satu tahun hanya memiliki satu nilai.`);
+    return { rows, checksum: hash(JSON.stringify(rows)) };
+  }
+
   private async resolveBpsResource(source: SourceRow, mapping: MappingRow) {
     if (!mapping.resource_url) throw new ApiError(409, "CONNECTOR_NOT_READY", "Mapping BPS membutuhkan URL endpoint resource yang eksplisit.");
     this.assertResourceUrlAllowed(source, mapping.resource_url);
     const secret = await this.resolveBpsSecret();
     if (!secret) throw new ApiError(409, "CONNECTOR_WAITING_KEY", "API key BPS belum dikonfigurasi.");
     const url = new URL(mapping.resource_url);
+    if (url.pathname.includes("/list/model/data/")) return { id: mapping.external_resource_id ?? mapping.external_dataset_id, url: mapping.resource_url, public_url: mapping.resource_url, format: "bps_data" };
     url.searchParams.set("key", secret.value);
     return { id: mapping.external_resource_id ?? mapping.external_dataset_id, url: url.toString(), public_url: mapping.resource_url, format: "json" };
   }

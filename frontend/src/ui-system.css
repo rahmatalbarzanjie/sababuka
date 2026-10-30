@@ -1132,3 +1132,19 @@ html[data-theme="dark"] :is(input, select, textarea)[aria-invalid="true"] {
 .reference-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 4px; }
 .reference-actions a { display: inline-flex; align-items: center; gap: 4px; color: var(--ui-accent); font-size: 13px; }
 .reference-actions a svg { width: 14px; height: 14px; }
+
+/* Penelusur BPS (halaman Konektor). */
+.bps-explorer .bps-empty, .bps-count { margin: 0; color: var(--ui-muted); font-size: 13px; line-height: 1.5; }
+.bps-explorer .bps-results, .bps-explorer .bps-detail { display: grid; gap: 12px; padding: 0 20px 20px; min-width: 0; }
+.bps-explorer .bps-empty { padding: 0 20px 20px; }
+.bps-results ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.bps-results li { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; padding: 12px; border: 1px solid var(--ui-border); border-radius: var(--ui-radius-control); background: var(--ui-surface); }
+.bps-results li.selected { border-color: var(--ui-accent); background: var(--ui-active); }
+.bps-results li > span { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.bps-results li small { color: var(--ui-muted); }
+.bps-pager { display: flex; gap: 8px; flex-wrap: wrap; }
+.bps-detail { border-top: 1px solid var(--ui-rule); padding-top: 16px; }
+.bps-detail h3 { margin: 0; font-size: 16px; overflow-wrap: anywhere; }
+.bps-applied { color: var(--ui-muted); font-size: 13px; }
+@media (max-width: 560px) { .bps-results li { flex-wrap: wrap; } .bps-results li .button { width: 100%; } }
+.reference-source { display: flex; flex-wrap: wrap; gap: 8px; }

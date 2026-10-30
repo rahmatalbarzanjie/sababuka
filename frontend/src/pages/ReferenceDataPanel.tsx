@@ -29,6 +29,7 @@ export function ReferenceDataPanel({ onUse }: { onUse(reference: string): void }
   const [error, setError] = useState("");
   const [response, setResponse] = useState<ReferenceResponse | null>(null);
   const [used, setUsed] = useState<string | null>(null);
+  const [source, setSource] = useState<"satudata" | "bps">("satudata");
 
   const search = async (event: { preventDefault(): void; stopPropagation(): void }) => {
     event.preventDefault();
@@ -38,7 +39,7 @@ export function ReferenceDataPanel({ onUse }: { onUse(reference: string): void }
     setBusy(true);
     setError("");
     try {
-      setResponse(await api<ReferenceResponse>(`/reference/datasets?q=${encodeURIComponent(term)}`));
+      setResponse(await api<ReferenceResponse>(`/reference/datasets?q=${encodeURIComponent(term)}&source=${source}`));
     } catch (caught) {
       setResponse(null);
       setError(caught instanceof Error ? caught.message : "Rujukan data belum dapat dimuat.");
@@ -52,14 +53,19 @@ export function ReferenceDataPanel({ onUse }: { onUse(reference: string): void }
       <summary>Cari rujukan data (opsional)</summary>
       <div className="reference-body">
         <p className="reference-hint">
-          Telusuri katalog Satu Data Kapuas untuk melihat apakah data serupa sudah tercatat. Hasil hanya rujukan; isi kolom
+          Telusuri katalog Satu Data Kapuas atau variabel BPS untuk melihat apakah data serupa sudah tercatat. Hasil hanya rujukan; isi kolom
           sumber data secara manual atau pakai tombol di bawah.
         </p>
+        <div className="reference-source" role="group" aria-label="Sumber rujukan">
+          {([["satudata", "Satu Data Kapuas"], ["bps", "BPS Kabupaten Kapuas"]] as const).map(([value, label]) => (
+            <button key={value} type="button" className={`button compact ${source === value ? "primary" : "secondary"}`} aria-pressed={source === value} onClick={() => { setSource(value); setResponse(null); setError(""); setUsed(null); }}>{label}</button>
+          ))}
+        </div>
         <div className="reference-search" role="search">
           <input
             type="search"
             aria-label="Kata kunci rujukan data"
-            placeholder="Contoh: stunting, produksi padi"
+            placeholder={source === "bps" ? "Contoh: pengangguran, IPM" : "Contoh: stunting, produksi padi"}
             value={query}
             minLength={2}
             maxLength={120}
@@ -89,7 +95,7 @@ export function ReferenceDataPanel({ onUse }: { onUse(reference: string): void }
                     >
                       {used === item.id ? "Dipakai sebagai sumber data" : "Pakai sebagai sumber data"}
                     </button>
-                    {item.page_url && <a href={item.page_url} target="_blank" rel="noopener noreferrer">Buka di Satu Data<ExternalLink aria-hidden="true" /></a>}
+                    {item.page_url && <a href={item.page_url} target="_blank" rel="noopener noreferrer">Buka halaman dataset<ExternalLink aria-hidden="true" /></a>}
                   </span>
                 </li>
               ))}
