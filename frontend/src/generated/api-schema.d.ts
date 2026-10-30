@@ -1261,6 +1261,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/connectors/bps/variables": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mencari variabel BPS Kabupaten Kapuas (Penelusur BPS)
+         * @description Membutuhkan `connector.view`. Hanya metadata variabel.
+         */
+        get: operations["searchBpsVariables"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connectors/bps/variables/{variable_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Detail variabel BPS beserta kategori, tahun tersedia, dan saran mapping
+         * @description Membutuhkan `connector.view`. Mengambil data 2021-2029 dalam jendela 3 tahun (batas WebAPI BPS)
+         *     dan memilih baris Kabupaten Kapuas otomatis pada tabel tingkat provinsi.
+         */
+        get: operations["getBpsVariable"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/connectors/bps/checks": {
         parameters: {
             query?: never;
@@ -4050,6 +4091,40 @@ export interface operations {
             403: components["responses"]["Forbidden"];
         };
     };
+    searchBpsVariables: {
+        parameters: {
+            query?: {
+                q?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+            502: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getBpsVariable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                variable_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            502: components["responses"]["ServiceUnavailable"];
+        };
+    };
     listBpsChecks: {
         parameters: {
             query?: never;
@@ -4068,6 +4143,8 @@ export interface operations {
             query: {
                 q: string;
                 rows?: number;
+                /** @description Sumber rujukan; `bps` memakai WebAPI BPS lewat backend (kunci tidak pernah dikirim ke klien). */
+                source?: "satudata" | "bps";
             };
             header?: never;
             path?: never;

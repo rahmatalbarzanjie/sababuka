@@ -40,6 +40,22 @@ Saat mengusulkan atau menyusun indikator, OPD dapat membuka panel "Cari rujukan 
 - Tombol "Pakai sebagai sumber data" hanya mengisi kolom teks sumber data; OPD tetap mengisi dan menyetujui seluruh isi indikator secara manual.
 - Panel ini tidak membuat mapping, staging, atau impor. Rujukan BPS menyusul setelah penelusur BPS tersedia.
 
+## Penelusur BPS dan adaptor format BPS
+
+Di halaman Konektor, panel "Cari variabel BPS Kabupaten Kapuas" membantu membuat mapping tanpa mengetik endpoint dan kolom secara manual:
+
+1. Cari kata kunci; hasil berupa variabel BPS (judul, subjek, satuan).
+2. Pilih variabel. Backend mengambil data 2021-2029 dan menampilkan kategori (`vervar`/`turvar`), tahun yang tersedia, dan pratinjau nilai. Pada tabel tingkat provinsi (baris = kabupaten/kota), baris "Kapuas" dipilih otomatis.
+3. "Isi form mapping otomatis" mengisi endpoint, kolom `tahun`/`nilai`/`satuan`, kode wilayah 6203, dan pilihan kategori. Pemilihan indikator dan penyimpanan tetap dilakukan manual.
+
+Detail teknis:
+
+- Respons data BPS (`list/model/data`) memakai `datacontent` dengan kunci gabungan `vervar + var + turvar + tahun + turtahun`. Adaptor ada di `backend/src/services/bps-adapter.ts` dan diuji dengan sampel respons asli.
+- WebAPI BPS membatasi parameter `th` maksimum 3 tahun per permintaan; sinkronisasi memecah 2024-2029 menjadi dua permintaan. Jendela tanpa data mengembalikan `datacontent: []` dan diperlakukan sebagai nol baris.
+- Mapping BPS menyimpan pilihan kategori di `transform_json.bps`. Bila satu tahun masih memiliki lebih dari satu nilai, sinkronisasi ditolak dengan pesan agar kategori dipilih lebih spesifik.
+- Variabel yang hanya punya data sebelum 2024 tetap dapat dipetakan, tetapi pratinjau memberi peringatan dan staging hanya menerima tahun 2024-2029.
+- Kunci API hanya dipakai di backend dan disamarkan pada URL yang dicatat. OPD dapat mencari rujukan BPS (hanya metadata) lewat panel "Cari rujukan data" dengan sumber "BPS Kabupaten Kapuas".
+
 ## Retensi dan penghapusan staging
 
 - Nilai mentah pada `connector_staging_values` disimpan maksimal 90 hari sejak connector run dibuat.
