@@ -32,10 +32,10 @@ const OpdProfilePage = lazy(() => import("./pages/OpdProfilePage").then((module)
 const OpdMonitoringPage = lazy(() => import("./pages/OpdMonitoringPage").then((module) => ({ default: module.OpdMonitoringPage })));
 
 const pageMeta: Record<string, { title: string; subtitle: string; permission?: string }> = {
-  "/admin": { title: "Beranda Administrasi", subtitle: "Ringkasan konfigurasi, akses pengguna, dan kesiapan sistem.", permission: "system.configure" },
-  "/dashboard": { title: "Beranda SABABUKA", subtitle: "Ringkasan data yang aman untuk pembacaan pimpinan.", permission: "executive_dashboard.view" },
+  "/admin": { title: "Dashboard Sistem", subtitle: "Kesehatan layanan dan pekerjaan administrasi yang perlu ditindaklanjuti.", permission: "system.configure" },
+  "/dashboard": { title: "Dashboard Pimpinan", subtitle: "Ringkasan data yang aman untuk pembacaan pimpinan.", permission: "executive_dashboard.view" },
   "/executive": { title: "Ringkasan Pimpinan", subtitle: "Capaian terkurasi dari data yang telah disetujui dan dipublikasikan.", permission: "executive_dashboard.view" },
-  "/assistant": { title: "Asisten Data", subtitle: "Asisten pimpinan berbasis data SABABUKA yang telah dipublikasikan.", permission: "assistant.use" },
+  "/assistant": { title: "Asisten AI", subtitle: "Asisten pimpinan berbasis data SABABUKA yang telah dipublikasikan.", permission: "assistant.use" },
   "/analysis": { title: "Analisis dan Peta", subtitle: "Baca tren, kesenjangan wilayah, konsistensi sumber, dan rekomendasi keputusan.", permission: "executive_dashboard.view" },
   "/finance": { title: "Keuangan Daerah", subtitle: "Analisis indikator pendapatan, belanja, fiskal, dan akuntabilitas keuangan.", permission: "executive_dashboard.view" },
   "/public-services": { title: "Layanan Publik", subtitle: "Analisis cakupan, mutu, kepuasan, SLA, dan pengaduan layanan.", permission: "executive_dashboard.view" },
@@ -49,13 +49,16 @@ const pageMeta: Record<string, { title: string; subtitle: string; permission?: s
   "/admin/menus": { title: "Pengaturan Menu", subtitle: "Tentukan menu yang tampil untuk setiap peran.", permission: "menu.manage" },
   "/admin/system": { title: "Konfigurasi Sistem", subtitle: "Kelola kendali fitur dan parameter aplikasi yang tidak bersifat rahasia.", permission: "system.configure" },
   "/admin/profile": { title: "Keamanan Akun", subtitle: "Kelola Authenticator dan perlindungan akun Anda." },
-  "/governance/categories": { title: "Kelompok Isu", subtitle: "Kelompokkan indikator berdasarkan fokus pembangunan daerah.", permission: "category.view" },
+  "/governance/categories": { title: "Kategori", subtitle: "Kelompokkan indikator berdasarkan fokus pembangunan daerah.", permission: "category.view" },
   "/governance/indicators": { title: "Matriks Indikator", subtitle: "Finalisasi definisi, sumber, target tahunan, serta OPD penanggung jawab indikator pembangunan.", permission: "indicator.view" },
+  "/governance/focuses": { title: "Fokus Kebijakan", subtitle: "Modul fokus kebijakan sedang disiapkan.", permission: "policy_focus.view" },
+  "/governance/datasets": { title: "Dataset", subtitle: "Modul dataset sedang disiapkan.", permission: "dataset.view" },
+  "/admin/metadata-profiles": { title: "Profil Metadata", subtitle: "Modul profil metadata sedang disiapkan.", permission: "metadata_profile.manage" },
   "/submissions": { title: "Pelaporan Realisasi", subtitle: "Isi, simpan, dan kirim realisasi indikator OPD untuk periode pelaporan.", permission: "submission.view" },
   "/reviews": { title: "Verifikasi Pelaporan OPD", subtitle: "Periksa, kembalikan, atau setujui pelaporan yang dikirim perangkat daerah.", permission: "submission.review" },
   "/guidance": { title: "Pembinaan Data Statistik", subtitle: "Telaah standar, metadata, metodologi, dan konsistensi tanpa mengubah data milik produsen.", permission: "statistical_guidance.view" },
-  "/publications": { title: "Kurasi dan Publikasi", subtitle: "Pilih capaian yang disetujui sebelum diterbitkan ke dashboard pimpinan.", permission: "publication.view" },
-  "/connectors": { title: "Ruang Walidata", subtitle: "Kelola kualitas teknis, metadata, interoperabilitas, dan kesehatan aliran data daerah.", permission: "connector.view" },
+  "/publications": { title: "Kurasi & Publikasi", subtitle: "Pilih capaian yang disetujui sebelum diterbitkan ke dashboard pimpinan.", permission: "publication.view" },
+  "/connectors": { title: "Pusat Sinkronisasi Data", subtitle: "Telusuri sumber, staging mentah, transformasi, indikator, dan capaian dalam satu pipeline.", permission: "connector.view" },
   "/opd-profile": { title: "Profil Data OPD", subtitle: "Konfirmasi PIC, sumber data, dokumen acuan, dan baseline OPD.", permission: "submission.view" },
 };
 
@@ -65,7 +68,7 @@ function ProtectedApp() {
   useEffect(() => {
     if (!loading && !user && !["/login", "/activate", "/register"].includes(pathname)) navigate("/login");
     if (!loading && user?.must_change_password && pathname !== "/security/setup") navigate("/security/setup");
-    if (!loading && user && (pathname === "/" || pathname === "/login" || pathname === "/register")) {
+    if (!loading && user && ["/", "/login", "/register", "/design-lab/fresh"].includes(pathname)) {
       const landing = user.roles.some((role) => role.code === "superadmin") ? "/admin"
         : user.roles.some((role) => role.code === "pimpinan") ? "/dashboard"
         : user.roles.some((role) => role.code === "kominfo") ? "/connectors"

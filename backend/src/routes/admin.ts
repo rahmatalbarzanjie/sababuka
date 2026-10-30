@@ -397,6 +397,11 @@ export async function administrationRoutes(app: FastifyInstance): Promise<void> 
     return service(request).listSystemConfiguration();
   });
 
+  app.get("/system/dashboard", async (request) => {
+    requirePermission(request, "system.configure");
+    return service(request).getSystemDashboard();
+  });
+
   app.put<{ Params: { key: string }; Body: { value: unknown; description?: string | null } }>(
     "/system/settings/:key",
     {

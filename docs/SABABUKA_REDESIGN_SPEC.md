@@ -28,7 +28,13 @@
 ## 2. Perbaikan GLOBAL (lintas halaman) — prioritas tinggi
 
 ### 2.1 Modul placeholder → tandai “Segera”, non-aktifkan klik
-Jangan tampilkan modul kosong seolah aktif. Beri badge `Segera` dan disable navigasi. Daftar pada audit awal mencakup `Keuangan Daerah`, `Layanan Publik`, `Profil Data OPD`, `Fokus Kebijakan`, `Dataset`, dan `Profil Metadata`; beberapa di antaranya sudah diimplementasikan setelah audit. Periksa dukungan route, API, permission, serta state data aktual sebelum memberi label `Segera` atau menonaktifkan navigasi.
+Baseline implementasi adalah kode pada branch aktif, bukan situs live yang dapat tertinggal dari deployment terbaru. Placeholder sebenarnya hanya route yang jatuh ke komponen `ComingSoon` di `App.tsx`:
+
+- `Fokus Kebijakan` (`/governance/focuses`)
+- `Dataset` (`/governance/datasets`)
+- `Profil Metadata` (`/admin/metadata-profiles`)
+
+Hanya tiga menu tersebut yang diberi badge `Segera` dan dinonaktifkan. `Profil Data OPD` (`/opd-profile`) adalah ruang kerja utama PIC OPD yang sudah dibangun melalui `OpdProfilePage.tsx` dan migration 036/039; jangan dihapus atau ditandai sebagai placeholder. `Keuangan Daerah` dan `Layanan Publik` juga sudah memiliki implementasi analisis domain.
 
 ### 2.2 Nama kanonik (samakan sidebar = judul = breadcrumb)
 | Kode sistem | Nama kanonik (pakai di SEMUA tempat) |
@@ -55,6 +61,13 @@ Di modal/halaman detail capaian, tombol aksi primer (`Kirim ke pemeriksa` / `Per
 ### 2.6 Mobile
 Tabel → kartu (sudah baik). Perbaiki bar filter/tab yang overflow: jadikan dapat digeser horizontal atau dropdown di layar sempit.
 
+### 2.7 Label status relatif terhadap peran yang melihat (POV)
+Label tahap/status mengikuti sudut pandang pengguna. Dalam alur indikator, penyusun mengajukan, BAPPERIDA memeriksa, OPD penanggung jawab memverifikasi, lalu BAPPERIDA mengaktifkan.
+
+- OPD melihat `Perlu Anda verifikasi` untuk indikator miliknya, bukan `Menunggu verifikasi OPD`.
+- BAPPERIDA/Walidata tetap melihat `Menunggu verifikasi OPD` atau `Perlu Anda aktifkan` sesuai tahap.
+- Ganti nama peran dengan `Anda` hanya ketika pengguna yang login memang pemilik tindakan tersebut.
+
 ---
 
 ## 3. Dashboard Pimpinan (route: `/dashboard`)
@@ -72,8 +85,9 @@ Acuan: mockup dashboard.
 ---
 
 ## 4. AI Assistant — penempatan (KEPUTUSAN FINAL)
+- **HANYA untuk peran Pimpinan.** Peran OPD, Walidata, Pembina Data, dan Pengelola Sistem tidak memiliki pintu masuk Asisten AI.
 - **HAPUS “Asisten AI” dari menu sidebar.**
-- **Tombol melayang** (floating action button) kanan-bawah, tampil di SEMUA halaman web. Indikator titik hijau “aktif” + label kecil “juga di WhatsApp”.
+- **Tombol melayang** (floating action button) kanan-bawah, tampil pada halaman web saat login sebagai Pimpinan. Pada layar kecil tampilkan ikon saja. Jangan tampilkan label “juga di WhatsApp”.
 - Klik → **panel chat** (header, pertanyaan saran, input). Panel punya tombol **“Buka layar penuh”** → halaman penuh (riwayat, jawaban panjang, ekspor). Halaman penuh TIDAK dihapus, hanya pintu masuknya pindah ke tombol melayang.
 - **Satu engine, banyak kanal**: WA bot (sudah ada), tombol web, halaman penuh — semua memakai mesin AI yang sama.
 - Onboarding: tooltip sekali “Asisten AI sekarang di sini” menunjuk tombol melayang.
@@ -85,6 +99,8 @@ Acuan: mockup dashboard.
 
 ### 5.1 OPD Operator — Pelaporan Realisasi (`/submissions`)
 POV: *staf OPD ingin cepat selesai mengisi.*
+- **Menu OPD:** Beranda Tugas · Profil Data OPD · Pelaporan Realisasi · Matriks Indikator. Tanpa Asisten AI.
+- Indikator tidak memakai menu baru “Usulan”. OPD menggunakan menu `Matriks Indikator`; indikator baru menjadi usulan melalui status dan alur persetujuan.
 - **Hero “aksi berikutnya”**: jumlah formulir perlu diisi + tombol primer `Isi laporan sekarang` + chip tenggat.
 - **Panduan 3 langkah**: Isi nilai → Lampirkan bukti → Kirim.
 - **Daftar “Laporan OPD saya”**: tiap baris punya status pill (`Perlu diisi` / `Menunggu pemeriksaan` / `Perlu diperbaiki` / `Disetujui`) + aksi per baris (`Lanjutkan` / `Perbaiki` / `Lihat`). Baris “perlu diperbaiki” menampilkan catatan pemeriksa.
@@ -127,6 +143,9 @@ Implementasi: render panel, tampilkan teaser, kunci isi penuh di belakang flag `
 ---
 
 ## 7. Catatan teknis & keputusan terbuka
+- Baseline implementasi = kode branch aktif React/Fastify. Situs `dev.sababuka.com` dapat tertinggal dan bukan acuan status fitur.
+- Menu digerakkan data dari `/api/v1/me/menu` dan seed migration `menu_items`/`role_menu_items`; jangan meng-hardcode urutan atau visibilitas menu di frontend.
+- Kolom `sababuka.indicators.kodref_ip` sudah tersedia melalui migration 045 untuk pencocokan Kode Referensi Indikator Pembangunan, terpisah dari `code` internal.
 - Peta kecamatan menunggu **kode wilayah kecamatan** tersambung; sampai itu, peta tampil tingkat kabupaten + pesan status.
 - Data tanggal di API tampaknya beragam → normalisasi di frontend via `formatTanggal()`.
 - Semua panel premium butuh **feature flag** per organisasi/langganan.
@@ -142,6 +161,36 @@ ink #16233b · ink-2 #44546e · muted #7a8699 · line #dde3ea · surface #ffffff
 font display: Barlow Semi Condensed · body: Inter
 ```
 Dukung light & dark (token diredefinisi untuk dark). Tanggal & angka pakai `tabular-nums`.
+
+## 9. Urutan menu per peran
+Prinsip urutan: **beranda/overview → kerja harian → setelan → audit**. Urutan final tetap berasal dari seed migration dan dikirim API.
+
+| Peran | Urutan menu |
+|---|---|
+| **OPD** | Beranda Tugas · Profil Data OPD · Pelaporan Realisasi · Matriks Indikator · Dataset (Segera) |
+| **Pimpinan** | Dashboard Pimpinan · Kurasi & Publikasi · Analisis & Peta · Keuangan Daerah · Layanan Publik — Asisten AI melayang |
+| **Walidata/BAPPERIDA** | Beranda Tugas · Verifikasi Pelaporan OPD · Kurasi & Publikasi · Tata Kelola/Matriks Indikator · Pusat Sinkronisasi Data · Audit |
+| **Pembina Data (BPS)** | Beranda Pembinaan · Tata Kelola/Matriks Indikator · Pelaporan Realisasi |
+| **Developer/Admin** | Dashboard Sistem · Kesiapan OPD · Dashboard Pimpinan · Pusat Sinkronisasi Data · Audit · Administrasi Sistem |
+
+## 10. Dashboard Sistem dan Pusat Sinkronisasi Data
+
+### 10.1 Dashboard Sistem (`/admin`)
+Beranda Pengelola Sistem menampilkan informasi yang bisa ditindaklanjuti, bukan checklist fondasi statis:
+
+- onboarding OPD dan daftar OPD yang belum bergabung atau belum melapor;
+- indikator bermasalah, metadata/PIC/target yang belum lengkap;
+- kelompok isu yang belum memiliki indikator;
+- kesehatan API, basis data, konektor, sinkronisasi terakhir, dan audit trail.
+
+### 10.2 Pusat Sinkronisasi Data (`/connectors`)
+Halaman menjelaskan dan menelusuri alur data:
+
+`Sumber resmi → Konektor → Staging mentah → Transformasi/pencocokan → Indikator → Capaian OPD → Publikasi → Dashboard`.
+
+Tampilkan status konektor, waktu sinkron terakhir, jumlah rekaman, pratinjau staging mentah, hasil mapping, dan lineage setiap capaian. Akses data mentah dan rahasia konektor tetap mengikuti permission backend.
+
+Acuan visual: `docs/mockups/dashboard-developer.html`.
 
 ---
 *Disusun dari audit 21 halaman dev.sababuka.com + sesi desain. Sumber kebenaran untuk implementasi redesign.*

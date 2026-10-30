@@ -386,6 +386,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/system/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Membaca kesehatan dan pekerjaan administrasi sistem
+         * @description Membutuhkan `system.configure`; seluruh metrik dihitung langsung dari database saat permintaan diproses.
+         */
+        get: operations["getSystemDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/system/settings/{key}": {
         parameters: {
             query?: never;
@@ -1165,6 +1185,8 @@ export interface components {
             label: string;
             icon?: string | null;
             route_name?: string | null;
+            badge?: string | null;
+            navigation_disabled: boolean;
             display_order: number;
             children: components["schemas"]["MenuItem"][];
         };
@@ -1254,6 +1276,8 @@ export interface components {
             icon?: string | null;
             route_name?: string | null;
             required_permission?: string | null;
+            badge?: string | null;
+            navigation_disabled: boolean;
             display_order: number;
             is_active: boolean;
         };
@@ -1287,6 +1311,33 @@ export interface components {
                     [key: string]: unknown;
                 };
                 updated_at: components["schemas"]["Timestamp"];
+            }[];
+        };
+        SystemDashboard: {
+            generated_at: components["schemas"]["Timestamp"];
+            health: {
+                /** @enum {string} */
+                status: "healthy" | "attention";
+                /** @constant */
+                database: "healthy";
+                database_response_ms: number;
+                failed_integrations: number;
+                failed_runs_30d: number;
+            };
+            metrics: {
+                active_organizations: number;
+                active_users: number;
+                pending_users: number;
+                active_integrations: number;
+            };
+            organizations_without_pic: components["schemas"]["SystemAttentionCollection"];
+            problematic_indicators: components["schemas"]["SystemAttentionCollection"];
+            empty_categories: components["schemas"]["SystemAttentionCollection"];
+        };
+        SystemAttentionCollection: {
+            total: number;
+            data: {
+                [key: string]: unknown;
             }[];
         };
         PolicyFocusInput: {
@@ -1343,6 +1394,8 @@ export interface components {
         IndicatorStatus: "draft" | "in_review" | "opd_verification" | "approved" | "active" | "retired";
         IndicatorCreateInput: {
             code: string;
+            /** @description Kode Referensi Indikator Pembangunan nasional untuk pencocokan dengan Satu Data Indonesia dan SIPD; berbeda dari kode internal SABABUKA. */
+            kodref_ip?: string | null;
             name: string;
             category_id: components["schemas"]["Uuid"];
             owner_organization_id?: components["schemas"]["Uuid"];
@@ -1410,6 +1463,8 @@ export interface components {
         IndicatorDetail: {
             id: components["schemas"]["Uuid"];
             code: string;
+            /** @description Kode Referensi Indikator Pembangunan nasional; kode internal indikator tetap berada pada properti `code`. */
+            kodref_ip: string | null;
             name: string;
             category_id: components["schemas"]["Uuid"];
             owner_organization_id?: components["schemas"]["Uuid"] | null;
@@ -2367,6 +2422,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SystemConfiguration"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getSystemDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Kesehatan sistem, OPD tanpa PIC aktif, indikator bermasalah, dan kelompok isu kosong */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemDashboard"];
                 };
             };
             403: components["responses"]["Forbidden"];

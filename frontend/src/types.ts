@@ -183,6 +183,7 @@ export interface IndicatorTarget {
 export interface Indicator {
   id: string;
   code: string;
+  kodref_ip: string | null;
   name: string;
   category_id: string;
   category_code: string;

@@ -1,0 +1,333 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Audit UI/UX SABABUKA</title>
+<style>
+  /* Layout: single reading column, color-coded finding cards, status matrix tables. Government-data palette: slate ink + teal-green signal. */
+  :root{
+    --bg:#eef1f5; --surface:#ffffff; --surface-2:#f6f8fa;
+    --ink:#16233b; --ink-2:#44546e; --muted:#7a8699; --line:#dde3ea;
+    --brand:#0f6d54; --brand-soft:#e3f1ec;
+    --nav:#16304f;
+    --crit:#c0392b; --crit-soft:#fbe9e7;
+    --warn:#b7791f; --warn-soft:#fbf1dd;
+    --ok:#0f6d54; --ok-soft:#e3f1ec;
+    --font-display:"Barlow Semi Condensed",-apple-system,Segoe UI,sans-serif;
+    --font-body:"Inter",-apple-system,Segoe UI,Roboto,sans-serif;
+    --maxw:960px;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#0c1320; --surface:#121b2b; --surface-2:#0f1826;
+    --ink:#e7edf5; --ink-2:#aeb9ca; --muted:#808ca3; --line:#26324a;
+    --brand:#4fd1a6; --brand-soft:#133028;
+    --nav:#0c1320;
+    --crit:#ff8a7a; --crit-soft:#2c1714;
+    --warn:#f0c46b; --warn-soft:#2a2112;
+    --ok:#4fd1a6; --ok-soft:#133028;
+    color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0c1320; --surface:#121b2b; --surface-2:#0f1826;
+    --ink:#e7edf5; --ink-2:#aeb9ca; --muted:#808ca3; --line:#26324a;
+    --brand:#4fd1a6; --brand-soft:#133028;
+    --nav:#0c1320;
+    --crit:#ff8a7a; --crit-soft:#2c1714;
+    --warn:#f0c46b; --warn-soft:#2a2112;
+    --ok:#4fd1a6; --ok-soft:#133028;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-body);line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+  h1,h2,h3{font-family:var(--font-display);text-wrap:balance;line-height:1.15;margin:0}
+  p{margin:0}
+  .eyebrow{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--brand);font-weight:600}
+
+  /* Masthead */
+  .mast{background:var(--nav);color:#eaf1f8;margin-top:18px;border-radius:16px;overflow:hidden}
+  .mast-in{padding:30px clamp(20px,4vw,40px)}
+  .mast .eyebrow{color:#7fe3c4}
+  .mast h1{font-size:clamp(1.9rem,5vw,2.7rem);color:#fff;margin:.3rem 0 .5rem;font-weight:600}
+  .mast p{color:#b9c6d6;max-width:62ch}
+  .mast-meta{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:18px;font-size:.82rem;color:#9fb0c4}
+  .mast-meta b{color:#eaf1f8;font-weight:600}
+
+  section{margin-top:34px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .sec-head h2{font-size:1.5rem;font-weight:600}
+  .sec-head .n{font-family:var(--font-display);color:var(--muted);font-size:1.1rem;font-weight:600}
+  .lead{color:var(--ink-2);max-width:66ch;margin-bottom:6px}
+
+  /* Scorecard */
+  .scores{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .score{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .score .lbl{font-size:.8rem;color:var(--ink-2)}
+  .score .val{font-family:var(--font-display);font-size:2.1rem;font-weight:600;line-height:1;margin:.3rem 0;font-variant-numeric:tabular-nums}
+  .score .val span{font-size:1rem;color:var(--muted)}
+  .meter{height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin-top:4px}
+  .meter i{display:block;height:100%;border-radius:99px}
+
+  /* Finding cards */
+  .finds{display:flex;flex-direction:column;gap:14px}
+  .find{background:var(--surface);border:1px solid var(--line);border-left-width:4px;border-radius:12px;padding:16px 18px}
+  .find.crit{border-left-color:var(--crit)}
+  .find.warn{border-left-color:var(--warn)}
+  .find.ok{border-left-color:var(--ok)}
+  .find-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  .find-top h3{font-size:1.1rem;font-weight:600}
+  .tag{font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:99px;white-space:nowrap}
+  .tag.crit{background:var(--crit-soft);color:var(--crit)}
+  .tag.warn{background:var(--warn-soft);color:var(--warn)}
+  .tag.ok{background:var(--ok-soft);color:var(--ok)}
+  .find p{color:var(--ink-2);font-size:.95rem}
+  .find .fix{margin-top:9px;font-size:.9rem;color:var(--ink);background:var(--surface-2);border-radius:8px;padding:9px 12px}
+  .find .fix b{color:var(--brand)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+  .chip{font-size:.74rem;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);padding:2px 9px;border-radius:6px}
+
+  /* Matrix tables */
+  .tscroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+  table{border-collapse:collapse;width:100%;min-width:520px;font-size:.9rem}
+  caption{caption-side:top;text-align:left;font-family:var(--font-display);font-weight:600;font-size:1.05rem;padding:14px 16px 2px;color:var(--ink)}
+  th,td{text-align:left;padding:11px 16px;border-bottom:1px solid var(--line);vertical-align:top}
+  thead th{font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--surface-2)}
+  tbody tr:last-child td{border-bottom:none}
+  td b{font-weight:600}
+  .st{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:600;white-space:nowrap}
+  .dot{width:8px;height:8px;border-radius:99px;flex:none}
+  .dot.ok{background:var(--ok)} .dot.warn{background:var(--warn)} .dot.crit{background:var(--crit)}
+  .cell-note{color:var(--ink-2);font-size:.86rem}
+
+  /* Priority split */
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px}
+  .panel h3{font-size:1.05rem;font-weight:600;margin-bottom:4px}
+  .panel .sub{font-size:.8rem;color:var(--muted);margin-bottom:12px}
+  ol.steps{margin:0;padding-left:0;list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:9px}
+  ol.steps li{counter-increment:s;position:relative;padding-left:32px;font-size:.92rem;color:var(--ink-2)}
+  ol.steps li::before{content:counter(s);position:absolute;left:0;top:-1px;width:22px;height:22px;border-radius:7px;background:var(--brand-soft);color:var(--brand);font-weight:700;font-size:.8rem;display:grid;place-items:center;font-family:var(--font-display)}
+  ol.steps li b{color:var(--ink)}
+
+  /* Strategy callout */
+  .strat{background:var(--brand-soft);border:1px solid var(--line);border-radius:14px;padding:20px clamp(18px,3vw,26px)}
+  .strat h2{color:var(--brand);font-size:1.3rem;font-weight:600;margin-bottom:6px}
+  .strat .layers{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:14px}
+  .layer{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .layer .k{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .layer.floor .k{color:var(--ok)} .layer.hold .k{color:var(--warn)} .layer.moat .k{color:var(--crit)}
+  .layer p{font-size:.86rem;color:var(--ink-2)}
+  .layer ul{margin:8px 0 0;padding-left:18px;font-size:.85rem;color:var(--ink-2)}
+  .layer li{margin:3px 0}
+
+  footer{margin:40px 0 24px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:.8rem;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
+  @media (max-width:640px){
+    .cols{grid-template-columns:1fr}
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="mast-in">
+      <div class="eyebrow">Laporan Audit · Antarmuka &amp; Pengalaman Pengguna</div>
+      <h1>Audit UI/UX SABABUKA</h1>
+      <p>Telaah 21 halaman aktif pada <b>dev.sababuka.com</b> — difokuskan pada menu Pimpinan dan OPD — untuk menjawab keluhan pengguna bahwa sistem “masih agak repot dipakai”. Berisi temuan, tingkat prioritas, dan rekomendasi yang siap dieksekusi tim pengembang.</p>
+      <div class="mast-meta">
+        <span>Cakupan <b>21 halaman</b></span>
+        <span>Perangkat <b>Desktop 1440px + Mobile 390px</b></span>
+        <span>Peran uji <b>Pengelola Sistem</b></span>
+        <span>Tanggal <b>24 Okt 2026</b></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- SCORECARD -->
+  <section>
+    <div class="sec-head"><span class="n">01</span><h2>Skor ringkas</h2></div>
+    <p class="lead">Penilaian per aspek. Tampilan sudah matang; titik lemah ada pada navigasi, kesiapan konten, dan kejelasan aksi — ketiganya yang paling dirasakan sebagai “repot”.</p>
+    <div class="scores">
+      <div class="score"><div class="lbl">Visual &amp; konsistensi</div><div class="val">8.5<span>/10</span></div><div class="meter"><i style="width:85%;background:var(--ok)"></i></div></div>
+      <div class="score"><div class="lbl">Navigasi &amp; arsitektur info</div><div class="val">6.0<span>/10</span></div><div class="meter"><i style="width:60%;background:var(--warn)"></i></div></div>
+      <div class="score"><div class="lbl">Alur tugas</div><div class="val">6.5<span>/10</span></div><div class="meter"><i style="width:65%;background:var(--warn)"></i></div></div>
+      <div class="score"><div class="lbl">Kesiapan konten</div><div class="val">5.0<span>/10</span></div><div class="meter"><i style="width:50%;background:var(--crit)"></i></div></div>
+      <div class="score"><div class="lbl">Mobile</div><div class="val">7.5<span>/10</span></div><div class="meter"><i style="width:75%;background:var(--ok)"></i></div></div>
+    </div>
+  </section>
+
+  <!-- SYSTEMIC FINDINGS -->
+  <section>
+    <div class="sec-head"><span class="n">02</span><h2>Temuan sistemik</h2></div>
+    <p class="lead">Masalah lintas-halaman, diurutkan dari yang paling menyebabkan rasa “repot”. Lima temuan pertama adalah akar keluhan.</p>
+    <div class="finds">
+
+      <div class="find crit">
+        <div class="find-top"><span class="tag crit">Kritis</span><h3>Menu menjanjikan fitur yang belum ada</h3></div>
+        <p>Dari 21 halaman, <b>6 masih placeholder</b> tetapi tampil aktif di sidebar seakan siap pakai. Pengguna mengklik lalu mentok pada layar “Modul ini masuk tahap pembangunan”. Inilah pemicu utama rasa frustrasi dan kesan sistem “tidak jalan”.</p>
+        <div class="chips"><span class="chip">Keuangan Daerah</span><span class="chip">Layanan Publik</span><span class="chip">Profil Data OPD</span><span class="chip">Fokus Kebijakan</span><span class="chip">Dataset</span><span class="chip">Profil Metadata</span></div>
+        <div class="fix"><b>Perbaikan:</b> beri badge “Segera”, non-aktifkan klik, atau sembunyikan sampai modul benar-benar siap.</div>
+      </div>
+
+      <div class="find crit">
+        <div class="find-top"><span class="tag crit">Kritis</span><h3>Istilah tidak konsisten: sidebar ↔ judul ↔ breadcrumb</h3></div>
+        <p>Satu hal dipanggil dengan nama berbeda di tiga tempat, sehingga pengguna kehilangan orientasi “saya sedang di mana”.</p>
+        <div class="tscroll" style="margin-top:10px">
+          <table>
+            <thead><tr><th>Di sidebar</th><th>Judul halaman</th><th>Kode sistem</th></tr></thead>
+            <tbody>
+              <tr><td><b>Beranda Tugas</b></td><td>— (breadcrumb: Pelaporan dan Verifikasi)</td><td>operations</td></tr>
+              <tr><td><b>Kelompok Isu</b></td><td>Kategori</td><td>categories</td></tr>
+              <tr><td><b>Asisten Data</b></td><td>Asisten Data Pimpinan</td><td>Asisten AI</td></tr>
+              <tr><td><b>Matriks Indikator</b></td><td>Matriks kesiapan indikator</td><td>indicators</td></tr>
+              <tr><td><b>Ruang Walidata</b></td><td>Ruang Walidata</td><td>connectors</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="fix"><b>Perbaikan:</b> satu nama kanonik untuk satu entitas, dipakai konsisten di label menu, judul halaman, dan breadcrumb.</div>
+      </div>
+
+      <div class="find warn">
+        <div class="find-top"><span class="tag warn">Sedang</span><h3>Aksi penyelesaian kurang menonjol</h3></div>
+        <p>Daftar dan modal detail sudah rapi (stepper 3-tahap bagus), tetapi saat membuka capaian, modal bersifat baca-saja. Tombol untuk benar-benar <b>mengisi / memverifikasi / mengembalikan</b> tidak langsung terlihat. Bagi OPD yang tujuan utamanya mengisi laporan, ini membuat tugas inti terasa berputar.</p>
+        <div class="fix"><b>Perbaikan:</b> jadikan tombol aksi primer menonjol dan menempel (sticky) di dalam modal/halaman detail.</div>
+      </div>
+
+      <div class="find warn">
+        <div class="find-top"><span class="tag warn">Sedang</span><h3>Format tanggal campur aduk</h3></div>
+        <p>Tiga gaya tanggal muncul di halaman berbeda, menurunkan kesan kematangan sistem.</p>
+        <div class="chips"><span class="chip">8/10/2026</span><span class="chip">8 Okt 2026, 18.46</span><span class="chip">10 Okt 2026, 13.28</span></div>
+        <div class="fix"><b>Perbaikan:</b> satu format tanggal konsisten di seluruh aplikasi (mis. <b>8 Okt 2026</b>).</div>
+      </div>
+
+      <div class="find warn">
+        <div class="find-top"><span class="tag warn">Sedang</span><h3>Sidebar terlalu panjang untuk tiap peran</h3></div>
+        <p>Sekitar 20 item dalam 6 grup. Pengguna OPD yang hanya memerlukan 3–4 menu tetap melihat seluruh daftar, sehingga navigasi terasa membebani. Menu sudah berbasis peran, tapi perlu dipangkas lebih tegas per peran.</p>
+        <div class="fix"><b>Perbaikan:</b> tampilkan hanya menu relevan per peran (OPD ≠ Pimpinan ≠ Admin); satukan sub-item di bawah induk yang bisa diciutkan.</div>
+      </div>
+
+      <div class="find ok">
+        <div class="find-top"><span class="tag ok">Terpuji</span><h3>Yang sudah sangat baik — pertahankan</h3></div>
+        <p>Empty-state konsisten dan informatif, guardrail “hanya data resmi” pada Asisten AI, stepper alur kerja (Diisi → Diperiksa → Disetujui), tabel responsif yang berubah jadi kartu di mobile, dan palet warna yang tenang serta pantas untuk konteks pemerintahan.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- PIMPINAN MATRIX -->
+  <section>
+    <div class="sec-head"><span class="n">03</span><h2>Menu Pimpinan</h2></div>
+    <p class="lead">Ruang Pimpinan — fondasi sudah “berbicara” untuk eksekutif, tetapi separuh menu masih kosong dan dashboard utama belum punya visualisasi tren.</p>
+    <div class="tscroll">
+      <table>
+        <caption>Ruang Pimpinan — status &amp; catatan</caption>
+        <thead><tr><th>Halaman</th><th>Status</th><th>Catatan UX</th></tr></thead>
+        <tbody>
+          <tr><td><b>Dashboard Pimpinan</b></td><td><span class="st"><span class="dot ok"></span>Jadi</span></td><td class="cell-note">Empty-state &amp; kartu “sinyal prioritas” bagus. Namun tetap tanpa grafik/tren — pimpinan butuh visual, bukan hanya angka. Di sinilah peta kecamatan sebaiknya ditanam.</td></tr>
+          <tr><td><b>Analisis dan Peta</b></td><td><span class="st"><span class="dot ok"></span>Jadi</span></td><td class="cell-note">Pemilih indikator + panduan “cara membaca” bagus. Peta belum aktif (menunggu kode kecamatan); statusnya dijelaskan dengan baik.</td></tr>
+          <tr><td><b>Asisten Data (AI)</b></td><td><span class="st"><span class="dot ok"></span>Jadi</span></td><td class="cell-note">Pertanyaan saran + guardrail “hanya data resmi” = desain matang. Ini kandidat fitur andalan.</td></tr>
+          <tr><td><b>Keuangan Daerah</b></td><td><span class="st"><span class="dot warn"></span>Placeholder</span></td><td class="cell-note">Tampil aktif → jalan buntu. Beri badge “Segera”.</td></tr>
+          <tr><td><b>Layanan Publik</b></td><td><span class="st"><span class="dot warn"></span>Placeholder</span></td><td class="cell-note">Tampil aktif → jalan buntu. Beri badge “Segera”.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- OPD MATRIX -->
+  <section>
+    <div class="sec-head"><span class="n">04</span><h2>Menu OPD</h2></div>
+    <p class="lead">Pelaporan Capaian — alur melihat dan melacak sudah baik; rasa “repot” muncul pada kepadatan informasi dan aksi penyelesaian.</p>
+    <div class="tscroll">
+      <table>
+        <caption>Pelaporan Capaian — status &amp; catatan</caption>
+        <thead><tr><th>Halaman</th><th>Status</th><th>Catatan UX</th></tr></thead>
+        <tbody>
+          <tr><td><b>Beranda Tugas</b></td><td><span class="st"><span class="dot ok"></span>Jadi</span></td><td class="cell-note">Kaya info (KPI + status OPD + aktivitas). Namun terlalu banyak angka sekaligus — pengguna baru bingung “mulai dari mana”.</td></tr>
+          <tr><td><b>Pelaporan Realisasi</b></td><td><span class="st"><span class="dot ok"></span>Jadi</span></td><td class="cell-note">Tabel bersih, filter tab jelas, modal detail ber-stepper. Pola terbaik di sistem.</td></tr>
+          <tr><td><b>Verifikasi Pelaporan OPD</b></td><td><span class="st"><span class="dot ok"></span>Jadi</span></td><td class="cell-note">Konsisten dengan Pelaporan Realisasi. Tonjolkan aksi “Setujui / Kembalikan”.</td></tr>
+          <tr><td><b>Kurasi &amp; Publikasi</b></td><td><span class="st"><span class="dot ok"></span>Jadi</span></td><td class="cell-note">Stepper “Buat draf → Pilih → Tayangkan” jelas.</td></tr>
+          <tr><td><b>Profil Data OPD</b></td><td><span class="st"><span class="dot warn"></span>Placeholder</span></td><td class="cell-note">Tampil aktif → jalan buntu, padahal halaman ini penting bagi OPD.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lead" style="margin-top:12px"><b>Mobile:</b> tabel berubah menjadi kartu dengan rapi. Satu cacat: bar filter tab meluber ke samping (teks “Menunggu…” terpotong) — jadikan dapat digeser atau dropdown.</p>
+  </section>
+
+  <!-- OTHER MATRIX -->
+  <section>
+    <div class="sec-head"><span class="n">05</span><h2>Tata Kelola, Walidata &amp; Administrasi</h2></div>
+    <div class="tscroll">
+      <table>
+        <caption>Halaman pendukung</caption>
+        <thead><tr><th>Halaman</th><th>Status</th><th>Catatan UX</th></tr></thead>
+        <tbody>
+          <tr><td><b>Matriks Indikator</b></td><td><span class="st"><span class="dot warn"></span>Padat</span></td><td class="cell-note">6 filter + 7 kolom + aksi massal dalam satu layar. Fungsional tapi berat untuk pengguna baru. Pertimbangkan filter lanjutan yang bisa diciutkan &amp; mode ringkas.</td></tr>
+          <tr><td><b>Kelompok Isu / Kategori</b></td><td><span class="st"><span class="dot ok"></span>Jadi</span></td><td class="cell-note">Memadai.</td></tr>
+          <tr><td><b>Fokus Kebijakan · Dataset</b></td><td><span class="st"><span class="dot warn"></span>Placeholder</span></td><td class="cell-note">Tampil aktif → jalan buntu.</td></tr>
+          <tr><td><b>Pengguna</b></td><td><span class="st"><span class="dot ok"></span>Jadi</span></td><td class="cell-note">Tabel kelas enterprise: avatar, filter, badge, “login terakhir”. Cek kolom paling kanan agar tak terpotong di layar sempit.</td></tr>
+          <tr><td><b>Organisasi · Role · Menu · Konfigurasi Sistem</b></td><td><span class="st"><span class="dot ok"></span>Jadi</span></td><td class="cell-note">Lengkap dan rapi.</td></tr>
+          <tr><td><b>Profil Metadata</b></td><td><span class="st"><span class="dot warn"></span>Placeholder</span></td><td class="cell-note">Tampil aktif → jalan buntu.</td></tr>
+          <tr><td><b>Audit</b></td><td><span class="st"><span class="dot ok"></span>Jadi</span></td><td class="cell-note">Jejak perubahan tersedia.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- PRIORITY -->
+  <section>
+    <div class="sec-head"><span class="n">06</span><h2>Prioritas perbaikan</h2></div>
+    <div class="cols">
+      <div class="panel">
+        <h3>Quick wins</h3>
+        <div class="sub">Dampak besar · usaha kecil · bisa pekan ini</div>
+        <ol class="steps">
+          <li>Badge <b>“Segera”</b> + non-aktifkan klik untuk 6 modul placeholder</li>
+          <li>Seragamkan <b>format tanggal</b> di seluruh aplikasi</li>
+          <li>Samakan nama <b>menu ↔ judul ↔ breadcrumb</b></li>
+          <li>Tonjolkan <b>tombol aksi primer</b> di modal detail</li>
+          <li>Perbaiki <b>overflow filter tab</b> di mobile</li>
+        </ol>
+      </div>
+      <div class="panel">
+        <h3>Pekerjaan sedang–besar</h3>
+        <div class="sub">Dampak tinggi · perlu perencanaan</div>
+        <ol class="steps">
+          <li>Tanam <b>grafik tren + peta kecamatan</b> ke Dashboard Pimpinan</li>
+          <li>Pangkas <b>sidebar per peran</b> (OPD / Pimpinan / Admin)</li>
+          <li>Tambah <b>panduan “langkah berikutnya”</b> di Beranda Tugas</li>
+          <li>Sederhanakan <b>Matriks Indikator</b> (mode ringkas + filter ciut)</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- STRATEGY -->
+  <section>
+    <div class="strat">
+      <div class="eyebrow" style="color:var(--brand)">Catatan Strategi Produk</div>
+      <h2>Rilis lantainya, tahan atapnya</h2>
+      <p class="lead" style="margin-top:4px">Agar sistem inti matang untuk akuisisi, sekaligus menyisakan fitur andalan sebagai nilai jual berulang ke daerah lain.</p>
+      <div class="layers">
+        <div class="layer floor">
+          <div class="k">Rilis penuh — standar</div>
+          <p>Fondasi yang meyakinkan calon pengakuisisi.</p>
+          <ul><li>Administrasi (user, role, organisasi)</li><li>Pelaporan → Verifikasi → Publikasi</li><li>Matriks Indikator</li></ul>
+        </div>
+        <div class="layer hold">
+          <div class="k">Tahan — modul ekspansi</div>
+          <p>Biarkan sebagai “Segera”; bisa jadi paket terpisah per daerah.</p>
+          <ul><li>Keuangan Daerah</li><li>Layanan Publik</li></ul>
+        </div>
+        <div class="layer moat">
+          <div class="k">Moat — hanya kamu</div>
+          <p>Rilis tampilannya, pegang otaknya sebagai IP/lisensi.</p>
+          <ul><li>Asisten AI + Analisis Keputusan (mesin rekomendasi &amp; sinyal prioritas)</li><li>Engine geo-analitik antar-kecamatan</li></ul>
+        </div>
+      </div>
+      <p class="lead" style="margin-top:14px;font-size:.88rem">Catatan: perjelas kepemilikan IP di perjanjian dengan pihak pengakuisisi — pisahkan “sistem inti” (boleh diakuisisi) dari “engine andalan” (tetap milikmu, berbasis lisensi). Ini ranah hukum/bisnis; strukturnya layak disiapkan sejak awal.</p>
+    </div>
+  </section>
+
+  <footer>
+    <span>Audit UI/UX SABABUKA · dev.sababuka.com</span>
+    <span>Disusun untuk tim pengembang · 24 Okt 2026</span>
+  </footer>
+
+</div>

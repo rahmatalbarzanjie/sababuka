@@ -61,6 +61,7 @@ export interface IndicatorTargetInput {
 
 export interface IndicatorInput {
   code: string;
+  kodref_ip?: string | null;
   name: string;
   category_id: string;
   owner_organization_id?: string | null;
@@ -346,7 +347,7 @@ export class GovernanceService {
     const orderColumn = orderColumns[query.sortBy ?? "updated_at"] ?? orderColumns.updated_at!;
     const orderDirection = query.sortOrder === "asc" ? "ASC" : "DESC";
     const result = await this.db.query<CountedRow & Record<string, unknown>>(
-      `SELECT i.id::text, i.code, i.name, i.category_id::text, c.code AS category_code, c.name AS category_name,
+      `SELECT i.id::text, i.code, i.kodref_ip, i.name, i.category_id::text, c.code AS category_code, c.name AS category_name,
               c.policy_focus_id::text, pf.code AS policy_focus_code, pf.name AS policy_focus_name,
               c.review_status AS category_review_status,
               i.owner_organization_id::text, owner.name AS owner_organization_name, i.is_active, i.updated_at::text,
@@ -396,7 +397,7 @@ export class GovernanceService {
          WHERE t.indicator_version_id = iv.id AND t.geography_id IS NULL AND t.dimension_values = '{}'::jsonb
        ) targets ON true
        WHERE i.archived_at IS NULL
-         AND ($1::text IS NULL OR i.code ILIKE '%' || $1 || '%' OR i.name ILIKE '%' || $1 || '%')
+         AND ($1::text IS NULL OR i.code ILIKE '%' || $1 || '%' OR i.kodref_ip ILIKE '%' || $1 || '%' OR i.name ILIKE '%' || $1 || '%')
          AND ($2::uuid IS NULL OR i.category_id = $2)
          AND ($3::uuid IS NULL OR c.policy_focus_id = $3)
          AND ($4::uuid IS NULL OR i.owner_organization_id = $4 OR EXISTS (
@@ -441,11 +442,11 @@ export class GovernanceService {
         : input.organizations ?? [];
       const indicatorResult = await client.query<QueryResultRow & Record<string, unknown>>(
         `INSERT INTO sababuka.indicators
-           (code, name, category_id, owner_organization_id, origin_type, planning_document_type,
+           (code, kodref_ip, name, category_id, owner_organization_id, origin_type, planning_document_type,
             planning_document_reference, proposed_by_organization_id, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-         RETURNING id::text, code, name, category_id::text, owner_organization_id::text, is_active`,
-        [input.code, input.name, input.category_id, input.owner_organization_id ?? null, originType,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         RETURNING id::text, code, kodref_ip, name, category_id::text, owner_organization_id::text, is_active`,
+        [input.code, input.kodref_ip?.trim() || null, input.name, input.category_id, input.owner_organization_id ?? null, originType,
          proposalInput?.planning_document_type ?? null, proposalInput?.planning_document_reference.trim() ?? null,
          originType === "opd_manual" ? input.owner_organization_id : null, auth.user.id],
       );
@@ -507,7 +508,7 @@ export class GovernanceService {
     try {
       await client.query("BEGIN");
       const current = await client.query<QueryResultRow & Record<string, unknown>>(
-        `SELECT i.id::text, i.code, i.name, i.category_id::text, i.owner_organization_id::text,
+        `SELECT i.id::text, i.code, i.kodref_ip, i.name, i.category_id::text, i.owner_organization_id::text,
                 i.origin_type, i.proposed_by_organization_id::text,
                 iv.id::text AS version_id, iv.version_number, iv.definition, iv.formula,
                 iv.unit_id::text, iv.frequency, iv.data_type, iv.direction, iv.source_reference,
@@ -541,11 +542,11 @@ export class GovernanceService {
         : input.organizations ?? [];
       await client.query(
         `UPDATE sababuka.indicators
-         SET code = $2, name = $3, category_id = $4, owner_organization_id = $5,
-             planning_document_type = CASE WHEN origin_type = 'opd_manual' THEN $6 ELSE planning_document_type END,
-             planning_document_reference = CASE WHEN origin_type = 'opd_manual' THEN $7 ELSE planning_document_reference END
+         SET code = $2, kodref_ip = $3, name = $4, category_id = $5, owner_organization_id = $6,
+             planning_document_type = CASE WHEN origin_type = 'opd_manual' THEN $7 ELSE planning_document_type END,
+             planning_document_reference = CASE WHEN origin_type = 'opd_manual' THEN $8 ELSE planning_document_reference END
          WHERE id = $1`,
-        [indicatorId, input.code, input.name, input.category_id, input.owner_organization_id ?? null,
+        [indicatorId, input.code, input.kodref_ip?.trim() || null, input.name, input.category_id, input.owner_organization_id ?? null,
          originType === "opd_manual" ? (input as OpdIndicatorProposalInput).planning_document_type : null,
          originType === "opd_manual" ? (input as OpdIndicatorProposalInput).planning_document_reference.trim() : null],
       );

@@ -488,6 +488,19 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/SystemConfiguration"}
         "403": {$ref: "#/components/responses/Forbidden"}
+  /system/dashboard:
+    get:
+      tags: [System]
+      operationId: getSystemDashboard
+      summary: Membaca kesehatan dan pekerjaan administrasi sistem
+      description: Membutuhkan `system.configure`; seluruh metrik dihitung langsung dari database saat permintaan diproses.
+      responses:
+        "200":
+          description: Kesehatan sistem, OPD tanpa PIC aktif, indikator bermasalah, dan kelompok isu kosong
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SystemDashboard"}
+        "403": {$ref: "#/components/responses/Forbidden"}
   /system/settings/{key}:
     put:
       tags: [System]
@@ -1598,12 +1611,14 @@ components:
             - type: "null"
     MenuItem:
       type: object
-      required: [code, label, display_order, children]
+      required: [code, label, navigation_disabled, display_order, children]
       properties:
         code: {type: string}
         label: {type: string}
         icon: {type: [string, "null"]}
         route_name: {type: [string, "null"]}
+        badge: {type: [string, "null"]}
+        navigation_disabled: {type: boolean}
         display_order: {type: integer}
         children:
           type: array
@@ -1738,7 +1753,7 @@ components:
           items: {$ref: "#/components/schemas/Uuid"}
     AdminMenuItem:
       type: object
-      required: [id, code, label, display_order, is_active]
+      required: [id, code, label, navigation_disabled, display_order, is_active]
       properties:
         id: {$ref: "#/components/schemas/Uuid"}
         code: {type: string}
@@ -1751,6 +1766,8 @@ components:
         icon: {type: [string, "null"]}
         route_name: {type: [string, "null"]}
         required_permission: {type: [string, "null"]}
+        badge: {type: [string, "null"]}
+        navigation_disabled: {type: boolean}
         display_order: {type: integer}
         is_active: {type: boolean}
     RoleMenusInput:
@@ -1804,6 +1821,42 @@ components:
               is_enabled: {type: boolean}
               configuration: {type: object, additionalProperties: true}
               updated_at: {$ref: "#/components/schemas/Timestamp"}
+    SystemDashboard:
+      type: object
+      required: [generated_at, health, metrics, organizations_without_pic, problematic_indicators, empty_categories]
+      properties:
+        generated_at: {$ref: "#/components/schemas/Timestamp"}
+        health:
+          type: object
+          required: [status, database, database_response_ms, failed_integrations, failed_runs_30d]
+          properties:
+            status: {type: string, enum: [healthy, attention]}
+            database: {type: string, const: healthy}
+            database_response_ms: {type: integer, minimum: 0}
+            failed_integrations: {type: integer, minimum: 0}
+            failed_runs_30d: {type: integer, minimum: 0}
+        metrics:
+          type: object
+          required: [active_organizations, active_users, pending_users, active_integrations]
+          properties:
+            active_organizations: {type: integer, minimum: 0}
+            active_users: {type: integer, minimum: 0}
+            pending_users: {type: integer, minimum: 0}
+            active_integrations: {type: integer, minimum: 0}
+        organizations_without_pic:
+          $ref: "#/components/schemas/SystemAttentionCollection"
+        problematic_indicators:
+          $ref: "#/components/schemas/SystemAttentionCollection"
+        empty_categories:
+          $ref: "#/components/schemas/SystemAttentionCollection"
+    SystemAttentionCollection:
+      type: object
+      required: [total, data]
+      properties:
+        total: {type: integer, minimum: 0}
+        data:
+          type: array
+          items: {type: object, additionalProperties: true}
     PolicyFocusInput:
       type: object
       additionalProperties: false
@@ -1892,6 +1945,10 @@ components:
       required: [code, name, category_id, definition, unit_id, frequency, data_type, effective_from]
       properties:
         code: {type: string, maxLength: 80}
+        kodref_ip:
+          type: [string, "null"]
+          maxLength: 128
+          description: Kode Referensi Indikator Pembangunan nasional untuk pencocokan dengan Satu Data Indonesia dan SIPD; berbeda dari kode internal SABABUKA.
         name: {type: string, maxLength: 255}
         category_id: {$ref: "#/components/schemas/Uuid"}
         owner_organization_id: {$ref: "#/components/schemas/Uuid"}
@@ -1965,10 +2022,13 @@ components:
         effective_from: {type: string, format: date}
     IndicatorDetail:
       type: object
-      required: [id, code, name, category_id, category_name, version_id, version_number, definition, unit_id, unit_name, status, organizations, targets]
+      required: [id, code, kodref_ip, name, category_id, category_name, version_id, version_number, definition, unit_id, unit_name, status, organizations, targets]
       properties:
         id: {$ref: "#/components/schemas/Uuid"}
         code: {type: string}
+        kodref_ip:
+          type: [string, "null"]
+          description: Kode Referensi Indikator Pembangunan nasional; kode internal indikator tetap berada pada properti `code`.
         name: {type: string}
         category_id: {$ref: "#/components/schemas/Uuid"}
         owner_organization_id:

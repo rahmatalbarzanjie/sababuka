@@ -1,59 +1,57 @@
-import { ArrowRight, Building2, CheckCircle2, Flag, PanelLeft, ShieldCheck, Users } from "lucide-react";
+import { Activity, AlertTriangle, ArrowRight, CircleCheck, Database, UserRoundCheck } from "lucide-react";
+import type { ReactNode } from "react";
 import { api } from "../api";
-import { ErrorState, Notice, PageLoading, useAsync } from "../components";
+import { Badge, EmptyState, ErrorState, formatDate, PageLoading, useAsync } from "../components";
 import { navigate } from "../router";
-import type { FeatureFlag, Organization, PageResponse, Role, SystemSetting, UserSummary } from "../types";
 
-interface DashboardData {
-  organizations: PageResponse<Organization>;
-  users: PageResponse<UserSummary>;
-  categories: PageResponse<{ id: string }>;
-  indicators: PageResponse<{ id: string }>;
-  roles: { data: Role[] };
-  configuration: { settings: SystemSetting[]; feature_flags: FeatureFlag[] };
+interface SystemDashboardData {
+  generated_at: string;
+  health: { status: "healthy" | "attention"; database: "healthy"; database_response_ms: number; failed_integrations: number; failed_runs_30d: number };
+  metrics: { active_organizations: number; active_users: number; pending_users: number; active_integrations: number };
+  organizations_without_pic: { total: number; data: Array<{ id: string; code: string; name: string; active_pic_count: number }> };
+  problematic_indicators: { total: number; data: Array<{ id: string; code: string; name: string; status: string | null; reasons: string[] }> };
+  empty_categories: { total: number; data: Array<{ id: string; code: string; name: string }> };
 }
 
 export function DashboardPage() {
-  const result = useAsync<DashboardData>(() => Promise.all([
-    api<PageResponse<Organization>>("/organizations?page_size=100&sort_by=name&sort_order=asc"),
-    api<PageResponse<UserSummary>>("/users?page_size=1"),
-    api<PageResponse<{ id: string }>>("/categories?page_size=1"),
-    api<PageResponse<{ id: string }>>("/indicators?page_size=1"),
-    api<{ data: Role[] }>("/roles"),
-    api<{ settings: SystemSetting[]; feature_flags: FeatureFlag[] }>("/system/configuration"),
-  ]).then(([organizations, users, categories, indicators, roles, configuration]) => ({ organizations, users, categories, indicators, roles, configuration })), []);
+  const result = useAsync(() => api<SystemDashboardData>("/system/dashboard"), []);
+  if (result.loading) return <PageLoading label="Memeriksa kesehatan sistem" />;
+  if (result.error || !result.data) return <ErrorState title="Dashboard sistem belum dapat dimuat" onRetry={result.reload}>{result.error?.message ?? "Periksa koneksi lalu coba lagi."}</ErrorState>;
 
-  if (result.loading) return <PageLoading label="Memuat ringkasan administrasi" />;
-  if (result.error || !result.data) return <ErrorState title="Ringkasan administrasi belum dapat dimuat" onRetry={result.reload}>{result.error?.message ?? "Periksa koneksi lalu coba lagi."}</ErrorState>;
-  const enabledFlags = result.data.configuration.feature_flags.filter((flag) => flag.is_enabled).length;
-  const opdCount = result.data.organizations.data.filter((organization) => organization.organization_type === "opd").length;
-  const districtCount = result.data.organizations.data.filter((organization) => organization.organization_type === "district").length;
-  const directoryOrganizations = opdCount + districtCount;
-  const permissionCount = new Set(result.data.roles.data.flatMap((role) => role.permissions)).size;
+  const data = result.data;
+  const attentionCount = data.organizations_without_pic.total + data.problematic_indicators.total + data.empty_categories.total + data.health.failed_integrations + data.health.failed_runs_30d;
   const cards = [
-    { label: "OPD dan kecamatan", value: directoryOrganizations, icon: Building2, tone: "blue", path: "/admin/organizations" },
-    { label: "Pengguna", value: result.data.users.meta.total_items, icon: Users, tone: "teal", path: "/admin/users" },
-    { label: "Kelompok isu terdaftar", value: result.data.categories.meta.total_items, icon: Flag, tone: "amber", path: "/governance/categories" },
-    { label: "Indikator terdaftar", value: result.data.indicators.meta.total_items, icon: PanelLeft, tone: "blue", path: "/governance/indicators" },
-    { label: "Peran sistem", value: result.data.roles.data.length, icon: ShieldCheck, tone: "violet", path: "/admin/roles" },
-    { label: "Fitur aktif", value: enabledFlags, icon: Flag, tone: "amber", path: "/admin/system" },
-  ];
+    { label: "Organisasi aktif", value: data.metrics.active_organizations, detail: "Direktori pemerintah daerah", path: "/admin/organizations" },
+    { label: "Pengguna aktif", value: data.metrics.active_users, detail: `${data.metrics.pending_users} undangan menunggu`, path: "/admin/users" },
+    { label: "Integrasi aktif", value: data.metrics.active_integrations, detail: `${data.health.failed_integrations} konektor bermasalah`, path: "/connectors" },
+    { label: "Perlu perhatian", value: attentionCount, detail: "Tindak lanjut lintas modul", path: data.problematic_indicators.total ? "/governance/indicators" : "/admin/opd-monitoring" },
+  ] as const;
 
   return <>
-    <section className="metric-grid">{cards.map(({ label, value, icon: Icon, tone, path }) => <button className="metric-card" key={label} onClick={() => navigate(path)}><span className={`metric-icon ${tone}`}><Icon /></span><span><small>{label}</small><strong>{value}</strong></span><ArrowRight /></button>)}</section>
-    <section className="dashboard-grid">
-      <article className="panel quick-panel"><header><div><span className="eyebrow">Kendali sistem</span><h2>Konfigurasi utama</h2></div><PanelLeft /></header><div className="quick-list">
-        <button onClick={() => navigate("/admin/users")}><span><strong>Kelola pengguna dan undangan</strong><small>Buat akun, salin tautan aktivasi, dan tetapkan role.</small></span><ArrowRight /></button>
-        <button onClick={() => navigate("/admin/roles")}><span><strong>Atur peran dan hak akses</strong><small>Pastikan setiap peran hanya menerima kewenangan yang diperlukan.</small></span><ArrowRight /></button>
-        <button onClick={() => navigate("/admin/menus")}><span><strong>Susun menu berdasarkan peran</strong><small>Tampilan navigasi mengikuti tugas masing-masing pengguna.</small></span><ArrowRight /></button>
-      </div></article>
-      <article className="panel readiness-panel"><header><div><span className="eyebrow">Kesiapan platform</span><h2>Status fondasi</h2></div></header><div className="readiness-list">
-        <div><span className="check-dot"><CheckCircle2 aria-hidden /></span><p><strong>Autentikasi dan MFA</strong><small>Session, TOTP, dan recovery code aktif.</small></p></div>
-        <div><span className="check-dot"><CheckCircle2 aria-hidden /></span><p><strong>Struktur organisasi</strong><small>{opdCount} OPD dan {districtCount} kecamatan aktif dalam direktori.</small></p></div>
-        <div><span className="check-dot"><CheckCircle2 aria-hidden /></span><p><strong>RBAC dinamis</strong><small>{permissionCount} hak akses unik dan menu berbasis peran.</small></p></div>
-        <div><span className="check-dot"><CheckCircle2 aria-hidden /></span><p><strong>Audit perubahan</strong><small>Mutasi administrasi tercatat.</small></p></div>
-        <div><span className="check-dot"><CheckCircle2 aria-hidden /></span><p><strong>Layanan aplikasi</strong><small>API dan database merespons saat ringkasan ini dimuat.</small></p></div>
-      </div></article>
+    <section className={`system-health-banner ${data.health.status}`}>
+      <span>{data.health.status === "healthy" ? <CircleCheck aria-hidden /> : <Activity aria-hidden />}</span>
+      <div><h2>{data.health.status === "healthy" ? "Sistem beroperasi normal" : "Sistem memerlukan perhatian"}</h2><p>Database merespons dalam {data.health.database_response_ms} ms. Pemeriksaan terakhir {formatDate(data.generated_at)}.</p></div>
+      <Badge tone={data.health.status === "healthy" ? "success" : "warning"}>{data.health.status === "healthy" ? "Sehat" : "Perlu ditinjau"}</Badge>
+    </section>
+
+    <section className="metric-grid system-metric-grid">{cards.map(({ label, value, detail, path }) => <button className="metric-card" key={label} onClick={() => navigate(path)}><span><small>{label}</small><strong>{value}</strong><p>{detail}</p></span><ArrowRight /></button>)}</section>
+
+    <section className="system-dashboard-grid">
+      <SystemAttentionPanel title="OPD belum bergabung" total={data.organizations_without_pic.total} icon={<UserRoundCheck aria-hidden />} emptyTitle="Semua OPD sudah memiliki PIC aktif" emptyText="Tidak ada tindak lanjut akun OPD saat ini." actionLabel="Buka kesiapan OPD" onAction={() => navigate("/admin/opd-monitoring")}>
+        {data.organizations_without_pic.data.map((item) => <button key={item.id} onClick={() => navigate("/admin/opd-monitoring")}><span><strong>{item.name}</strong><small>{item.code} · belum ada PIC aktif</small></span><ArrowRight /></button>)}
+      </SystemAttentionPanel>
+
+      <SystemAttentionPanel title="Indikator bermasalah" total={data.problematic_indicators.total} icon={<AlertTriangle aria-hidden />} emptyTitle="Tidak ada indikator bermasalah" emptyText="Seluruh indikator aktif memiliki pemilik, versi aktif, dan target." actionLabel="Buka matriks indikator" onAction={() => navigate("/governance/indicators")}>
+        {data.problematic_indicators.data.map((item) => <button key={item.id} onClick={() => navigate("/governance/indicators")}><span><strong>{item.name}</strong><small>{item.code} · {item.reasons.join("; ")}</small></span><ArrowRight /></button>)}
+      </SystemAttentionPanel>
+
+      <SystemAttentionPanel title="Kelompok isu kosong" total={data.empty_categories.total} icon={<Database aria-hidden />} emptyTitle="Tidak ada kelompok isu kosong" emptyText="Setiap kelompok isu aktif sudah memiliki indikator." actionLabel="Buka kelompok isu" onAction={() => navigate("/governance/categories")}>
+        {data.empty_categories.data.map((item) => <button key={item.id} onClick={() => navigate("/governance/categories")}><span><strong>{item.name}</strong><small>{item.code} · belum memiliki indikator aktif</small></span><ArrowRight /></button>)}
+      </SystemAttentionPanel>
     </section>
   </>;
+}
+
+function SystemAttentionPanel({ title, total, icon, emptyTitle, emptyText, actionLabel, onAction, children }: { title: string; total: number; icon: ReactNode; emptyTitle: string; emptyText: string; actionLabel: string; onAction(): void; children: ReactNode }) {
+  return <article className="panel system-attention-panel"><header><span>{icon}</span><div><h2>{title}</h2><p>{total ? `${total} item membutuhkan tindak lanjut.` : "Tidak ada pekerjaan terbuka."}</p></div><strong>{total}</strong></header>{total ? <div className="system-attention-list">{children}</div> : <EmptyState title={emptyTitle}>{emptyText}</EmptyState>}<footer><button className="button secondary" onClick={onAction}>{actionLabel}<ArrowRight /></button></footer></article>;
 }

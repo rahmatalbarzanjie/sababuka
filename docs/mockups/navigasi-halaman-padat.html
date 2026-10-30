@@ -1,0 +1,354 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Navigasi & Halaman Padat</title>
+<style>
+  /* Layout: tabs → (1) role-trimmed sidebars side by side, (2) simplified Beranda Tugas, (3) decluttered Matriks Indikator. Same SABABUKA tokens as other mockups. */
+  :root{
+    --bg:#eef1f5; --surface:#ffffff; --surface-2:#f6f8fa; --surface-3:#eef2f6;
+    --ink:#16233b; --ink-2:#44546e; --muted:#7a8699; --line:#dde3ea;
+    --brand:#0f6d54; --brand-2:#13886a; --brand-soft:#e3f1ec;
+    --nav:#16304f;
+    --good:#0f6d54; --good-soft:#e3f1ec;
+    --warn:#b7791f; --warn-soft:#fbf1dd;
+    --crit:#c0392b; --crit-soft:#fbe9e7;
+    --info:#2f6fb0; --info-soft:#e7f0f9;
+    --gold:#9a6a12; --gold-soft:#f8efd8; --gold-line:#e4cf94;
+    --font-display:"Barlow Semi Condensed",-apple-system,Segoe UI,sans-serif;
+    --font-body:"Inter",-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#0c1320; --surface:#121b2b; --surface-2:#0f1826; --surface-3:#172235;
+    --ink:#e7edf5; --ink-2:#aeb9ca; --muted:#808ca3; --line:#26324a;
+    --brand:#4fd1a6; --brand-2:#3bbf93; --brand-soft:#133028;
+    --nav:#0a111d;
+    --good:#4fd1a6; --good-soft:#133028;
+    --warn:#f0c46b; --warn-soft:#2a2112;
+    --crit:#ff8a7a; --crit-soft:#2c1714;
+    --info:#6fa8dc; --info-soft:#15263a;
+    --gold:#e4c877; --gold-soft:#2a2214; --gold-line:#4a3c1c;
+    color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0c1320; --surface:#121b2b; --surface-2:#0f1826; --surface-3:#172235;
+    --ink:#e7edf5; --ink-2:#aeb9ca; --muted:#808ca3; --line:#26324a;
+    --brand:#4fd1a6; --brand-2:#3bbf93; --brand-soft:#133028;
+    --nav:#0a111d;
+    --good:#4fd1a6; --good-soft:#133028;
+    --warn:#f0c46b; --warn-soft:#2a2112;
+    --crit:#ff8a7a; --crit-soft:#2c1714;
+    --info:#6fa8dc; --info-soft:#15263a;
+    --gold:#e4c877; --gold-soft:#2a2214; --gold-line:#4a3c1c;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-body);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1060px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+  h1,h2,h3,h4{font-family:var(--font-display);margin:0;line-height:1.15;text-wrap:balance}
+  p{margin:0}
+  .tnum{font-variant-numeric:tabular-nums}
+  .k{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--brand);font-weight:600}
+
+  .topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--nav);color:#eaf1f8;border-radius:0 0 14px 14px}
+  body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--nav);z-index:21}
+  .topbar-in{padding:13px max(16px,env(safe-area-inset-left,0px))}
+  .tl{display:flex;align-items:center;gap:11px;margin-bottom:11px}
+  .badge{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--brand-2),var(--brand));display:grid;place-items:center;color:#fff;font-family:var(--font-display);font-weight:700;font-size:.8rem;flex:none}
+  .topbar h1{font-size:1rem;color:#fff;font-weight:600}
+  .topbar .sub{font-size:.72rem;color:#9fb0c4}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap}
+  .tab{font-size:.82rem;font-weight:600;color:#cdd8e6;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:8px 14px;cursor:pointer;font-family:var(--font-body)}
+  .tab[aria-selected="true"]{background:var(--brand);color:#fff;border-color:transparent}
+
+  .demo-note{display:flex;gap:8px;margin-top:14px;font-size:.78rem;color:var(--ink-2);background:var(--warn-soft);border:1px solid var(--gold-line);border-radius:9px;padding:8px 12px}
+  .demo-note b{color:var(--ink)}
+  .lead{color:var(--ink-2);font-size:.9rem;margin-top:14px;max-width:70ch}
+
+  section.page{margin-top:14px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-top:14px}
+  .ch{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .ch h3{font-size:1.05rem;font-weight:600}
+
+  /* ---- Sidebars side by side ---- */
+  .sb-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+  .sb{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+  .sb-head{padding:13px 15px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+  .sb-head .pic{width:30px;height:30px;border-radius:8px;background:var(--brand-soft);display:grid;place-items:center;font-size:1rem;flex:none}
+  .sb-head .who{font-family:var(--font-display);font-weight:600;font-size:.92rem;line-height:1.1}
+  .sb-head .role{font-size:.68rem;color:var(--muted)}
+  .sb-body{padding:10px 10px 14px;display:flex;flex-direction:column;gap:2px}
+  .grp{font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:10px 8px 4px}
+  .nav{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:8px;font-size:.82rem;color:var(--ink-2)}
+  .nav .ic{width:17px;text-align:center;flex:none;opacity:.8}
+  .nav.active{background:var(--brand-soft);color:var(--brand);font-weight:600}
+  .nav.soon{color:var(--muted)}
+  .nav .soon-badge{margin-left:auto;font-size:.58rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--gold);background:var(--gold-soft);border:1px solid var(--gold-line);padding:1px 6px;border-radius:99px}
+  .sb-foot{margin-top:auto;padding:10px;border-top:1px dashed var(--line)}
+  .fab-hint{display:flex;align-items:center;gap:8px;font-size:.72rem;color:var(--ink-2);background:var(--surface-2);border-radius:9px;padding:8px 10px}
+  .fab-dot{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--brand-2),var(--brand));display:grid;place-items:center;color:#fff;font-size:.8rem;flex:none}
+  .cmp{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;font-size:.82rem;color:var(--ink-2)}
+  .cmp b{color:var(--ink)}
+  .cmp .was{text-decoration:line-through;color:var(--muted)}
+
+  /* ---- generic ---- */
+  .hero{background:linear-gradient(120deg,var(--brand),var(--brand-2));color:#fff;border-radius:16px;padding:18px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:16px}
+  .hero .big{font-family:var(--font-display);font-size:2rem;font-weight:600;line-height:1}
+  .hero .txt{flex:1;min-width:180px}
+  .hero .txt h2{font-size:1.15rem;color:#fff;font-weight:600}
+  .hero .txt p{font-size:.84rem;color:#d7f0e7;margin-top:3px}
+  .btn-primary{background:#fff;color:var(--brand);border:none;border-radius:11px;padding:12px 18px;font-weight:700;font-size:.9rem;cursor:pointer;font-family:var(--font-body);white-space:nowrap}
+  .mini-btn{font-size:.78rem;font-weight:600;border-radius:8px;padding:6px 12px;cursor:pointer;font-family:var(--font-body);border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+  .mini-btn.go{background:var(--brand);color:#fff;border-color:transparent}
+
+  /* grouped action cards (beranda tugas) */
+  .acts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+  .act{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:15px;border-top:3px solid var(--line);cursor:pointer;display:flex;flex-direction:column;gap:3px}
+  .act.todo{border-top-color:var(--info)} .act.check{border-top-color:var(--warn)} .act.pub{border-top-color:var(--good)}
+  .act .top{display:flex;align-items:center;justify-content:space-between}
+  .act .ic{width:32px;height:32px;border-radius:9px;display:grid;place-items:center}
+  .act.todo .ic{background:var(--info-soft);color:var(--info)} .act.check .ic{background:var(--warn-soft);color:var(--warn)} .act.pub .ic{background:var(--good-soft);color:var(--good)}
+  .act .n{font-family:var(--font-display);font-size:1.8rem;font-weight:600;line-height:1}
+  .act .lbl{font-weight:600;font-size:.9rem}
+  .act .sm{font-size:.76rem;color:var(--muted)}
+  .act .arrow{color:var(--brand);font-size:.8rem;font-weight:600;margin-top:4px}
+  details.more{margin-top:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+  details.more>summary{cursor:pointer;list-style:none;padding:13px 16px;font-size:.88rem;font-weight:600;color:var(--ink-2);display:flex;align-items:center;gap:8px}
+  details.more>summary::-webkit-details-marker{display:none}
+  details.more[open]>summary{border-bottom:1px solid var(--line)}
+  .minirow{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);font-size:.84rem}
+  .minirow:last-child{border-bottom:none}
+  .minirow .mn{flex:1;min-width:0;color:var(--ink-2)} .minirow .mv{font-weight:600;font-variant-numeric:tabular-nums}
+
+  /* matriks */
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px}
+  .search{flex:1;min-width:180px;display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;color:var(--muted);font-size:.86rem}
+  .sel{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:.84rem;color:var(--ink-2)}
+  .seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:2px}
+  .seg button{border:none;background:none;font-family:var(--font-body);font-size:.78rem;font-weight:600;color:var(--muted);padding:6px 11px;border-radius:7px;cursor:pointer}
+  .seg button.on{background:var(--surface);color:var(--brand);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  details.adv{margin-top:10px}
+  details.adv>summary{cursor:pointer;list-style:none;font-size:.8rem;font-weight:600;color:var(--brand);display:inline-flex;align-items:center;gap:6px}
+  details.adv>summary::-webkit-details-marker{display:none}
+  .adv-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .tscroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;margin-top:14px}
+  table{border-collapse:collapse;width:100%;min-width:520px;font-size:.86rem}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+  thead th{font-size:.68rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--surface-2)}
+  tbody tr:last-child td{border-bottom:none}
+  td .ind b{font-weight:600} td .ind .code{font-size:.72rem;color:var(--muted)}
+  .pill{font-size:.7rem;font-weight:600;padding:3px 9px;border-radius:99px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+  .pill.ok{background:var(--good-soft);color:var(--good)} .pill.wait{background:var(--info-soft);color:var(--info)} .pill.warn{background:var(--warn-soft);color:var(--warn)}
+  .colhide{color:var(--muted);font-size:.8rem}
+
+  footer{margin:30px 0 26px;padding-top:14px;border-top:1px solid var(--line);font-size:.78rem;color:var(--muted);text-align:center}
+
+  @media (max-width:760px){
+    .sb-grid{grid-template-columns:1fr}
+    .acts{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="topbar-in">
+      <div class="tl">
+        <div class="badge">SB</div>
+        <div><h1>Navigasi &amp; Halaman Padat</h1><div class="sub">SABABUKA · mockup perbaikan lanjutan</div></div>
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" aria-selected="true" data-t="sidebar" onclick="go('sidebar')">🧭 Sidebar per-peran</button>
+        <button class="tab" role="tab" aria-selected="false" data-t="tugas" onclick="go('tugas')">✅ Beranda Tugas</button>
+        <button class="tab" role="tab" aria-selected="false" data-t="matriks" onclick="go('matriks')">📊 Matriks Indikator</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo-note">⚠️ <span><b>Mockup usulan.</b> Data ilustrasi. Tiga perbaikan yang paling mengurangi rasa “repot”: menu dipangkas per peran, Beranda Tugas difokuskan, dan Matriks Indikator dibuat ringkas.</span></div>
+
+  <!-- ===== SIDEBAR PER PERAN ===== -->
+  <section class="page" id="page-sidebar">
+    <p class="lead">Masalah lama: satu sidebar ±20 item untuk semua orang. Perbaikan: tiap peran hanya melihat menu yang relevan; modul belum siap diberi badge <b>Segera</b> (tak bisa diklik); <b>Asisten AI hanya untuk Pimpinan</b> (tombol melayang) — peran lain tidak memilikinya.</p>
+    <div class="sb-grid">
+
+      <!-- OPD -->
+      <div class="sb">
+        <div class="sb-head"><div class="pic">👤</div><div><div class="who">Rina</div><div class="role">Operator OPD · Dinkes</div></div></div>
+        <div class="sb-body">
+          <div class="grp">Pelaporan</div>
+          <div class="nav active"><span class="ic">✅</span>Beranda Tugas</div>
+          <div class="nav"><span class="ic">📥</span>Pelaporan Realisasi</div>
+          <div class="grp">Tata Kelola</div>
+          <div class="nav"><span class="ic">📐</span>Matriks Indikator</div>
+          <div class="nav"><span class="ic">📋</span>Profil Data OPD</div>
+        </div>
+        <div class="sb-foot"><div class="fab-hint" style="color:var(--muted)"><span style="width:24px;text-align:center">🚫</span>Tanpa Asisten AI (khusus Pimpinan)</div></div>
+      </div>
+
+      <!-- Pimpinan -->
+      <div class="sb">
+        <div class="sb-head"><div class="pic">⭐</div><div><div class="who">Bupati</div><div class="role">Pimpinan</div></div></div>
+        <div class="sb-body">
+          <div class="grp">Ruang Pimpinan</div>
+          <div class="nav active"><span class="ic">📊</span>Dashboard Pimpinan</div>
+          <div class="grp">Analisis Keputusan</div>
+          <div class="nav"><span class="ic">🗺️</span>Analisis dan Peta</div>
+          <div class="nav soon"><span class="ic">💰</span>Keuangan Daerah<span class="soon-badge">Segera</span></div>
+          <div class="nav soon"><span class="ic">🤝</span>Layanan Publik<span class="soon-badge">Segera</span></div>
+        </div>
+        <div class="sb-foot"><div class="fab-hint"><span class="fab-dot">💬</span>Asisten AI — tombol melayang</div></div>
+      </div>
+
+      <!-- Walidata/Admin -->
+      <div class="sb">
+        <div class="sb-head"><div class="pic">🛡️</div><div><div class="who">Pak Hadi</div><div class="role">Walidata · Bapperida</div></div></div>
+        <div class="sb-body">
+          <div class="grp">Pelaporan &amp; Verifikasi</div>
+          <div class="nav active"><span class="ic">🗂️</span>Verifikasi Pelaporan OPD</div>
+          <div class="nav"><span class="ic">🏅</span>Kurasi &amp; Publikasi</div>
+          <div class="grp">Tata Kelola Data</div>
+          <div class="nav"><span class="ic">📐</span>Matriks Indikator</div>
+          <div class="nav"><span class="ic">🔌</span>Ruang Walidata</div>
+          <div class="nav"><span class="ic">📜</span>Audit</div>
+        </div>
+        <div class="sb-foot"><div class="fab-hint" style="color:var(--muted)"><span style="width:24px;text-align:center">🚫</span>Tanpa Asisten AI (khusus Pimpinan)</div></div>
+      </div>
+
+    </div>
+    <div class="cmp">
+      <span>Sebelum: <b class="was">±20 item untuk semua</b></span>
+      <span>→ Sesudah: <b>OPD 4 · Pimpinan 5 · Walidata 6</b></span>
+      <span>Asisten AI: <b>hanya Pimpinan</b></span>
+    </div>
+  </section>
+
+  <!-- ===== BERANDA TUGAS ===== -->
+  <section class="page" id="page-tugas" hidden>
+    <p class="lead">Masalah lama: 9+ kartu angka sekaligus — pengguna bingung “mulai dari mana”. Perbaikan: satu <b>fokus utama</b> di atas, tugas dikelompokkan jadi 3 aksi, rincian disembunyikan sampai diminta.</p>
+
+    <div class="hero">
+      <div class="big tnum">3</div>
+      <div class="txt">
+        <h2>Fokus Anda hari ini</h2>
+        <p>3 capaian OPD menunggu diperiksa · 1 draf publikasi perlu ditayangkan</p>
+      </div>
+      <button class="btn-primary">Mulai periksa →</button>
+    </div>
+
+    <div class="acts">
+      <div class="act todo">
+        <div class="top"><span class="n tnum">3</span><span class="ic">📥</span></div>
+        <div class="lbl">Perlu diperiksa</div>
+        <div class="sm">Capaian baru dari OPD</div>
+        <div class="arrow">Buka daftar →</div>
+      </div>
+      <div class="act check">
+        <div class="top"><span class="n tnum">0</span><span class="ic">🔎</span></div>
+        <div class="lbl">Sedang diperiksa</div>
+        <div class="sm">Keputusan belum selesai</div>
+        <div class="arrow">Buka daftar →</div>
+      </div>
+      <div class="act pub">
+        <div class="top"><span class="n tnum">1</span><span class="ic">🏅</span></div>
+        <div class="lbl">Siap tayang</div>
+        <div class="sm">Draf publikasi</div>
+        <div class="arrow">Tinjau →</div>
+      </div>
+    </div>
+
+    <details class="more">
+      <summary>▾ Lihat ringkasan lengkap (angka rinci)</summary>
+      <div class="minirow"><span class="mn">Indikator aktif</span><span class="mv">29</span></div>
+      <div class="minirow"><span class="mn">Capaian disetujui</span><span class="mv">6</span></div>
+      <div class="minirow"><span class="mn">Capaian perlu perbaikan</span><span class="mv">0</span></div>
+      <div class="minirow"><span class="mn">Draf form capaian</span><span class="mv">0</span></div>
+      <div class="minirow"><span class="mn">OPD dengan data terkini</span><span class="mv">14 / 17</span></div>
+    </details>
+
+    <div class="card">
+      <div class="ch"><div><div class="k">Panduan</div><h3>Belum tahu mulai dari mana?</h3></div></div>
+      <p style="font-size:.88rem;color:var(--ink-2)">Alur kerja: <b>Periksa capaian masuk</b> → setujui / kembalikan dengan catatan → susun publikasi → tayangkan ke dashboard pimpinan. Mulai dari kartu <b>“Perlu diperiksa”</b> di atas.</p>
+    </div>
+  </section>
+
+  <!-- ===== MATRIKS INDIKATOR ===== -->
+  <section class="page" id="page-matriks" hidden>
+    <p class="lead">Masalah lama: 6 filter + 7 kolom + aksi massal sekaligus. Perbaikan: hanya pencarian + 2 filter utama yang tampil, sisanya di <b>“Filter lanjutan”</b>; ada mode <b>Ringkas/Lengkap</b>; kolom tak-penting disembunyikan di mode ringkas.</p>
+
+    <div class="card">
+      <div class="ch">
+        <div><div class="k">Tata Kelola Data</div><h3>Matriks Indikator</h3></div>
+        <div class="seg"><button class="on">Ringkas</button><button>Lengkap</button></div>
+      </div>
+      <div class="toolbar">
+        <div class="search">🔍 Cari kode atau nama indikator…</div>
+        <div class="sel">Semua OPD ▾</div>
+        <div class="sel">Semua status ▾</div>
+        <button class="mini-btn go">+ Tambah indikator</button>
+      </div>
+      <details class="adv">
+        <summary>▸ Filter lanjutan</summary>
+        <div class="adv-row">
+          <div class="sel">Fokus pembangunan ▾</div>
+          <div class="sel">Kelompok isu ▾</div>
+          <div class="sel">Kelengkapan ▾</div>
+          <div class="sel">Baris per halaman: 20 ▾</div>
+        </div>
+      </details>
+
+      <div class="tscroll">
+        <table>
+          <thead><tr><th>Indikator</th><th>OPD penanggung jawab</th><th>Kesiapan</th><th>Tahap</th><th class="colhide">Diperbarui</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="ind"><b>PAD Sektor Pariwisata</b><div class="code">RPJMD_I022</div></div></td>
+              <td>Dinas Kebudayaan &amp; Pariwisata</td>
+              <td><span class="pill ok">● Lengkap</span></td>
+              <td><span class="pill wait">Menunggu verifikasi OPD</span></td>
+              <td class="colhide">10 Okt 2026</td>
+            </tr>
+            <tr>
+              <td><div class="ind"><b>Indeks Ketahanan Pangan</b><div class="code">IKP · Indeks</div></div></td>
+              <td>Dinas Ketahanan Pangan &amp; Perikanan</td>
+              <td><span class="pill ok">● Lengkap</span></td>
+              <td><span class="pill wait">Menunggu verifikasi OPD</span></td>
+              <td class="colhide">8 Okt 2026</td>
+            </tr>
+            <tr>
+              <td><div class="ind"><b>Prevalensi Stunting</b><div class="code">PREVALENSI_STUNTING</div></div></td>
+              <td>Dinas Kesehatan</td>
+              <td><span class="pill warn">● Perlu metadata</span></td>
+              <td><span class="pill ok">Aktif</span></td>
+              <td class="colhide">8 Okt 2026</td>
+            </tr>
+            <tr>
+              <td><div class="ind"><b>Indeks Pembangunan Kebudayaan</b><div class="code">RPJMD_I061</div></div></td>
+              <td>Dinas Kebudayaan &amp; Pariwisata</td>
+              <td><span class="pill ok">● Lengkap</span></td>
+              <td><span class="pill wait">Menunggu verifikasi OPD</span></td>
+              <td class="colhide">10 Okt 2026</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:.76rem;color:var(--muted);margin-top:10px">Mode <b>Ringkas</b>: kolom “Fokus &amp; kelompok isu”, “Target tahunan”, dan centang aksi massal disembunyikan — muncul di mode <b>Lengkap</b>.</p>
+      <p style="font-size:.78rem;color:var(--ink-2);margin-top:8px;background:var(--info-soft);border:1px solid var(--line);border-radius:9px;padding:9px 12px">ℹ️ <b>Tampilan ini POV Walidata/Admin</b> (lihat semua OPD). Dari <b>POV OPD</b>, label tahap untuk indikatornya sendiri berbunyi <b>“Perlu Anda verifikasi”</b>, bukan “Menunggu verifikasi OPD”. OPD membuka <b>menu yang sama (“Matriks Indikator”)</b> dan menekan <b>“Tambah indikator”</b>; indikator yang ditambahkan masuk sebagai <b>usulan</b> lewat alur (penyusun mengajukan → BAPPERIDA memeriksa → OPD memverifikasi → BAPPERIDA mengaktifkan) — bukan menu terpisah.</p>
+    </div>
+  </section>
+
+  <footer>Mockup Navigasi &amp; Halaman Padat · SABABUKA · data ilustrasi</footer>
+</div>
+
+<script>
+  var pages=['sidebar','tugas','matriks'];
+  function go(t){
+    if(pages.indexOf(t)<0) t='sidebar';
+    pages.forEach(function(p){ document.getElementById('page-'+p).hidden=(p!==t); });
+    document.querySelectorAll('.tab').forEach(function(b){ b.setAttribute('aria-selected', b.dataset.t===t?'true':'false'); });
+    try{ if(location.hash.replace('#','')!==t) history.replaceState(null,'','#'+t); }catch(e){}
+  }
+  // segmented toggle (visual only)
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('.seg button'); if(!b) return;
+    b.parentNode.querySelectorAll('button').forEach(function(x){x.classList.remove('on')}); b.classList.add('on');
+  });
+  go((location.hash||'').replace('#','')||'sidebar');
+</script>

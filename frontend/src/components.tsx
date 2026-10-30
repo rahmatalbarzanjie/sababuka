@@ -1,12 +1,21 @@
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight, Inbox, LoaderCircle, RefreshCw, X } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { SababukaMark } from "./branding/SababukaBrand";
+import { formatTanggal } from "./utils/date";
+
+export { formatTanggal } from "./utils/date";
+export { capaianStatusLabel, statusLabel } from "./utils/status-label";
+export type { StatusViewpoint } from "./utils/status-label";
 
 export function Spinner({ label = "Memuat" }: { label?: string }) {
   return <span className="spinner" role="status" aria-live="polite"><LoaderCircle size={17} aria-hidden /> {label}</span>;
 }
 
 export function LoadingScreen() {
-  return <div className="loading-screen"><div className="brand-symbol">S</div><Spinner label="Menyiapkan ruang kerja" /></div>;
+  return <div className="loading-screen" role="status" aria-live="polite" aria-busy="true">
+    <SababukaMark className="loading-brand-mark" label="SABABUKA sedang menyiapkan ruang kerja" />
+    <h1 className="loading-brand-label">Menyiapkan ruang kerja</h1>
+  </div>;
 }
 
 export function PageLoading({ label = "Memuat data" }: { label?: string }) {
@@ -117,41 +126,14 @@ export function Pagination({ page, totalPages, totalItems, pageSize, sortLabel, 
   </div>;
 }
 
+/** @deprecated Gunakan formatTanggal(value, "tanggal-waktu"). */
 export function formatDate(value: string | null | undefined): string {
-  if (!value) return "-";
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
-    timeZone: "Asia/Jakarta",
-  }).format(new Date(value));
+  return formatTanggal(value, "tanggal-waktu");
 }
 
+/** @deprecated Gunakan formatTanggal(value). */
 export function formatDateOnly(value: string | null | undefined): string {
-  if (!value) return "-";
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta",
-  }).format(new Date(value));
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  active: "Aktif", inactive: "Nonaktif", draft: "Draf", submitted: "Dikirim",
-  verified: "Terverifikasi", rejected: "Ditolak", published: "Terbit",
-  replaced: "Digantikan", pending: "Menunggu", approved: "Disetujui",
-  in_review: "Menunggu keputusan BAPPERIDA", opd_verification: "Menunggu verifikasi OPD",
-  archived: "Diarsipkan", open: "Terbuka", closed: "Selesai",
-};
-
-export function statusLabel(value: string | null | undefined): string {
-  if (!value) return "-";
-  return STATUS_LABELS[value.toLowerCase()] ?? value.replaceAll("_", " ");
-}
-
-export function capaianStatusLabel(value: string | null | undefined): string {
-  const labels: Record<string, string> = {
-    draft: "Draf capaian", submitted: "Capaian dikirim", under_review: "Capaian sedang diperiksa",
-    returned: "Capaian perlu perbaikan", approved: "Capaian disetujui",
-  };
-  if (!value) return "-";
-  return labels[value.toLowerCase()] ?? statusLabel(value);
+  return formatTanggal(value);
 }
 
 export function formatCategoryCode(value: string | null | undefined): string {

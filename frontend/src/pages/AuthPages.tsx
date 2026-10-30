@@ -1,25 +1,80 @@
-import { ArrowRight, Bot, Check, Copy, Eye, EyeOff, KeyRound, LockKeyhole, ShieldCheck, Sparkles, UserRoundPlus } from "lucide-react";
+import { ArrowRight, Check, Copy, Eye, EyeOff, KeyRound, LockKeyhole, ShieldCheck, UserRoundPlus } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { api, ApiClientError, jsonBody } from "../api";
 import { useAuth } from "../auth";
+import { SababukaLockup } from "../branding/SababukaBrand";
 import { Notice, Spinner } from "../components";
 import { navigate } from "../router";
 
 function AuthBrand() {
   return <aside className="auth-brand">
-    <div className="auth-brand-top"><div className="brand-logo auth-logo"><img src="/logo-kapuas.png" alt="Lambang Kabupaten Kapuas" /></div><div><strong>SABABUKA</strong></div></div>
-    <div className="auth-copy">
-      <span className="eyebrow light">Sistem Analisis Big Data Kabupaten Kapuas</span>
-      <h1>Satu ruang kendali untuk data daerah yang dapat dipercaya.</h1>
-      <p>Kelola metadata, validasi data OPD, indikator pembangunan, dan informasi pimpinan dalam satu alur yang tercatat.</p>
-    </div>
-    <div className="auth-features">
-      <div><ShieldCheck /><span><strong>Akses berbasis peran</strong><small>Menu dan data mengikuti kewenangan pengguna.</small></span></div>
-      <div><Sparkles /><span><strong>Data terkurasi</strong><small>Setiap angka memiliki sumber dan status validasi.</small></span></div>
-      <div><Bot /><span><strong>Asisten untuk pimpinan</strong><small>Jawaban hanya dari data yang layak tayang.</small></span></div>
+    <div className="auth-brand-top"><SababukaLockup className="auth-lockup" /></div>
+    <div className="auth-brand-stage">
+      <KapuasDataIllustration />
+      <div className="auth-copy">
+        <h2>Data bergerak, keputusan terjaga.</h2>
+        <p>Satu ruang bersama untuk memahami kondisi daerah dan membantu setiap keputusan pembangunan Kapuas menjadi lebih tepat.</p>
+      </div>
     </div>
     <small className="auth-foot">Pemerintah Kabupaten Kapuas<br /><strong>Tim Peneliti Kajian SABABUKA BERSINAR 2026</strong></small>
   </aside>;
+}
+
+function KapuasDataIllustration() {
+  return <figure className="kapuas-data-illustration" aria-hidden="true">
+    <svg viewBox="0 0 420 400" focusable="false">
+      <g className="kapuas-data-rings" fill="none">
+        <ellipse cx="210" cy="259" rx="187" ry="68" />
+        <ellipse cx="210" cy="259" rx="145" ry="48" />
+      </g>
+      <g className="kapuas-data-stream" fill="none">
+        <path d="M22 272c72-52 127-43 181-4s111 45 195-9" />
+        <path d="M36 310c69-31 126-24 173 3s98 27 175-8" />
+      </g>
+      <g className="kapuas-monument">
+        <g className="kapuas-wings left">
+          <path className="kapuas-wing-panel outer" d="M194 322H84l12-53 69 38Z" />
+          <path className="kapuas-wing-panel" d="M195 322h-89l10-101 65 77Z" />
+          <path className="kapuas-wing-panel" d="M197 322h-67l9-148 49 105Z" />
+          <path className="kapuas-wing-panel inner" d="M199 322h-45l15-178 25 114Z" />
+          <path className="kapuas-motif red" d="M98 294c19-19 35-18 52 4m-29-55c14 19 32 25 52 17m-20-81c5 21 14 37 29 49" />
+          <path className="kapuas-motif green" d="M111 307c10-30 29-44 56-43m-36-58c7 18 23 29 47 31m-10-66c-8 13-7 29 4 48" />
+          <path className="kapuas-motif gold" d="M93 282c25 8 46 2 62-17m-37-25c23 2 42-8 57-31m-23-23c13 5 24 2 34-9" />
+        </g>
+        <g transform="translate(420 0) scale(-1 1)">
+          <g className="kapuas-wings right">
+            <path className="kapuas-wing-panel outer" d="M194 322H84l12-53 69 38Z" />
+            <path className="kapuas-wing-panel" d="M195 322h-89l10-101 65 77Z" />
+            <path className="kapuas-wing-panel" d="M197 322h-67l9-148 49 105Z" />
+            <path className="kapuas-wing-panel inner" d="M199 322h-45l15-178 25 114Z" />
+            <path className="kapuas-motif red" d="M98 294c19-19 35-18 52 4m-29-55c14 19 32 25 52 17m-20-81c5 21 14 37 29 49" />
+            <path className="kapuas-motif green" d="M111 307c10-30 29-44 56-43m-36-58c7 18 23 29 47 31m-10-66c-8 13-7 29 4 48" />
+            <path className="kapuas-motif gold" d="M93 282c25 8 46 2 62-17m-37-25c23 2 42-8 57-31m-23-23c13 5 24 2 34-9" />
+          </g>
+        </g>
+        <g className="kapuas-railings">
+          <path d="M180 214h22m-29 22h29m-37 23h37m-46 23h46M240 214h-22m29 22h-29m37 23h-37m46 23h-46" />
+        </g>
+        <path className="kapuas-column" d="M198 322 203 72h14l5 250Z" />
+        <path className="kapuas-column-light" d="M210 306V84" />
+        <g className="kapuas-crown">
+          <path d="M210 73V49m0 5c-8-1-14-7-15-16 7 6 12 6 15-4m0 20c8-1 14-7 15-16-7 6-12 6-15-4m0 10c-5-7-5-15 0-24 5 9 5 17 0 24Z" />
+          <path d="M197 46c-9 1-15-2-20-9 8 2 13 0 16-7m30 16c9 1 15-2 20-9-8 2-13 0-16-7" />
+        </g>
+        <g className="kapuas-base">
+          <path d="M152 316h116l11 14H141Z" />
+          <path d="M127 330h166l14 16H113Z" />
+          <path d="M96 346h228l18 22H78Z" />
+        </g>
+      </g>
+      <g className="kapuas-data-nodes">
+        <circle cx="45" cy="268" r="6" /><circle cx="119" cy="223" r="5" />
+        <circle cx="210" cy="264" r="7" /><circle cx="304" cy="291" r="5" />
+        <circle cx="378" cy="264" r="6" />
+      </g>
+    </svg>
+    <figcaption><span>Kapuas terhubung</span><strong>Dari sumber data menuju kebijakan.</strong></figcaption>
+  </figure>;
 }
 
 function AuthBackdrop() {
@@ -67,15 +122,13 @@ export function LoginPage() {
     }
   }
 
-  return <main className="login-page">
+  return <main className="login-page auth-layout">
     <AuthBackdrop />
-    <section className="login-panel">
+    <AuthBrand />
+    <section className="login-panel auth-panel">
       <form className="auth-card login-card" onSubmit={submit}>
-        <div className="login-identity">
-          <div className="brand-logo login-logo"><img src="/logo-kapuas.png" alt="Lambang Kabupaten Kapuas" /></div>
-          <div><strong>SABABUKA</strong><small>Pemerintah Kabupaten Kapuas</small></div>
-        </div>
-        <div className="auth-card-heading"><span className="eyebrow">Akses aman</span><h2>{mfaMode ? "Verifikasi dua langkah" : "Masuk ke SABABUKA"}</h2><p>{mfaMode ? "Masukkan kode dari aplikasi Authenticator Anda." : "Masuk menggunakan akun SABABUKA yang telah diverifikasi."}</p></div>
+        <div className="login-identity"><SababukaLockup className="login-lockup" /></div>
+        <div className="auth-card-heading"><h1>{mfaMode ? "Verifikasi dua langkah" : "Masuk ke SABABUKA"}</h1>{mfaMode && <p>Masukkan kode dari aplikasi Authenticator Anda.</p>}</div>
         {error && <Notice tone="error">{error}</Notice>}
         {!mfaMode ? <>
           <label className="field"><span>Email atau username</span><input autoFocus autoComplete="username" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="nama@kapuaskab.go.id" required /></label>
@@ -88,7 +141,6 @@ export function LoginPage() {
         </>}
         <button className="button primary full" disabled={busy}>{busy ? <Spinner label="Memeriksa" /> : <>{mfaMode ? "Verifikasi" : "Masuk"}<ArrowRight size={17} /></>}</button>
         {!mfaMode && <button className="button secondary full" type="button" onClick={() => navigate("/register")}><UserRoundPlus size={17} />Daftar akun baru</button>}
-        <div className="security-note"><ShieldCheck size={17} /><span>Session dilindungi cookie HttpOnly, CSRF, dan pencatatan audit.</span></div>
         <small className="login-credit">Tim Peneliti Kajian SABABUKA BERSINAR 2026</small>
       </form>
     </section>
@@ -117,7 +169,7 @@ export function PasswordSetupPage() {
   }
 
   return <main className="auth-layout"><AuthBrand /><section className="auth-panel"><form className="auth-card" onSubmit={submit}>
-    <div className="auth-card-heading"><span className="eyebrow">Langkah pertama</span><h2>Ganti kata sandi</h2><p>Akun demo ini memakai kata sandi awal. Buat kata sandi pribadi sebelum melanjutkan.</p></div>
+    <div className="auth-card-heading"><span className="context-label">Langkah pertama</span><h2>Ganti kata sandi</h2><p>Akun demo ini memakai kata sandi awal. Buat kata sandi pribadi sebelum melanjutkan.</p></div>
     {error && <Notice tone="error">{error}</Notice>}
     <label className="field"><span>Kata sandi awal</span><input type="password" autoFocus autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} required minLength={8} /></label>
     <label className="field"><span>Kata sandi baru</span><input type="password" autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required minLength={12} /><small>Minimal 12 karakter.</small></label>
@@ -177,19 +229,13 @@ export function RegistrationPage() {
     <section className="login-panel registration-panel">
       <div className="auth-card login-card registration-card">
         {complete ? <>
-          <div className="login-identity">
-            <div className="brand-logo login-logo"><img src="/logo-kapuas.png" alt="Lambang Kabupaten Kapuas" /></div>
-            <div><strong>SABABUKA</strong><small>Pemerintah Kabupaten Kapuas</small></div>
-          </div>
+          <div className="login-identity"><SababukaLockup className="login-lockup" /></div>
           <div className="success-symbol"><Check /></div>
-          <div className="auth-card-heading centered"><span className="eyebrow">Pendaftaran terkirim</span><h2>Menunggu persetujuan</h2><p>Pengelola Sistem akan memeriksa identitas PIC, instansi, dan paket peran yang sesuai.</p></div>
+          <div className="auth-card-heading centered"><span className="context-label">Pendaftaran terkirim</span><h2>Menunggu persetujuan</h2><p>Pengelola Sistem akan memeriksa identitas PIC, instansi, dan paket peran yang sesuai.</p></div>
           <button className="button primary full" onClick={() => navigate("/login")}>Kembali ke halaman masuk</button>
         </> : <form className="registration-form" onSubmit={submit}>
-          <div className="login-identity">
-            <div className="brand-logo login-logo"><img src="/logo-kapuas.png" alt="Lambang Kabupaten Kapuas" /></div>
-            <div><strong>SABABUKA</strong><small>Pemerintah Kabupaten Kapuas</small></div>
-          </div>
-          <div className="auth-card-heading"><span className="eyebrow">Pendaftaran akun</span><h2>Daftar sebagai PIC instansi</h2><p>Untuk OPD dan instansi vertikal yang telah terdaftar. Hak akses diberikan setelah identitas dan kedudukan instansi diperiksa.</p></div>
+          <div className="login-identity"><SababukaLockup className="login-lockup" /></div>
+          <div className="auth-card-heading"><span className="context-label">Pendaftaran akun</span><h2>Daftar sebagai PIC instansi</h2><p>Untuk OPD dan instansi vertikal yang telah terdaftar. Hak akses diberikan setelah identitas dan kedudukan instansi diperiksa.</p></div>
           {error && <Notice tone="error">{error}</Notice>}
           <div className="registration-form-grid">
             <label className="field"><span>Nama lengkap PIC</span><input autoFocus value={fullName} onChange={(event) => setFullName(event.target.value)} autoComplete="name" placeholder="Nama lengkap" required /></label>
@@ -270,17 +316,17 @@ export function InvitationPage() {
     <section className="auth-panel">
       <div className="auth-card activation-card">
         {busy && !info ? <Spinner label="Memeriksa undangan" /> : error && !info ? <><Notice tone="error">{error}</Notice><button className="button secondary full" onClick={() => navigate("/login")}>Kembali ke login</button></> : recoveryCodes ? <>
-          <div className="success-symbol"><Check /></div><div className="auth-card-heading"><span className="eyebrow">{activationStatus === "pending_approval" ? "Menunggu verifikasi" : "Akun aktif"}</span><h2>Simpan recovery code Anda</h2><p>{activationStatus === "pending_approval" ? "Pengaturan keamanan selesai. Developer akan memeriksa identitas dan OPD sebelum akun dapat digunakan." : "Kode berikut hanya ditampilkan sekali. Simpan di lokasi aman dan jangan kirim melalui grup percakapan."}</p></div>
+          <div className="success-symbol"><Check /></div><div className="auth-card-heading"><span className="context-label">{activationStatus === "pending_approval" ? "Menunggu verifikasi" : "Akun aktif"}</span><h2>Simpan recovery code Anda</h2><p>{activationStatus === "pending_approval" ? "Pengaturan keamanan selesai. Developer akan memeriksa identitas dan OPD sebelum akun dapat digunakan." : "Kode berikut hanya ditampilkan sekali. Simpan di lokasi aman dan jangan kirim melalui grup percakapan."}</p></div>
           <div className="recovery-grid">{recoveryCodes.map((item) => <code key={item}>{item}</code>)}</div>
           <button className="button secondary full" onClick={() => copyText(recoveryCodes.join("\n"))}>{copied ? <Check size={17} /> : <Copy size={17} />}{copied ? "Tersalin" : "Salin semua kode"}</button>
           <button className="button primary full" onClick={() => navigate("/login")}>Lanjut ke login <ArrowRight size={17} /></button>
         </> : info && !setup ? <>
-          <div className="auth-card-heading"><span className="eyebrow">Undangan pengguna</span><h2>Selamat datang, {info.full_name}</h2><p>{info.email}</p></div>
+          <div className="auth-card-heading"><span className="context-label">Undangan pengguna</span><h2>Selamat datang, {info.full_name}</h2><p>{info.email}</p></div>
           {error && <Notice tone="error">{error}</Notice>}
           <div className="activation-steps"><div className="active"><span>1</span><p><strong>Hubungkan Authenticator</strong><small>Wajib untuk melindungi akun pemerintah.</small></p></div><div><span>2</span><p><strong>Buat kata sandi</strong><small>Minimal 12 karakter.</small></p></div><div><span>3</span><p><strong>Simpan recovery code</strong><small>Digunakan jika perangkat hilang.</small></p></div></div>
           <button className="button primary full" onClick={beginSetup} disabled={busy}><KeyRound size={17} />{busy ? "Menyiapkan…" : info.mfa_setup_started ? "Buat ulang kode Authenticator" : "Siapkan Authenticator"}</button>
         </> : setup ? <form onSubmit={activate}>
-          <div className="auth-card-heading"><span className="eyebrow">Aktivasi aman</span><h2>Hubungkan Authenticator</h2><p>Tambahkan akun secara manual menggunakan kunci berikut, lalu masukkan kode enam digit.</p></div>
+          <div className="auth-card-heading"><span className="context-label">Aktivasi aman</span><h2>Hubungkan Authenticator</h2><p>Tambahkan akun secara manual menggunakan kunci berikut, lalu masukkan kode enam digit.</p></div>
           {error && <Notice tone="error">{error}</Notice>}
           <div className="secret-box"><span>Kunci setup</span><code>{setup.secret}</code><button type="button" onClick={() => copyText(setup.secret)}>{copied ? <Check /> : <Copy />}</button></div>
           <p className="helper">Issuer: <strong>{setup.issuer}</strong> · Akun: <strong>{setup.account}</strong></p>

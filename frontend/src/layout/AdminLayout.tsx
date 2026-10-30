@@ -28,12 +28,14 @@ import {
   Plug,
   HelpCircle,
   MapPinned,
+  Moon,
   WalletCards,
   HeartHandshake,
   Eye,
   RotateCcw,
   Megaphone,
   BookCheck,
+  Sun,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "../auth";
@@ -41,7 +43,9 @@ import { navigate } from "../router";
 import type { LoginAnnouncement, MenuItem, NotificationItem } from "../types";
 import { api } from "../api";
 import { notificationDestination } from "../notification-routing";
-import { Modal } from "../components";
+import { formatTanggal, Modal } from "../components";
+import { SababukaAssistantMark, SababukaLockup, SababukaMark } from "../branding/SababukaBrand";
+import { applyTheme, readTheme, type ThemeMode } from "../theme";
 
 const iconByCode: Record<string, typeof LayoutDashboard> = {
   organizations: Building2,
@@ -65,26 +69,11 @@ const iconByCode: Record<string, typeof LayoutDashboard> = {
   finance: WalletCards,
   "public-services": HeartHandshake,
   "statistical-guidance": BookCheck,
+  "system-dashboard": LayoutDashboard,
+  "opd-monitoring": Building2,
 };
 
-const supportedRoutes = new Set(["/admin", "/dashboard", "/executive", "/assistant", "/analysis", "/finance", "/public-services", "/notifications", "/audit", "/operations", "/opd-profile", "/admin/organizations", "/admin/opd-monitoring", "/admin/users", "/admin/roles", "/admin/menus", "/admin/system", "/governance/categories", "/governance/indicators", "/submissions", "/reviews", "/guidance", "/publications", "/connectors"]);
-
-const navigationLabels: Record<string, string> = {
-  categories: "Kelompok Isu",
-  indicators: "Matriks Indikator",
-  operations: "Beranda Tugas",
-  "opd-profile": "Profil Data OPD",
-  submissions: "Pelaporan Realisasi",
-  reviews: "Verifikasi Pelaporan OPD",
-  publications: "Kurasi dan Publikasi",
-  assistant: "Asisten Data",
-  roles: "Peran dan Hak Akses",
-  connectors: "Ruang Walidata",
-  analysis: "Analisis dan Peta",
-  finance: "Keuangan Daerah",
-  "public-services": "Layanan Publik",
-  "statistical-guidance": "Pembinaan Statistik",
-};
+const supportedRoutes = new Set(["/admin", "/dashboard", "/executive", "/assistant", "/analysis", "/finance", "/public-services", "/notifications", "/audit", "/operations", "/opd-profile", "/admin/organizations", "/admin/opd-monitoring", "/admin/users", "/admin/roles", "/admin/menus", "/admin/system", "/admin/metadata-profiles", "/governance/focuses", "/governance/categories", "/governance/indicators", "/governance/datasets", "/submissions", "/reviews", "/guidance", "/publications", "/connectors"]);
 
 const roleLabels: Record<string, string> = {
   superadmin: "Pengelola Sistem",
@@ -114,6 +103,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
   const [previewBusy, setPreviewBusy] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState<LoginAnnouncement | null>(null);
+  const [theme, setTheme] = useState<ThemeMode>(readTheme);
   const profileRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
@@ -129,11 +119,23 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
   const isOpd = user?.roles.some((role) => role.code === "opd") ?? false;
   const operationalEntries = useMemo(() => menu.filter((item) => ["operations", "opd-profile", "submissions", "reviews", "publications"].includes(item.code) && item.route_name && supportedRoutes.has(item.route_name) && !(!isSuperadmin && isBapperida && !isOpd && item.code === "submissions")), [menu, isSuperadmin, isBapperida, isOpd]);
   const sourceEntries = useMemo(() => menu.filter((item) => item.code === "connectors" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
-  const primaryEntries = useMemo(() => menu.filter((item) => ["dashboard", "assistant"].includes(item.code) && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
+  const primaryEntries = useMemo(() => menu.filter((item) => item.code === "dashboard" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
+  const systemEntries = useMemo(() => menu.filter((item) => ["system-dashboard", "opd-monitoring"].includes(item.code) && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const analysisEntries = useMemo(() => menu.filter((item) => ["analysis", "finance", "public-services"].includes(item.code) && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const auditEntries = useMemo(() => menu.filter((item) => item.code === "audit" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const isPimpinan = user?.roles.some((role) => role.code === "pimpinan") ?? false;
-  const areaLabel = pathname.startsWith("/admin") ? "Konfigurasi Internal"
+  const navigationSections = useMemo(() => [
+    { code: "system", label: "Administrasi sistem", entries: systemEntries },
+    { code: "primary", label: "Ruang pimpinan", entries: primaryEntries },
+    { code: "analysis", label: "Analisis keputusan", entries: analysisEntries },
+    { code: "governance", label: "Tata kelola data", entries: governanceEntries },
+    { code: "sources", label: "Walidata", entries: sourceEntries },
+    { code: "operations", label: isBapperida && !isSuperadmin ? "Pelaporan dan publikasi" : "Pelaporan capaian", entries: operationalEntries },
+    { code: "audit", label: "Pengawasan", entries: auditEntries },
+    { code: "administration", label: "Konfigurasi internal", entries: adminEntries },
+  ].filter((section) => section.entries.length > 0).sort((a, b) => Math.min(...a.entries.map((entry) => entry.display_order)) - Math.min(...b.entries.map((entry) => entry.display_order))), [adminEntries, analysisEntries, auditEntries, governanceEntries, isBapperida, isSuperadmin, operationalEntries, primaryEntries, sourceEntries, systemEntries]);
+  const areaLabel = ["/admin", "/admin/opd-monitoring"].includes(pathname) ? "Administrasi Sistem"
+    : pathname.startsWith("/admin") ? "Konfigurasi Internal"
     : ["/dashboard", "/executive", "/assistant"].includes(pathname) ? "Ruang Pimpinan"
     : ["/analysis", "/finance", "/public-services"].includes(pathname) ? "Analisis Keputusan"
     : pathname === "/connectors" ? "Walidata Diskominfosantik"
@@ -147,6 +149,9 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     : (user?.roles.some((role) => role.code === "kominfo") && isOpd) ? "Walidata + PIC OPD"
     : roleLabels[roleCode] ?? "Pengguna";
 
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
   useEffect(() => {
     setProfileOpen(false);
     setHelpOpen(false);
@@ -254,7 +259,6 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     await api("/notifications/read-all", { method: "POST", mutation: true });
     await loadNotifications();
   };
-  const notificationTime = (value: string) => new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
   const enterPreview = async (role: "bapperida" | "kominfo" | "pembina_statistik" | "opd" | "pimpinan", organizationId?: string) => {
     setPreviewBusy(true); setPreviewError(null);
     try {
@@ -269,32 +273,13 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
   return <div className={`workspace ${collapsed ? "collapsed" : ""}`}>
     <button className="skip-link" onClick={() => { mainRef.current?.focus({ preventScroll: true }); mainRef.current?.scrollIntoView({ block: "start" }); }}>Lewati navigasi ke konten utama</button>
     <aside ref={sidebarRef} className={`sidebar ${mobile ? "mobile-open" : ""}`} aria-label="Navigasi utama">
-      <div className="sidebar-brand"><div className="brand-logo"><img src="/logo-kapuas.png" alt="Lambang Kabupaten Kapuas" /></div><div className="sidebar-brand-copy"><strong>SABABUKA</strong></div><button className="mobile-close" aria-label="Tutup menu" onClick={() => setMobile(false)}><X /></button></div>
+      <div className="sidebar-brand"><SababukaLockup className="sidebar-lockup" /><button className="mobile-close" aria-label="Tutup menu" onClick={() => setMobile(false)}><X /></button></div>
       <nav>
-        {isSuperadmin && <button className={`nav-link ${pathname === "/admin" ? "active" : ""}`} aria-current={pathname === "/admin" ? "page" : undefined} title={collapsed ? "Beranda Administrasi" : undefined} onClick={() => go("/admin")}><LayoutDashboard /><span>Beranda Administrasi</span></button>}
-        {isSuperadmin && <button className={`nav-link ${pathname === "/admin/opd-monitoring" ? "active" : ""}`} aria-current={pathname === "/admin/opd-monitoring" ? "page" : undefined} title={collapsed ? "Kesiapan OPD" : undefined} onClick={() => go("/admin/opd-monitoring")}><Building2 /><span>Kesiapan OPD</span></button>}
-        {primaryEntries.length > 0 && <div className="nav-label">Ruang pimpinan</div>}
-        {primaryEntries.map((entry) => { const Icon = iconByCode[entry.code] ?? LayoutDashboard; const label = navigationLabels[entry.code] ?? entry.label; return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : undefined} onClick={() => go(entry.route_name!)}><Icon /><span>{label}</span></button>; })}
-        {analysisEntries.length > 0 && <div className="nav-label">Analisis keputusan</div>}
-        {analysisEntries.map((entry) => { const Icon = iconByCode[entry.code] ?? ChartNoAxesCombined; const label = navigationLabels[entry.code] ?? entry.label; return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : undefined} onClick={() => go(entry.route_name!)}><Icon /><span>{label}</span></button>; })}
-        {governanceEntries.length > 0 && <div className="nav-label">Tata kelola data</div>}
-        {governanceEntries.map((entry) => {
+        {navigationSections.map((section) => <div className="nav-section" key={section.code}><div className="nav-label">{section.label}</div>{section.entries.map((entry) => {
           const Icon = iconByCode[entry.code] ?? Settings2;
-          const label = navigationLabels[entry.code] ?? entry.label;
-          return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : undefined} onClick={() => go(entry.route_name!)}><Icon /><span>{label}</span></button>;
-        })}
-        {sourceEntries.length > 0 && <div className="nav-label">Walidata</div>}
-        {sourceEntries.map((entry) => { const Icon = iconByCode[entry.code] ?? Plug; const label = navigationLabels[entry.code] ?? entry.label; return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : undefined} onClick={() => go(entry.route_name!)}><Icon /><span>{label}</span></button>; })}
-        {operationalEntries.length > 0 && <div className="nav-label">{isBapperida && !isSuperadmin ? "Pelaporan dan publikasi" : "Pelaporan capaian"}</div>}
-        {operationalEntries.map((entry) => { const Icon = iconByCode[entry.code] ?? ClipboardList; const label = isPimpinan && entry.code === "publications" ? "Rilis Data" : navigationLabels[entry.code] ?? entry.label; return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : undefined} onClick={() => go(entry.route_name!)}><Icon /><span>{label}</span></button>; })}
-        {auditEntries.length > 0 && <div className="nav-label">Pengawasan</div>}
-        {auditEntries.map((entry) => <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? entry.label : undefined} onClick={() => go(entry.route_name!)}><ScrollText /><span>{entry.label}</span></button>)}
-        {adminEntries.length > 0 && <div className="nav-label">Konfigurasi internal</div>}
-        {adminEntries.map((entry) => {
-          const Icon = iconByCode[entry.code] ?? Settings2;
-          const label = navigationLabels[entry.code] ?? entry.label;
-          return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : undefined} onClick={() => go(entry.route_name!)}><Icon /><span>{label}</span></button>;
-        })}
+          const label = isPimpinan && entry.code === "publications" ? "Rilis Data" : entry.label;
+          return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : entry.navigation_disabled ? `${label} — ${entry.badge ?? "Belum tersedia"}` : undefined} disabled={entry.navigation_disabled} aria-disabled={entry.navigation_disabled} onClick={() => { if (!entry.navigation_disabled) go(entry.route_name!); }}><Icon /><span>{label}</span>{entry.badge && <small className="nav-badge">{entry.badge}</small>}</button>;
+        })}</div>)}
       </nav>
       <button className="collapse-button" title={collapsed ? "Perbesar sidebar" : undefined} onClick={() => setCollapsed((value) => !value)}>{collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}<span>{collapsed ? "Perbesar" : "Perkecil sidebar"}</span></button>
     </aside>
@@ -305,6 +290,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
         <nav className="topbar-context" aria-label="Lokasi halaman" title={subtitle}><span>{areaLabel}</span><i aria-hidden>/</i><strong tabIndex={-1}>{title}</strong></nav>
         <div className="topbar-actions">
           {actions}
+          <button className="icon-button theme-toggle" aria-label={theme === "dark" ? "Gunakan tema terang" : "Gunakan tema gelap"} title={theme === "dark" ? "Tema terang" : "Tema gelap"} onClick={() => setTheme((value) => value === "dark" ? "light" : "dark")}>{theme === "dark" ? <Sun /> : <Moon />}</button>
           <button ref={helpTriggerRef} className="icon-button" aria-label="Buka bantuan penggunaan" aria-haspopup="dialog" aria-expanded={helpOpen} onClick={() => setHelpOpen(true)}><HelpCircle /></button>
           {!isRolePreview && <div className="notification-wrap" ref={notificationRef}>
             <button className="icon-button notification" aria-label={`Buka notifikasi${unreadNotifications ? `, ${unreadNotifications} belum dibaca` : ""}`} aria-haspopup="dialog" aria-expanded={notificationOpen} onClick={() => { setNotificationOpen((value) => !value); setProfileOpen(false); if (!notificationOpen) void loadNotifications(); }}><Bell />{unreadNotifications > 0 && <span className="notification-count">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}</button>
@@ -313,7 +299,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
               <div className="notification-preview-list">
                 {notificationLoading && !notificationPreview.length ? <p className="notification-preview-empty">Memuat notifikasi…</p>
                   : !notificationPreview.length ? <p className="notification-preview-empty">Belum ada pemberitahuan untuk Anda.</p>
-                  : notificationPreview.map((item) => <button type="button" key={item.id} className={item.read_at ? "" : "unread"} onClick={() => void openNotification(item)}><span className="notification-preview-icon"><Bell /></span><span><strong>{item.title}</strong><p>{item.message}</p><small>{notificationTime(item.created_at)} WIB</small></span>{!item.read_at && <i aria-label="Belum dibaca" />}</button>)}
+                  : notificationPreview.map((item) => <button type="button" key={item.id} className={item.read_at ? "" : "unread"} onClick={() => void openNotification(item)}><span className="notification-preview-icon"><Bell /></span><span><strong>{item.title}</strong><p>{item.message}</p><small>{formatTanggal(item.created_at, "tanggal-waktu")}</small></span>{!item.read_at && <i aria-label="Belum dibaca" />}</button>)}
               </div>
               <footer><button type="button" onClick={() => go("/notifications")}>Lihat semua notifikasi</button></footer>
             </section>}
@@ -332,8 +318,18 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
         {pathname !== "/governance/indicators" && <header className="page-header"><div><h1>{title}</h1><p>{subtitle}</p></div>{actions && <div className="page-actions">{actions}</div>}</header>}
         {children}
       </main>
-      <footer className="workspace-footer"><span>Dikembangkan oleh</span><strong>Tim Peneliti Kajian SABABUKA BERSINAR 2026</strong></footer>
+      <footer className="workspace-footer">
+        <div className="workspace-footer-identity">
+          <SababukaMark label="Logo SABABUKA" />
+          <span><strong>SABABUKA BERSINAR</strong><small>Sistem Analisis Big Data Kabupaten Kapuas</small></span>
+        </div>
+        <div className="workspace-footer-governance">
+          <span>Informasi mengikuti kewenangan, proses verifikasi, dan jejak audit.</span>
+          <small>Dikembangkan oleh Tim Peneliti Kajian SABABUKA BERSINAR 2026</small>
+        </div>
+      </footer>
     </section>
+    {isPimpinan && <button type="button" className="assistant-floating-button" onClick={() => go("/assistant")} aria-label="Buka Asisten AI" title="Buka Asisten AI"><span className="assistant-floating-icon" aria-hidden><SababukaAssistantMark /><i /></span><span className="assistant-floating-label"><strong>Asisten AI</strong></span></button>}
     {helpOpen && <><button className="help-overlay" aria-label="Tutup bantuan" onClick={() => setHelpOpen(false)} /><aside ref={helpRef} tabIndex={-1} className="help-drawer" role="dialog" aria-modal="true" aria-labelledby="help-drawer-title"><header><div><h2 id="help-drawer-title">{help.title}</h2></div><button type="button" className="icon-button" aria-label="Tutup bantuan" onClick={() => setHelpOpen(false)}><X /></button></header><p>{help.intro}</p><ol>{help.steps.map((step) => <li key={step}><span>{help.steps.indexOf(step) + 1}</span><p>{step}</p></li>)}</ol><section><strong>Istilah penting</strong><dl><div><dt>Target</dt><dd>Sasaran RPJMD untuk tahun pelaporan.</dd></div><div><dt>Realisasi</dt><dd>Nilai yang benar-benar dicapai OPD.</dd></div><div><dt>Dipublikasikan</dt><dd>Sudah diperiksa, dikurasi, dan boleh dilihat pimpinan.</dd></div></dl></section><footer><small>Jika tugas atau data tidak sesuai, catat nama indikator, periode, dan OPD lalu hubungi Pengelola Sistem.</small><button type="button" className="button primary" onClick={() => setHelpOpen(false)}>Saya mengerti</button></footer></aside></>}
     {announcement?.enabled && <Modal title={announcement.title ?? "Pemberitahuan"} onClose={() => setAnnouncement(null)}><article className="login-announcement"><span className="announcement-icon"><Megaphone /></span>{announcement.image_url && <img src={announcement.image_url} alt="Ilustrasi pemberitahuan" />}<p>{announcement.message}</p><footer className="modal-actions">{announcement.action_url && <a className="button secondary" href={announcement.action_url} target={announcement.action_url.startsWith("http") ? "_blank" : undefined} rel="noreferrer">{announcement.action_label ?? "Buka informasi"}</a>}<button type="button" className="button primary" onClick={() => setAnnouncement(null)}>Tutup</button></footer></article></Modal>}
   </div>;
