@@ -46,7 +46,22 @@ export function ConnectorsPage() {
   const searchCkan = async () => { setSearchBusy(true); setError(""); try { const result = await api<{ results: CkanPackage[] }>(`/connectors/ckan/search?q=${encodeURIComponent(query)}&rows=10`); setResults(result.results); } catch (cause) { setError(cause instanceof Error ? cause.message : "Katalog tidak dapat dicari."); } finally { setSearchBusy(false); } };
   const saveMapping = async () => { setError(""); try { await api("/connectors/mappings", { method: "POST", mutation: true, body: jsonBody({ ...form, external_resource_id: form.external_resource_id || null, resource_url: form.resource_url || null, geography_field: form.geography_field || null, unit_field: form.unit_field || null, expected_unit: form.expected_unit || null, transform_json: form.transform_json ?? undefined }) }); mappings.reload(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Mapping gagal disimpan."); } };
   const [expressBusy, setExpressBusy] = useState(false); const [expressMessage, setExpressMessage] = useState("");
-  const expressAll = async () => { setExpressBusy(true); setError(""); setExpressMessage(""); try { const result = await api<{ total: number; imported: number; results: Array<{ indicator_code: string; status: string; error?: string }> }>("/connectors/mappings/express-import-all", { method: "POST", mutation: true }); const failed = result.results.filter((item) => item.status === "failed"); setExpressMessage(`${result.imported} dari ${result.total} mapping berhasil diimpor dan langsung tampil.${failed.length ? ` Gagal: ${failed.map((item) => `${item.indicator_code} (${item.error})`).join("; ")}` : ""}`); mappings.reload(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Impor gagal."); } finally { setExpressBusy(false); } };
+  const expressAll = async () => {
+    setExpressBusy(true); setError(""); setExpressMessage("");
+    let imported = 0; const failed: string[] = []; let total = 0;
+    try {
+      const targets = await api<{ data: Array<{ id: string; indicator_code: string }> }>("/connectors/mappings/express-targets");
+      total = targets.data.length;
+      for (const [index, target] of targets.data.entries()) {
+        setExpressMessage(`Mengimpor ${index + 1}/${total}: ${target.indicator_code}…`);
+        try {
+          const run = await api<{ status: string }>(`/connectors/mappings/${target.id}/express-import`, { method: "POST", mutation: true });
+          if (run.status === "imported") imported += 1; else failed.push(`${target.indicator_code} (${run.status})`);
+        } catch (cause) { failed.push(`${target.indicator_code} (${cause instanceof Error ? cause.message : "gagal"})`); }
+      }
+      setExpressMessage(`${imported} dari ${total} mapping berhasil diimpor dan langsung tampil.${failed.length ? ` Gagal: ${failed.join("; ")}` : ""}`); mappings.reload();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Impor gagal."); } finally { setExpressBusy(false); }
+  };
   const [bank, setBank] = useState({ running: false, page: 0, pages: 0, done: 0, imported: 0, skipped: 0, failed: 0, districtRows: 0, log: "" });
   const stopBank = useRef(false);
   const runBank = async () => {
