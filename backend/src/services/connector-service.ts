@@ -597,8 +597,14 @@ export class ConnectorService {
     return imported;
   }
 
+  /** Mapping yang layak diimpor ekspres: bukan hasil impor massal Bank Data (yang sudah masuk lewat jalurnya sendiri). */
+  async listExpressTargets() {
+    const result = await this.db.query<{ id: string; indicator_code: string; indicator_name: string }>(`SELECT m.id::text, i.code AS indicator_code, i.name AS indicator_name FROM sababuka.indicator_source_mappings m JOIN sababuka.indicator_versions iv ON iv.id = m.indicator_version_id JOIN sababuka.indicators i ON i.id = iv.indicator_id WHERE m.status IN ('draft','approved','active') AND i.origin_type <> 'bank_data' AND COALESCE(m.transform_json->>'bank_data','') <> 'true' ORDER BY m.created_at`);
+    return { data: result.rows };
+  }
+
   async expressImportAll(auth: AuthContext, audit: AuditContext) {
-    const mappings = await this.db.query<{ id: string; indicator_code: string }>(`SELECT m.id::text, i.code AS indicator_code FROM sababuka.indicator_source_mappings m JOIN sababuka.indicator_versions iv ON iv.id = m.indicator_version_id JOIN sababuka.indicators i ON i.id = iv.indicator_id WHERE m.status IN (draft,approved,active) ORDER BY m.created_at`);
+    const mappings = await this.db.query<{ id: string; indicator_code: string }>(`SELECT m.id::text, i.code AS indicator_code FROM sababuka.indicator_source_mappings m JOIN sababuka.indicator_versions iv ON iv.id = m.indicator_version_id JOIN sababuka.indicators i ON i.id = iv.indicator_id WHERE m.status IN ('draft','approved','active') AND i.origin_type <> 'bank_data' ORDER BY m.created_at`);
     const results: Array<{ mapping_id: string; indicator_code: string; status: string; error?: string }> = [];
     for (const mapping of mappings.rows) {
       try { const run = (await this.expressImport(auth, mapping.id, audit)) as unknown as { status: string }; results.push({ mapping_id: mapping.id, indicator_code: mapping.indicator_code, status: String(run.status) }); }
