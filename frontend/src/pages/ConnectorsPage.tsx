@@ -1,5 +1,5 @@
 import { ArrowRight, Building2, CheckCircle2, CloudCog, Database, Download, FileCheck2, Filter, Gauge, Link2, Plus, Search, Settings2, ShieldAlert, TableProperties, X } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { api, jsonBody } from "../api";
 import { useAuth } from "../auth";
 import { Badge, ContextHelp, EmptyState, ErrorState, formatDate, Modal, Notice, SortableHeader, Spinner, useAsync, type SortDirection } from "../components";
@@ -47,6 +47,29 @@ export function ConnectorsPage() {
   const saveMapping = async () => { setError(""); try { await api("/connectors/mappings", { method: "POST", mutation: true, body: jsonBody({ ...form, external_resource_id: form.external_resource_id || null, resource_url: form.resource_url || null, geography_field: form.geography_field || null, unit_field: form.unit_field || null, expected_unit: form.expected_unit || null, transform_json: form.transform_json ?? undefined }) }); mappings.reload(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Mapping gagal disimpan."); } };
   const [expressBusy, setExpressBusy] = useState(false); const [expressMessage, setExpressMessage] = useState("");
   const expressAll = async () => { setExpressBusy(true); setError(""); setExpressMessage(""); try { const result = await api<{ total: number; imported: number; results: Array<{ indicator_code: string; status: string; error?: string }> }>("/connectors/mappings/express-import-all", { method: "POST", mutation: true }); const failed = result.results.filter((item) => item.status === "failed"); setExpressMessage(`${result.imported} dari ${result.total} mapping berhasil diimpor dan langsung tampil.${failed.length ? ` Gagal: ${failed.map((item) => `${item.indicator_code} (${item.error})`).join("; ")}` : ""}`); mappings.reload(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Impor gagal."); } finally { setExpressBusy(false); } };
+  const [bank, setBank] = useState({ running: false, page: 0, pages: 0, done: 0, imported: 0, skipped: 0, failed: 0, districtRows: 0, log: "" });
+  const stopBank = useRef(false);
+  const runBank = async () => {
+    stopBank.current = false; setError("");
+    let totals = { running: true, page: 0, pages: 1, done: 0, imported: 0, skipped: 0, failed: 0, districtRows: 0, log: "" };
+    setBank(totals);
+    try {
+      for (let page = 1; page <= totals.pages && !stopBank.current; page += 1) {
+        const list = await api<{ pages: number; results: Array<{ id: string; title: string }> }>(`/connectors/bps/variables?page=${page}`);
+        totals = { ...totals, page, pages: list.pages };
+        for (const item of list.results) {
+          if (stopBank.current) break;
+          try {
+            const result = await api<{ status: string; observations?: number; district_observations?: number; reason?: string }>(`/connectors/bank-data/bps/${item.id}/import`, { method: "POST", mutation: true });
+            totals = result.status === "imported" ? { ...totals, imported: totals.imported + 1, districtRows: totals.districtRows + (result.district_observations ?? 0) } : { ...totals, skipped: totals.skipped + 1 };
+            if (result.status !== "imported") totals.log = `${item.title}: ${result.reason ?? "dilewati"}`;
+          } catch (cause) { totals = { ...totals, failed: totals.failed + 1, log: `${item.title}: ${cause instanceof Error ? cause.message : "gagal"}` }; }
+          totals = { ...totals, done: totals.done + 1 }; setBank({ ...totals });
+        }
+      }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Impor Bank Data berhenti."); }
+    setBank({ ...totals, running: false }); mappings.reload();
+  };
   const mappingAction = async (mapping: Mapping, action: "approve" | "activate" | "sync" | "express") => {
     setError("");
     try {
@@ -97,6 +120,7 @@ export function ConnectorsPage() {
     <section className="summary-grid connector-summary-grid">{sources.loading ? <Spinner /> : sources.data?.data.map((source) => <article className="summary-card connector-source-card" key={source.code}><span className="table-icon"><CloudCog /></span><div><small>{source.name}</small><strong>{sourceLabel(source.status)}</strong><p>{source.status_message ?? source.base_url}</p>{canManage && <button className="button secondary compact" onClick={() => void testConnection(source.code as "SATUDATA_KAPUAS" | "BPS_KAPUAS")} disabled={profileBusy === source.code}>{profileBusy === source.code ? "Menguji…" : "Uji koneksi"}</button>}{profiles[source.code] && <ConnectionProfileCard profile={profiles[source.code]!} />}</div></article>)}</section>
     <Notice tone="warning">Konektor menerima data tahun 1990-2035 sebagai Bank Data Kapuas; data sebelum 2025 menjadi pembanding tren. Target RPJMD tetap mengikuti periode 2025-2029; Walidata memeriksa mapping, satuan, wilayah, dan hasil sinkronisasi sebelum data dipakai.</Notice>
     {canManage && <section className="panel connector-panel"><header className="panel-heading"><div><h2>Cari dataset Satu Data Kapuas</h2><p>Hasil pencarian hanya menjadi kandidat. Data baru masuk setelah mapping disimpan dan disetujui.</p></div><Search /></header><div className="toolbar connector-toolbar"><input aria-label="Cari dataset" value={query} onChange={(event) => { setQuery(event.target.value); if (!event.target.value.trim()) setResults([]); }} placeholder="Contoh: kesehatan, IKP, stunting" /><button className="button secondary" onClick={() => void searchCkan()} disabled={searchBusy || !query.trim()}><Search />{searchBusy ? "Mencari…" : "Cari katalog"}</button></div>{results.length > 0 && <div className="catalog-results-panel"><header><span><strong>{results.length} dataset ditemukan</strong><small>Pilih satu dataset atau tutup hasil untuk kembali.</small></span><button className="icon-button" aria-label="Tutup hasil pencarian" title="Tutup hasil" onClick={() => setResults([])}><X /></button></header><div className="candidate-list connector-results">{results.map((item) => <article key={item.id}><span><strong>{item.title}</strong><small>{item.name} · {item.resources?.length ?? 0} resource</small></span><button className="button secondary compact" onClick={() => { const resource = item.resources?.find((candidate) => ["CSV", "JSON", "XLSX"].includes((candidate.format ?? "").toUpperCase()) || (candidate.url ?? "").toLowerCase().includes(".xlsx")); setForm((current) => ({ ...current, external_dataset_id: item.id, external_resource_id: resource?.id ?? "", resource_url: resource?.url ?? "" })); setResults([]); document.getElementById("mapping-form")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>Pilih untuk mapping</button></article>)}</div><small className="catalog-close-hint">Tekan Esc atau tombol tutup untuk menyembunyikan hasil.</small></div>}</section>}
+    {canManage && <section className="panel connector-panel"><header className="panel-heading"><div><h2>Impor Bank Data BPS (Kapuas dalam Angka)</h2><p>Mengambil seluruh variabel BPS Kabupaten Kapuas untuk semua tahun dan tiap kecamatan, lalu menerbitkannya ke dashboard, analisis, dan peta. Data diberi label belum diverifikasi sampai OPD dan BAPPERIDA merevisinya.</p></div><Database /></header><div className="panel-actions"><button className="button primary" disabled={bank.running} onClick={() => void runBank()}><Download />{bank.running ? "Mengimpor…" : "Impor semua variabel BPS"}</button>{bank.running && <button className="button secondary" onClick={() => { stopBank.current = true; }}>Hentikan</button>}</div>{(bank.running || bank.done > 0) && <Notice tone={bank.failed ? "warning" : "success"}>Halaman {bank.page}/{bank.pages} · {bank.done} variabel diproses: {bank.imported} masuk ({bank.districtRows} baris kecamatan), {bank.skipped} dilewati, {bank.failed} gagal.{bank.log ? ` Terakhir: ${bank.log}` : ""}</Notice>}</section>}
     {canManage && <BpsExplorer onApply={(suggestion) => setForm((current) => ({ ...current, ...suggestion }))} />}
     {canManage && indicators.data && <section id="mapping-form" className="panel connector-panel">
       <header className="panel-heading"><div><h2>Hubungkan sumber ke indikator</h2><p>Indikator yang masih diverifikasi OPD dapat dipetakan untuk preview, tetapi belum dapat diimpor.</p></div><Link2 /></header>

@@ -8,6 +8,7 @@ import type { AuthContext } from "../types/auth.js";
 import { recordAudit, type AuditContext } from "./audit-service.js";
 import { inspectPublicWebsite } from "./website-scraper.js";
 import { notifyRole } from "./notification-service.js";
+import { PublicationService } from "./publication-service.js";
 import { GovernanceService } from "./governance-service.js";
 
 interface SourceRow extends QueryResultRow { id: string; code: string; name: string; source_type: string; base_url: string | null; connection_config: Record<string, unknown>; credential_reference: string | null; last_checked_at: string | null }
@@ -587,7 +588,9 @@ export class ConnectorService {
     if (current.rows[0].status !== "active") await this.transitionMapping(auth, mappingId, "activate", audit);
     const run = (await this.sync(auth, mappingId, audit)) as unknown as { status: string; id: string };
     if (run.status !== "ready") return run;
-    return this.importRun(auth, String(run.id), audit);
+    const imported = await this.importRun(auth, String(run.id), audit);
+    await this.publishIndicatorObservations(auth, String(current.rows[0].version_id), audit);
+    return imported;
   }
 
   async expressImportAll(auth: AuthContext, audit: AuditContext) {
@@ -950,6 +953,125 @@ export class ConnectorService {
     await this.db.query(`UPDATE sababuka.connector_runs SET status='imported', dry_run=false, approved_by=$2, approved_at=now(), imported_batch_id=$3, updated_at=now() WHERE id=$1`, [runId, auth.user.id, firstBatch]);
     await recordAudit(this.db, { ...audit, eventType: "connector.import_approved", entityType: "connector_run", entityId: runId, afterData: { imported_batch_id: firstBatch, status: "imported", skipped_existing: skipped }, metadata: { mapping_id: row.mapping_id } });
     return this.getRun(runId);
+  }
+
+  /** Bank Data Kapuas: impor satu variabel BPS (semua tahun, per kecamatan) menjadi indikator berlabel "belum diverifikasi" lalu publikasikan. */
+  async importBankVariable(auth: AuthContext, variableId: string, audit: AuditContext) {
+    const source = await this.source("BPS_KAPUAS");
+    const domain = this.bpsDomain(source);
+    const slug = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]+/gu, "_").replace(/^_+|_+$/gu, "").slice(0, 40) || "UMUM";
+    const norm = (value: string) => value.toLowerCase().replace(/^kecamatan\s+/u, "").replace(/[^a-z0-9]+/gu, " ").trim();
+    let merged: ReturnType<typeof parseBpsDataContent> | null = null;
+    for (const window of bpsYearWindows(2000, new Date().getFullYear() + 1)) {
+      const payload = await this.bpsJson(source, (key) => buildBpsDataUrl(bpsApiBase(source.base_url), domain, variableId, window, key));
+      const parsed = parseBpsDataContent(payload, {}, domain);
+      if (!merged) merged = parsed;
+      else {
+        merged.rows.push(...parsed.rows);
+        if (!merged.variable.title) merged.variable = parsed.variable;
+        if (!merged.vervars.length) merged.vervars = parsed.vervars;
+        if (!merged.turvars.length) merged.turvars = parsed.turvars;
+        if (!merged.turtahuns.length) merged.turtahuns = parsed.turtahuns;
+      }
+    }
+    if (!merged || !merged.variable.title) return { variable_id: variableId, status: "skipped", reason: "Variabel tidak ditemukan atau kosong." };
+    const geographies = await this.db.query<{ id: string; code: string; name: string; level: string }>(`SELECT id::text, code, name, level FROM sababuka.geographies WHERE is_active = true`);
+    const districtByName = new Map(geographies.rows.filter((row) => row.level === "district").map((row) => [norm(row.name), row.id]));
+    const regency = geographies.rows.find((row) => row.level === "regency");
+    const geoOf = (label: string): string | null => {
+      const key = norm(label);
+      if (districtByName.has(key)) return districtByName.get(key)!;
+      if (regency && (key === "" || key === "kapuas" || key === "kabupaten kapuas" || key === "6203" || key === "jumlah" || key === "total")) return regency.id;
+      return null;
+    };
+    const preferredTurtahun = merged.turtahuns.length > 1 ? (merged.turtahuns.find((item) => /tahun/iu.test(item.label)) ?? merged.turtahuns[0]!).val : null;
+    type Point = { geography_id: string; year: number; value: number };
+    const series = new Map<string, { label: string; points: Map<string, Point> }>();
+    for (const row of merged.rows) {
+      if (preferredTurtahun && row.turtahun !== preferredTurtahun) continue;
+      const geographyId = geoOf(row.vervar_label);
+      if (!geographyId || row.nilai === null) continue;
+      const value = typeof row.nilai === "number" ? row.nilai : Number(String(row.nilai).replace(/\s/gu, "").replace(/\./gu, "").replace(",", "."));
+      if (!Number.isFinite(value) || row.tahun < 1990 || row.tahun > CONNECTOR_YEAR_MAX) continue;
+      const entry = series.get(row.turvar) ?? { label: row.turvar_label, points: new Map() };
+      entry.points.set(`${geographyId}:${row.tahun}`, { geography_id: geographyId, year: row.tahun, value });
+      series.set(row.turvar, entry);
+    }
+    if (!series.size || series.size > 40) return { variable_id: variableId, status: "skipped", reason: series.size ? "Terlalu banyak kategori (lebih dari 40)." : "Tidak ada baris yang cocok dengan wilayah Kapuas atau kecamatan." };
+
+    const client = await this.db.connect();
+    const created: string[] = [];
+    let observationCount = 0;
+    let districtCount = 0;
+    try {
+      await client.query("BEGIN");
+      const org = await client.query<{ id: string }>(`SELECT id::text FROM sababuka.organizations WHERE code='BPS_KAPUAS'`);
+      const owner = await client.query<{ id: string }>(`SELECT id::text FROM sababuka.organizations WHERE code='KAPUAS'`);
+      const profile = await client.query<{ id: string }>(`SELECT id::text FROM sababuka.metadata_profiles WHERE code='CONNECTOR_TABULAR_ANNUAL' AND version_number=1`);
+      if (!org.rows[0] || !owner.rows[0] || !profile.rows[0]) throw new ApiError(500, "CONFIGURATION_ERROR", "Organisasi atau profil metadata Bank Data belum tersedia.");
+      const title = merged.variable.title;
+      const subject = merged.variable.subject ?? "Umum";
+      const unitName = merged.variable.unit ?? "Angka";
+      let unit = await client.query<{ id: string }>(`SELECT id::text FROM sababuka.units WHERE lower(name)=lower($1) OR lower(symbol)=lower($1) LIMIT 1`, [unitName]);
+      if (!unit.rows[0]) unit = await client.query<{ id: string }>(`INSERT INTO sababuka.units (code,name,symbol) VALUES ($1,$2,$2) ON CONFLICT (code) DO UPDATE SET name=sababuka.units.name RETURNING id::text`, [`BPS_${slug(unitName)}`, unitName.slice(0, 80)]);
+      const category = await client.query<{ id: string }>(`INSERT INTO sababuka.categories (code,name,description,review_status,submitted_by,decided_by,decided_at,decision_notes,created_by) VALUES ($1,$2,$3,'approved',$4,$4,now(),'Bank Data: dibuat dari katalog BPS, belum diverifikasi.',$4) ON CONFLICT (code) DO UPDATE SET updated_at=now() RETURNING id::text`, [`BANK_DATA_${slug(subject)}`, `Bank Data · ${subject}`.slice(0, 160), "Kategori Bank Data Kapuas dari subjek BPS; belum diverifikasi OPD dan BAPPERIDA.", auth.user.id]);
+      const dataset = await client.query<{ id: string }>(`INSERT INTO sababuka.datasets (code,title,owner_organization_id,source_id,created_by) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (code) DO UPDATE SET title=EXCLUDED.title, updated_at=now() RETURNING id::text`, [`EXT.BPS_KAPUAS.${variableId}`, title.slice(0, 255), owner.rows[0].id, source.id, auth.user.id]);
+      const datasetVersion = await client.query<{ id: string }>(`INSERT INTO sababuka.dataset_versions (dataset_id,version_number,name,title,organization_id,metadata_profile_id,effective_from,status,approved_by,approved_at,created_by,ckan_package_id) VALUES ($1,1,$2,$3,$4,$5,DATE '1990-01-01','active',$6,now(),$6,$7) ON CONFLICT (dataset_id,version_number) DO UPDATE SET status='active', title=EXCLUDED.title, updated_at=now() RETURNING id::text`, [dataset.rows[0]!.id, `EXT.BPS_KAPUAS.${variableId}`, title.slice(0, 255), owner.rows[0].id, profile.rows[0].id, auth.user.id, variableId]);
+      const years = new Set<number>();
+      for (const item of series.values()) for (const point of item.points.values()) years.add(point.year);
+      const batchByYear = new Map<number, { batch: string; period: string }>();
+      for (const year of years) {
+        const period = await client.query<{ id: string }>(`INSERT INTO sababuka.periods (period_type, code, label, starts_on, ends_on) VALUES ('annual', $1, $2, make_date($3,1,1), make_date($3,12,31)) ON CONFLICT (code) DO UPDATE SET code=EXCLUDED.code RETURNING id::text`, [String(year), `Tahun ${year}`, year]);
+        const found = await client.query<{ id: string }>(`SELECT id::text FROM sababuka.data_batches WHERE dataset_version_id=$1 AND reporting_period_id=$2 AND submission_method='api_import' LIMIT 1`, [datasetVersion.rows[0]!.id, period.rows[0]!.id]);
+        const batchId = found.rows[0]?.id ?? (await client.query<{ id: string }>(`INSERT INTO sababuka.data_batches (dataset_version_id,organization_id,reporting_period_id,submission_method,source_metadata,row_count,status,submitted_by,submitted_at,approved_by,approved_at,created_by) VALUES ($1,$2,$3,'api_import',$4::jsonb,0,'approved',$5,now(),$5,now(),$5) RETURNING id::text`, [datasetVersion.rows[0]!.id, org.rows[0].id, period.rows[0]!.id, JSON.stringify({ bank_data: true, bps_variable: variableId, label: "belum diverifikasi OPD/BAPPERIDA" }), auth.user.id])).rows[0]!.id;
+        batchByYear.set(year, { batch: batchId, period: period.rows[0]!.id });
+      }
+      const sourceUrl = `${bpsApiBase(source.base_url)}/list/model/data/domain/${domain}/var/${variableId}`;
+      for (const [turvar, item] of series) {
+        const code = `BPS_${variableId}${series.size > 1 ? `_${slug(turvar + item.label).slice(0, 30)}` : ""}`.slice(0, 80);
+        const name = `${title}${series.size > 1 && item.label ? ` — ${item.label}` : ""}`.slice(0, 250);
+        const indicator = await client.query<{ id: string }>(`INSERT INTO sababuka.indicators (code,name,category_id,owner_organization_id,created_by,origin_type) VALUES ($1,$2,$3,$4,$5,'bank_data') ON CONFLICT (code) DO UPDATE SET name=EXCLUDED.name, updated_at=now() RETURNING id::text`, [code, name, category.rows[0]!.id, org.rows[0].id, auth.user.id]);
+        let version = await client.query<{ id: string }>(`SELECT id::text FROM sababuka.indicator_versions WHERE indicator_id=$1 AND status='active' LIMIT 1`, [indicator.rows[0]!.id]);
+        if (!version.rows[0]) version = await client.query<{ id: string }>(`INSERT INTO sababuka.indicator_versions (indicator_id,version_number,definition,unit_id,frequency,data_type,effective_from,status,change_notes,source_reference,submitted_by,submitted_at,approved_by,approved_at,bapperida_reviewed_by,bapperida_reviewed_at,opd_verified_by,opd_verified_at,created_by) VALUES ($1,(SELECT COALESCE(max(version_number),0)+1 FROM sababuka.indicator_versions WHERE indicator_id=$1),$2,$3,'annual','number',DATE '1990-01-01','active','Bank Data: belum diverifikasi OPD dan BAPPERIDA.',$4,$5,now(),$5,now(),$5,now(),$5,now(),$5) RETURNING id::text`, [indicator.rows[0]!.id, (merged.variable.note || title).slice(0, 1000), unit.rows[0]!.id, "BPS Kabupaten Kapuas — Kapuas dalam Angka (Bank Data, belum diverifikasi)", auth.user.id]);
+        const versionId = version.rows[0]!.id;
+        const mapping = await client.query(`SELECT 1 FROM sababuka.indicator_source_mappings WHERE indicator_version_id=$1 AND external_dataset_id=$2 LIMIT 1`, [versionId, variableId]);
+        if (!mapping.rows.length) await client.query(`INSERT INTO sababuka.indicator_source_mappings (indicator_version_id,source_id,external_dataset_id,resource_url,geography_code,year_field,value_field,unit_field,expected_unit,frequency,source_priority,relation_type,effective_from,created_by,status,approved_by,approved_at,transform_json) VALUES ($1,$2,$3,$4,$5,'tahun','nilai','satuan',$6,'annual',100,'primary',DATE '1990-01-01',$7,'active',$7,now(),$8::jsonb)`, [versionId, source.id, variableId, sourceUrl, domain, unitName, auth.user.id, JSON.stringify({ bps: { turvar: turvar === "0" ? null : turvar, turtahun: preferredTurtahun }, bank_data: true })]);
+        for (const point of item.points.values()) {
+          const target = batchByYear.get(point.year)!;
+          const inserted = await client.query(`INSERT INTO sababuka.observations (batch_id,indicator_version_id,period_id,geography_id,numeric_value,quality_status,created_by,source_name,source_url,source_status,source_retrieved_at) VALUES ($1,$2,$3,$4,$5,'valid',$6,$7,$8,'verified_calculated',now()) ON CONFLICT (batch_id,indicator_version_id,period_id,geography_id,dimension_hash) DO NOTHING`, [target.batch, versionId, target.period, point.geography_id, point.value, auth.user.id, "BPS Kabupaten Kapuas — Kapuas dalam Angka", sourceUrl]);
+          if (inserted.rowCount) {
+            observationCount += 1;
+            if (point.geography_id !== regency?.id) districtCount += 1;
+          }
+        }
+        created.push(versionId);
+      }
+      await client.query(`UPDATE sababuka.data_batches SET row_count=(SELECT count(*) FROM sababuka.observations WHERE batch_id=data_batches.id), updated_at=now() WHERE dataset_version_id=$1`, [datasetVersion.rows[0]!.id]);
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally { client.release(); }
+    for (const versionId of created) await this.publishIndicatorObservations(auth, versionId, audit);
+    await recordAudit(this.db, { ...audit, eventType: "connector.bank_data_imported", entityType: "bps_variable", entityId: variableId, metadata: { variable_id: variableId, indicators: created.length, observations: observationCount, district_observations: districtCount } });
+    return { variable_id: variableId, title: merged.variable.title, status: "imported", indicators: created.length, observations: observationCount, district_observations: districtCount };
+  }
+
+  /** Terbitkan seluruh observasi valid sebuah indikator ke publikasi aktif (versi baru bila isinya berubah) agar tampil di dashboard pimpinan. */
+  async publishIndicatorObservations(auth: AuthContext, versionId: string, audit: AuditContext) {
+    const info = await this.db.query<{ code: string; name: string }>(`SELECT i.code, i.name FROM sababuka.indicator_versions iv JOIN sababuka.indicators i ON i.id=iv.indicator_id WHERE iv.id=$1 AND iv.status='active'`, [versionId]);
+    if (!info.rows[0]) return null;
+    const observations = await this.db.query<{ id: string }>(`SELECT o.id::text FROM sababuka.observations o JOIN sababuka.data_batches b ON b.id=o.batch_id AND b.status IN ('approved','published') WHERE o.indicator_version_id=$1 AND o.quality_status IN ('valid','warning') AND o.source_status IN ('verified_direct','verified_calculated') AND NOT EXISTS (SELECT 1 FROM sababuka.observation_publication_blocks nb WHERE nb.observation_id=o.id) ORDER BY o.period_id, o.created_at`, [versionId]);
+    if (!observations.rows.length) return null;
+    const key = `AUTO_${info.rows[0].code.replace(/[^A-Z0-9_]/gu, "_").slice(0, 68)}`;
+    const current = await this.db.query<{ id: string; items: string }>(`SELECT p.id::text, count(pi.id)::text AS items FROM sababuka.publications p LEFT JOIN sababuka.publication_items pi ON pi.publication_id=p.id WHERE p.publication_key=$1 AND p.status='active' GROUP BY p.id LIMIT 1`, [key]);
+    if (current.rows[0] && Number(current.rows[0].items) === observations.rows.length) return current.rows[0].id;
+    const publications = new PublicationService(this.db);
+    const previous = await this.db.query<{ n: number }>(`SELECT COALESCE(max(version_number),0)::int AS n FROM sababuka.publications WHERE publication_key=$1`, [key]);
+    const draft = await publications.create(auth, { publication_key: key, publication_number: `${key}-${String((previous.rows[0]?.n ?? 0) + 1).padStart(3, "0")}`, title: `Rilis Bank Data — ${info.rows[0].name}`.slice(0, 250), description: "Data dari sumber resmi (BPS/Satu Data), belum diverifikasi OPD dan BAPPERIDA.", change_notes: "Terbit otomatis dari impor Bank Data." }, audit) as unknown as { id: string };
+    for (let index = 0; index < observations.rows.length; index += 500) await publications.addItems(auth, draft.id, observations.rows.slice(index, index + 500).map((row) => row.id), audit);
+    await publications.activate(auth, draft.id, "Terbit otomatis dari impor Bank Data.", audit);
+    return draft.id;
   }
 
   private async ensureDatasetVersion(row: QueryResultRow & Record<string, unknown>, actorId: string): Promise<string> {
