@@ -46,7 +46,8 @@ interface BpsSecretRow extends QueryResultRow { encrypted_secret: string; masked
 
 // Rentang tahun konektor mengikuti periode jabatan bupati; batas yang sama dijaga CHECK connector_staging_year_check.
 /** Bank Data Kapuas: tahun tidak lagi dikunci pada periode jabatan. Batas hanya menjaga data salah ketik. */
-const BPS_MIN_GAP_MS = 1_200;
+let bpsGapMs = 1_200;
+let bpsOkStreak = 0;
 let bpsNextSlot = 0;
 export const CONNECTOR_YEAR_MIN = 1990;
 export const CONNECTOR_YEAR_MAX = 2035;
@@ -776,7 +777,7 @@ export class ConnectorService {
     for (let attempt = 0; attempt < delays.length; attempt += 1) {
       if (delays[attempt]) await new Promise((resolve) => setTimeout(resolve, delays[attempt]));
       const wait = bpsNextSlot - Date.now();
-      bpsNextSlot = Math.max(Date.now(), bpsNextSlot) + BPS_MIN_GAP_MS;
+      bpsNextSlot = Math.max(Date.now(), bpsNextSlot) + bpsGapMs;
       if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
       let response: Response;
       try {
@@ -791,6 +792,8 @@ export class ConnectorService {
       try { payload = JSON.parse(raw) as JsonObject; } catch { throw new ApiError(502, "SOURCE_INVALID", `Respons BPS bukan JSON (${redactBpsUrl(url).slice(0, 120)}).`); }
       const message = asText(payload.message);
       const limited = response.status === 429 || /rate limit/iu.test(message);
+      if (limited) { bpsGapMs = Math.min(6_000, Math.round(bpsGapMs * 1.5)); bpsOkStreak = 0; }
+      else if (response.ok && ++bpsOkStreak >= 15) { bpsGapMs = Math.max(500, Math.round(bpsGapMs * 0.9)); bpsOkStreak = 0; }
       if (limited && attempt < delays.length - 1) continue;
       if (!response.ok || asText(payload.status).toLowerCase() === "error") {
         throw new ApiError(502, "SOURCE_UNAVAILABLE", `BPS menolak permintaan: ${message.replaceAll(secret.value, "***").slice(0, 200) || `HTTP ${response.status}`}`);
@@ -972,14 +975,29 @@ export class ConnectorService {
 
   /** Bank Data Kapuas: impor satu variabel BPS (semua tahun, per kecamatan) menjadi indikator berlabel "belum diverifikasi" lalu publikasikan. */
   async importBankVariable(auth: AuthContext, variableId: string, audit: AuditContext) {
+    try { return await this.importBankVariableInner(auth, variableId, audit); }
+    catch (error) {
+      if (error instanceof ApiError) throw error;
+      const detail = error instanceof Error ? error.message : String(error);
+      return { variable_id: variableId, status: "failed", reason: `Galat database/kode: ${detail.slice(0, 240)}` };
+    }
+  }
+
+  private async importBankVariableInner(auth: AuthContext, variableId: string, audit: AuditContext) {
     const source = await this.source("BPS_KAPUAS");
     const domain = this.bpsDomain(source);
     const slug = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]+/gu, "_").replace(/^_+|_+$/gu, "").slice(0, 40) || "UMUM";
     const norm = (value: string) => value.toLowerCase().replace(/^kecamatan\s+/u, "").replace(/[^a-z0-9]+/gu, " ").trim();
+    const already = await this.db.query(`SELECT 1 FROM sababuka.indicator_source_mappings m JOIN sababuka.data_sources s ON s.id = m.source_id WHERE s.code = 'BPS_KAPUAS' AND m.external_dataset_id = $1 AND m.transform_json->>'bank_data' = 'true' LIMIT 1`, [variableId]);
+    if (already.rows.length) return { variable_id: variableId, status: "skipped", reason: "Sudah diimpor sebelumnya." };
     let merged: ReturnType<typeof parseBpsDataContent> | null = null;
-    for (const window of bpsYearWindows(2008, new Date().getFullYear() + 1)) {
+    let foundData = false;
+    let emptyRun = 0;
+    // Dari tahun terbaru mundur; berhenti setelah dua jendela kosong berturut-turut sesudah data ditemukan.
+    for (const window of bpsYearWindows(2008, new Date().getFullYear() + 1).reverse()) {
       const payload = await this.bpsJson(source, (key) => buildBpsDataUrl(bpsApiBase(source.base_url), domain, variableId, window, key));
       const parsed = parseBpsDataContent(payload, {}, domain);
+      if (parsed.rows.length) { foundData = true; emptyRun = 0; } else if (foundData) emptyRun += 1;
       if (!merged) merged = parsed;
       else {
         merged.rows.push(...parsed.rows);
@@ -988,6 +1006,7 @@ export class ConnectorService {
         if (!merged.turvars.length) merged.turvars = parsed.turvars;
         if (!merged.turtahuns.length) merged.turtahuns = parsed.turtahuns;
       }
+      if (emptyRun >= 2) break;
     }
     if (!merged || !merged.variable.title) return { variable_id: variableId, status: "skipped", reason: "Variabel tidak ditemukan atau kosong." };
     const geographies = await this.db.query<{ id: string; code: string; name: string; level: string }>(`SELECT id::text, code, name, level FROM sababuka.geographies WHERE is_active = true`);
@@ -1028,7 +1047,7 @@ export class ConnectorService {
       const subject = merged.variable.subject ?? "Umum";
       const unitName = merged.variable.unit ?? "Angka";
       let unit = await client.query<{ id: string }>(`SELECT id::text FROM sababuka.units WHERE lower(name)=lower($1) OR lower(symbol)=lower($1) LIMIT 1`, [unitName]);
-      if (!unit.rows[0]) unit = await client.query<{ id: string }>(`INSERT INTO sababuka.units (code,name,symbol) VALUES ($1,$2,$2) ON CONFLICT (code) DO UPDATE SET name=sababuka.units.name RETURNING id::text`, [`BPS_${slug(unitName)}`, unitName.slice(0, 80)]);
+      if (!unit.rows[0]) unit = await client.query<{ id: string }>(`INSERT INTO sababuka.units (code,name,symbol) VALUES ($1,$3,$2) ON CONFLICT (code) DO UPDATE SET name=sababuka.units.name RETURNING id::text`, [`BPS_${slug(unitName)}`.slice(0, 40), unitName.slice(0, 32), unitName.slice(0, 120)]);
       const category = await client.query<{ id: string }>(`INSERT INTO sababuka.categories (code,name,description,review_status,submitted_by,decided_by,decided_at,decision_notes,created_by) VALUES ($1,$2,$3,'approved',$4,$4,now(),'Bank Data: dibuat dari katalog BPS, belum diverifikasi.',$4) ON CONFLICT (code) DO UPDATE SET updated_at=now() RETURNING id::text`, [`BANK_DATA_${slug(subject)}`, `Bank Data · ${subject}`.slice(0, 160), "Kategori Bank Data Kapuas dari subjek BPS; belum diverifikasi OPD dan BAPPERIDA.", auth.user.id]);
       const dataset = await client.query<{ id: string }>(`INSERT INTO sababuka.datasets (code,title,owner_organization_id,source_id,created_by) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (code) DO UPDATE SET title=EXCLUDED.title, updated_at=now() RETURNING id::text`, [`EXT.BPS_KAPUAS.${variableId}`, title.slice(0, 255), owner.rows[0].id, source.id, auth.user.id]);
       const datasetVersion = await client.query<{ id: string }>(`INSERT INTO sababuka.dataset_versions (dataset_id,version_number,name,title,organization_id,metadata_profile_id,effective_from,status,approved_by,approved_at,created_by,ckan_package_id) VALUES ($1,1,$2,$3,$4,$5,DATE '1990-01-01','active',$6,now(),$6,$7) ON CONFLICT (dataset_id,version_number) DO UPDATE SET status='active', title=EXCLUDED.title, updated_at=now() RETURNING id::text`, [dataset.rows[0]!.id, `EXT.BPS_KAPUAS.${variableId}`, title.slice(0, 255), owner.rows[0].id, profile.rows[0].id, auth.user.id, variableId]);
