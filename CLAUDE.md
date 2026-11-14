@@ -55,6 +55,7 @@ Pengembangan lokal memakai backend port 3001 dan frontend port 5173.
 - Baca status Git dan pertahankan perubahan pengguna yang tidak berkaitan.
 - Gunakan migration baru untuk perubahan skema; backup dan verifikasi database sebelum/selesai penerapan.
 - OPD mengusulkan dan mengisi indikator secara manual, bukan auto-generate atau semiotomatis.
+- Pengecualian Bank Data (permintaan pemilik, 14 Nov 2026): Developer dapat mengimpor massal variabel BPS dan tabel Satu Data menjadi indikator `origin_type = bank_data` yang langsung aktif dan terbit tanpa verifikasi OPD/BAPPERIDA. Semuanya wajib berlabel "Bank Data · belum diverifikasi" dan direvisi OPD/BAPPERIDA bila ada selisih. Tahun konektor 1990-2035 (tidak dikunci pada periode jabatan).
 - Pertahankan RBAC, pemisahan kewenangan, provenance, audit trail, serta aturan bahwa dashboard pimpinan hanya membaca data terpublikasi.
 - Autentikasi hanya email/username dan kata sandi. MFA (TOTP/recovery code) sengaja dihapus atas keputusan pemilik (10 Nov 2026, migration 057); jangan menambahkannya kembali tanpa permintaan pemilik.
 - Developer (superadmin) dapat "Bertindak sebagai" BAPPERIDA, Diskominfosantik, BPS, Pimpinan, atau OPD tertentu dengan wewenang penuh (permintaan pemilik, 12 Nov 2026; sebelumnya mode pratinjau hanya baca). Aksi tercatat atas nama akun Developer asli dengan `metadata.acting_as` di audit. Aturan pemisahan petugas (pengaju/reviewer/verifikator yang sama) tidak berlaku bagi Developer (keputusan pemilik, 12 Nov 2026); tetap berlaku bagi pengguna lain.
