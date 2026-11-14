@@ -70,6 +70,49 @@ export function ConnectorsPage() {
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Impor Bank Data berhenti."); }
     setBank({ ...totals, running: false }); mappings.reload();
   };
+  const [history, setHistory] = useState({ running: false, total: 0, done: 0, candidates: 0, noMatch: 0, failed: 0, log: "" });
+  const stopHistory = useRef(false);
+  const runHistory = async () => {
+    stopHistory.current = false; setError("");
+    let totals = { running: true, total: 0, done: 0, candidates: 0, noMatch: 0, failed: 0, log: "" };
+    setHistory(totals);
+    try {
+      const pending = await api<{ data: Array<{ version_id: string; code: string; name: string }> }>("/connectors/rpjmd-history/pending");
+      totals = { ...totals, total: pending.data.length }; setHistory({ ...totals });
+      for (const item of pending.data) {
+        if (stopHistory.current) break;
+        try {
+          const result = await api<{ status: string; variable?: string; reason?: string }>(`/connectors/rpjmd-history/${item.version_id}/suggest`, { method: "POST", mutation: true });
+          totals = result.status === "candidate" ? { ...totals, candidates: totals.candidates + 1, log: `${item.name} → ${result.variable}` } : { ...totals, noMatch: totals.noMatch + 1, log: `${item.name}: ${result.reason}` };
+        } catch (cause) { totals = { ...totals, failed: totals.failed + 1, log: `${item.name}: ${cause instanceof Error ? cause.message : "gagal"}` }; }
+        totals = { ...totals, done: totals.done + 1 }; setHistory({ ...totals });
+      }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Pencarian padanan berhenti."); }
+    setHistory({ ...totals, running: false }); mappings.reload();
+  };
+  const [sd, setSd] = useState({ running: false, total: 0, done: 0, imported: 0, skipped: 0, failed: 0, districtRows: 0, log: "" });
+  const stopSd = useRef(false);
+  const runSatuData = async () => {
+    stopSd.current = false; setError("");
+    let totals = { running: true, total: 0, done: 0, imported: 0, skipped: 0, failed: 0, districtRows: 0, log: "" };
+    setSd(totals);
+    try {
+      const list = await api<{ data: Array<{ id: string; title: string }> }>("/connectors/bank-data/satudata/packages");
+      totals = { ...totals, total: list.data.length }; setSd({ ...totals });
+      for (const item of list.data) {
+        if (stopSd.current) break;
+        try {
+          const result = await api<{ status: string; district_observations?: number; reason?: string }>(`/connectors/bank-data/satudata/${item.id}/import`, { method: "POST", mutation: true });
+          totals = result.status === "imported" ? { ...totals, imported: totals.imported + 1, districtRows: totals.districtRows + (result.district_observations ?? 0) } : { ...totals, skipped: totals.skipped + 1, log: `${item.title}: ${result.reason ?? "dilewati"}` };
+          if (result.status === "failed") totals = { ...totals, skipped: totals.skipped - 1, failed: totals.failed + 1 };
+        } catch (cause) { totals = { ...totals, failed: totals.failed + 1, log: `${item.title}: ${cause instanceof Error ? cause.message : "gagal"}` }; }
+        totals = { ...totals, done: totals.done + 1 }; setSd({ ...totals });
+      }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Impor Satu Data berhenti."); }
+    setSd({ ...totals, running: false });
+  };
+  const [bankVisibleMessage, setBankVisibleMessage] = useState("");
+  const setBankVisible = async (visible: boolean) => { setError(""); try { const result = await api<{ indicators: number }>("/connectors/bank-data/visibility", { method: "POST", mutation: true, body: jsonBody({ visible }) }); setBankVisibleMessage(`${result.indicators} indikator Bank Data ${visible ? "ditampilkan kembali" : "disembunyikan dari dashboard, analisis, dan peta (data tidak dihapus)"}.`); } catch (cause) { setError(cause instanceof Error ? cause.message : "Gagal mengubah tampilan Bank Data."); } };
   const mappingAction = async (mapping: Mapping, action: "approve" | "activate" | "sync" | "express") => {
     setError("");
     try {
@@ -120,7 +163,8 @@ export function ConnectorsPage() {
     <section className="summary-grid connector-summary-grid">{sources.loading ? <Spinner /> : sources.data?.data.map((source) => <article className="summary-card connector-source-card" key={source.code}><span className="table-icon"><CloudCog /></span><div><small>{source.name}</small><strong>{sourceLabel(source.status)}</strong><p>{source.status_message ?? source.base_url}</p>{canManage && <button className="button secondary compact" onClick={() => void testConnection(source.code as "SATUDATA_KAPUAS" | "BPS_KAPUAS")} disabled={profileBusy === source.code}>{profileBusy === source.code ? "Menguji…" : "Uji koneksi"}</button>}{profiles[source.code] && <ConnectionProfileCard profile={profiles[source.code]!} />}</div></article>)}</section>
     <Notice tone="warning">Konektor menerima data tahun 1990-2035 sebagai Bank Data Kapuas; data sebelum 2025 menjadi pembanding tren. Target RPJMD tetap mengikuti periode 2025-2029; Walidata memeriksa mapping, satuan, wilayah, dan hasil sinkronisasi sebelum data dipakai.</Notice>
     {canManage && <section className="panel connector-panel"><header className="panel-heading"><div><h2>Cari dataset Satu Data Kapuas</h2><p>Hasil pencarian hanya menjadi kandidat. Data baru masuk setelah mapping disimpan dan disetujui.</p></div><Search /></header><div className="toolbar connector-toolbar"><input aria-label="Cari dataset" value={query} onChange={(event) => { setQuery(event.target.value); if (!event.target.value.trim()) setResults([]); }} placeholder="Contoh: kesehatan, IKP, stunting" /><button className="button secondary" onClick={() => void searchCkan()} disabled={searchBusy || !query.trim()}><Search />{searchBusy ? "Mencari…" : "Cari katalog"}</button></div>{results.length > 0 && <div className="catalog-results-panel"><header><span><strong>{results.length} dataset ditemukan</strong><small>Pilih satu dataset atau tutup hasil untuk kembali.</small></span><button className="icon-button" aria-label="Tutup hasil pencarian" title="Tutup hasil" onClick={() => setResults([])}><X /></button></header><div className="candidate-list connector-results">{results.map((item) => <article key={item.id}><span><strong>{item.title}</strong><small>{item.name} · {item.resources?.length ?? 0} resource</small></span><button className="button secondary compact" onClick={() => { const resource = item.resources?.find((candidate) => ["CSV", "JSON", "XLSX"].includes((candidate.format ?? "").toUpperCase()) || (candidate.url ?? "").toLowerCase().includes(".xlsx")); setForm((current) => ({ ...current, external_dataset_id: item.id, external_resource_id: resource?.id ?? "", resource_url: resource?.url ?? "" })); setResults([]); document.getElementById("mapping-form")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>Pilih untuk mapping</button></article>)}</div><small className="catalog-close-hint">Tekan Esc atau tombol tutup untuk menyembunyikan hasil.</small></div>}</section>}
-    {canManage && <section className="panel connector-panel"><header className="panel-heading"><div><h2>Impor Bank Data BPS (Kapuas dalam Angka)</h2><p>Mengambil seluruh variabel BPS Kabupaten Kapuas untuk semua tahun dan tiap kecamatan, lalu menerbitkannya ke dashboard, analisis, dan peta. Data diberi label belum diverifikasi sampai OPD dan BAPPERIDA merevisinya.</p></div><Database /></header><div className="panel-actions"><button className="button primary" disabled={bank.running} onClick={() => void runBank()}><Download />{bank.running ? "Mengimpor…" : "Impor semua variabel BPS"}</button>{bank.running && <button className="button secondary" onClick={() => { stopBank.current = true; }}>Hentikan</button>}</div>{(bank.running || bank.done > 0) && <Notice tone={bank.failed ? "warning" : "success"}>Halaman {bank.page}/{bank.pages} · {bank.done} variabel diproses: {bank.imported} masuk ({bank.districtRows} baris kecamatan), {bank.skipped} dilewati, {bank.failed} gagal.{bank.log ? ` Terakhir: ${bank.log}` : ""}</Notice>}</section>}
+    {canManage && <section className="panel connector-panel"><header className="panel-heading"><div><h2>Impor Bank Data BPS (Kapuas dalam Angka)</h2><p>Mengambil seluruh variabel BPS Kabupaten Kapuas untuk semua tahun dan tiap kecamatan, lalu menerbitkannya ke dashboard, analisis, dan peta. Data diberi label belum diverifikasi sampai OPD dan BAPPERIDA merevisinya.</p></div><Database /></header><div className="panel-actions"><button className="button primary" disabled={bank.running} onClick={() => void runBank()}><Download />{bank.running ? "Mengimpor…" : "Impor semua variabel BPS"}</button>{bank.running && <button className="button secondary" onClick={() => { stopBank.current = true; }}>Hentikan</button>}</div>{(bank.running || bank.done > 0) && <Notice tone={bank.failed ? "warning" : "success"}>Halaman {bank.page}/{bank.pages} · {bank.done} variabel diproses: {bank.imported} masuk ({bank.districtRows} baris kecamatan), {bank.skipped} dilewati, {bank.failed} gagal.{bank.log ? ` Terakhir: ${bank.log}` : ""}</Notice>}<div className="panel-actions"><button className="button primary" disabled={sd.running} onClick={() => void runSatuData()}><Download />{sd.running ? "Mengimpor Satu Data…" : "Impor tabel Satu Data"}</button>{sd.running && <button className="button secondary" onClick={() => { stopSd.current = true; }}>Hentikan</button>}</div>{(sd.running || sd.done > 0) && <Notice tone={sd.failed ? "warning" : "success"}>Satu Data: {sd.done}/{sd.total} tabel diproses: {sd.imported} masuk ({sd.districtRows} baris kecamatan), {sd.skipped} dilewati, {sd.failed} gagal.{sd.log ? ` Terakhir: ${sd.log}` : ""}</Notice>}<div className="panel-actions"><button className="button secondary" onClick={() => void setBankVisible(false)}>Sembunyikan Bank Data</button><button className="button secondary" onClick={() => void setBankVisible(true)}>Tampilkan Bank Data</button></div>{bankVisibleMessage && <Notice tone="success">{bankVisibleMessage}</Notice>}</section>}
+    {canManage && <section className="panel connector-panel"><header className="panel-heading"><div><h2>Isi riwayat indikator RPJMD</h2><p>Mencari variabel BPS yang paling mirip untuk tiap indikator RPJMD aktif, lalu menyimpannya sebagai mapping kandidat. Setelah selesai, periksa daftar mapping dan tekan "Setujui &amp; impor semua" agar riwayat tahun sebelumnya masuk ke indikator RPJMD.</p></div><Gauge /></header><div className="panel-actions"><button className="button primary" disabled={history.running} onClick={() => void runHistory()}><Search />{history.running ? "Mencari…" : "Cari padanan BPS untuk indikator RPJMD"}</button>{history.running && <button className="button secondary" onClick={() => { stopHistory.current = true; }}>Hentikan</button>}</div>{(history.running || history.done > 0) && <Notice tone={history.failed ? "warning" : "success"}>{history.done}/{history.total} indikator diperiksa: {history.candidates} kandidat mapping, {history.noMatch} tanpa padanan, {history.failed} gagal.{history.log ? ` Terakhir: ${history.log}` : ""}</Notice>}</section>}
     {canManage && <BpsExplorer onApply={(suggestion) => setForm((current) => ({ ...current, ...suggestion }))} />}
     {canManage && indicators.data && <section id="mapping-form" className="panel connector-panel">
       <header className="panel-heading"><div><h2>Hubungkan sumber ke indikator</h2><p>Indikator yang masih diverifikasi OPD dapat dipetakan untuk preview, tetapi belum dapat diimpor.</p></div><Link2 /></header>
