@@ -8,6 +8,7 @@ import type { AuthContext } from "../types/auth.js";
 import { recordAudit, type AuditContext } from "./audit-service.js";
 import { inspectPublicWebsite } from "./website-scraper.js";
 import { notifyRole } from "./notification-service.js";
+import { GovernanceService } from "./governance-service.js";
 
 interface SourceRow extends QueryResultRow { id: string; code: string; name: string; source_type: string; base_url: string | null; connection_config: Record<string, unknown>; credential_reference: string | null; last_checked_at: string | null }
 interface MappingRow extends QueryResultRow { id: string; indicator_version_id: string; indicator_code: string; indicator_name: string; indicator_status: string; source_id: string; source_code: string; source_type: string; external_dataset_id: string; external_resource_id: string | null; resource_url: string | null; geography_field: string | null; geography_code: string; year_field: string; value_field: string; unit_field: string | null; expected_unit: string | null; frequency: string; transform_json: Record<string, unknown>; source_priority: number; relation_type: string; status: string; dataset_version_id: string | null; created_at: string; updated_at: string }
@@ -43,8 +44,9 @@ interface CandidateSummary {
 interface BpsSecretRow extends QueryResultRow { encrypted_secret: string; masked_hint: string | null; last_tested_at: string | null; last_test_status: string; last_test_error: string | null }
 
 // Rentang tahun konektor mengikuti periode jabatan bupati; batas yang sama dijaga CHECK connector_staging_year_check.
-export const CONNECTOR_YEAR_MIN = 2024;
-export const CONNECTOR_YEAR_MAX = 2029;
+/** Bank Data Kapuas: tahun tidak lagi dikunci pada periode jabatan. Batas hanya menjaga data salah ketik. */
+export const CONNECTOR_YEAR_MIN = 1990;
+export const CONNECTOR_YEAR_MAX = 2035;
 const YEARS = new Set(Array.from({ length: CONNECTOR_YEAR_MAX - CONNECTOR_YEAR_MIN + 1 }, (_, index) => CONNECTOR_YEAR_MIN + index));
 
 function hash(value: string): string { return createHash("sha256").update(value, "utf8").digest("hex"); }
@@ -573,6 +575,31 @@ export class ConnectorService {
     return result.rows[0];
   }
 
+  /** Developer: setujui indikator dan mapping, ambil data, lalu impor dalam satu langkah agar hasilnya langsung tampil (keputusan pemilik, 14 Nov 2026). */
+  async expressImport(auth: AuthContext, mappingId: string, audit: AuditContext) {
+    const current = await this.db.query<QueryResultRow & Record<string, unknown>>(`SELECT m.status, iv.id::text AS version_id, iv.status AS indicator_status FROM sababuka.indicator_source_mappings m JOIN sababuka.indicator_versions iv ON iv.id = m.indicator_version_id WHERE m.id = $1`, [mappingId]);
+    if (!current.rows[0]) throw new ApiError(404, "NOT_FOUND", "Mapping sumber tidak ditemukan.");
+    const governance = new GovernanceService(this.db);
+    let indicatorStatus = String(current.rows[0].indicator_status);
+    if (indicatorStatus === "opd_verification") { await governance.transitionIndicatorVersion(auth, String(current.rows[0].version_id), "verify", audit); indicatorStatus = "approved"; }
+    if (indicatorStatus === "approved") await governance.transitionIndicatorVersion(auth, String(current.rows[0].version_id), "activate", audit);
+    if (current.rows[0].status === "draft") await this.transitionMapping(auth, mappingId, "approve", audit);
+    if (current.rows[0].status !== "active") await this.transitionMapping(auth, mappingId, "activate", audit);
+    const run = (await this.sync(auth, mappingId, audit)) as unknown as { status: string; id: string };
+    if (run.status !== "ready") return run;
+    return this.importRun(auth, String(run.id), audit);
+  }
+
+  async expressImportAll(auth: AuthContext, audit: AuditContext) {
+    const mappings = await this.db.query<{ id: string; indicator_code: string }>(`SELECT m.id::text, i.code AS indicator_code FROM sababuka.indicator_source_mappings m JOIN sababuka.indicator_versions iv ON iv.id = m.indicator_version_id JOIN sababuka.indicators i ON i.id = iv.indicator_id WHERE m.status IN (draft,approved,active) ORDER BY m.created_at`);
+    const results: Array<{ mapping_id: string; indicator_code: string; status: string; error?: string }> = [];
+    for (const mapping of mappings.rows) {
+      try { const run = (await this.expressImport(auth, mapping.id, audit)) as unknown as { status: string }; results.push({ mapping_id: mapping.id, indicator_code: mapping.indicator_code, status: String(run.status) }); }
+      catch (error) { results.push({ mapping_id: mapping.id, indicator_code: mapping.indicator_code, status: "failed", error: error instanceof Error ? error.message : "Gagal" }); }
+    }
+    return { total: results.length, imported: results.filter((item) => item.status === "imported").length, results };
+  }
+
   async sync(auth: AuthContext, mappingId: string, audit: AuditContext) {
     await this.pruneExpiredStaging();
     const mapping = await this.getMapping(mappingId);
@@ -787,7 +814,7 @@ export class ConnectorService {
   async getBpsVariable(variableId: string) {
     const source = await this.source("BPS_KAPUAS");
     const domain = this.bpsDomain(source);
-    const windows = bpsYearWindows(CONNECTOR_YEAR_MIN - 3, CONNECTOR_YEAR_MAX);
+    const windows = bpsYearWindows(2000, CONNECTOR_YEAR_MAX);
     let merged: ReturnType<typeof parseBpsDataContent> | null = null;
     for (const window of windows) {
       const payload = await this.bpsJson(source, (key) => buildBpsDataUrl(bpsApiBase(source.base_url), domain, variableId, window, key));
@@ -895,25 +922,28 @@ export class ConnectorService {
     const skipped: Array<{ year: number; geography_code: string }> = [];
     for (const year of [...new Set(staging.rows.map((item) => Number(item.year)))]) {
       const period = await this.db.query<QueryResultRow & Record<string, unknown>>(`SELECT id::text FROM sababuka.periods WHERE code=$1`, [String(year)]);
-      if (!period.rows[0]) throw new ApiError(400, "VALIDATION_ERROR", `Periode ${year} belum tersedia.`);
+      if (!period.rows[0]) {
+        const created = await this.db.query<QueryResultRow & Record<string, unknown>>(`INSERT INTO sababuka.periods (period_type, code, label, starts_on, ends_on) VALUES ('annual', $1, $2, make_date($3,1,1), make_date($3,12,31)) ON CONFLICT (code) DO UPDATE SET code = EXCLUDED.code RETURNING id::text`, [String(year), `Tahun ${year}`, year]);
+        period.rows.push(created.rows[0]!);
+      }
       // Lewati nilai yang sudah tercatat identik DARI SUMBER YANG SAMA agar impor ulang tidak menggandakan observasi.
       // Nilai identik dari sumber lain tetap masuk sebagai baris bersumber; nilai berbeda menjadi konflik konsolidasi.
       const values: typeof staging.rows = [];
       for (const item of staging.rows.filter((candidate) => Number(candidate.year) === year)) {
-        const same = await this.db.query(`SELECT 1 FROM sababuka.observations WHERE indicator_version_id=$1 AND period_id=$2 AND (geography_id=$3 OR geography_id IS NULL) AND numeric_value IS NOT DISTINCT FROM $4::numeric AND text_value IS NOT DISTINCT FROM $5::text AND source_name IS NOT DISTINCT FROM $6::text LIMIT 1`, [row.indicator_version_id, period.rows[0].id, geographyIds.get(String(item.geography_code)), item.numeric_value ?? null, item.text_value ?? null, row.source_name]);
+        const same = await this.db.query(`SELECT 1 FROM sababuka.observations WHERE indicator_version_id=$1 AND period_id=$2 AND (geography_id=$3 OR geography_id IS NULL) AND numeric_value IS NOT DISTINCT FROM $4::numeric AND text_value IS NOT DISTINCT FROM $5::text AND source_name IS NOT DISTINCT FROM $6::text LIMIT 1`, [row.indicator_version_id, period.rows[0]!.id, geographyIds.get(String(item.geography_code)), item.numeric_value ?? null, item.text_value ?? null, row.source_name]);
         if (same.rows.length) skipped.push({ year, geography_code: String(item.geography_code) }); else values.push(item);
       }
       if (!values.length) continue;
-      const existing = await this.db.query<QueryResultRow & Record<string, unknown>>(`SELECT id::text FROM sababuka.data_batches WHERE source_metadata->>'connector_run_id'=$1 AND reporting_period_id=$2`, [runId, period.rows[0].id]);
+      const existing = await this.db.query<QueryResultRow & Record<string, unknown>>(`SELECT id::text FROM sababuka.data_batches WHERE source_metadata->>'connector_run_id'=$1 AND reporting_period_id=$2`, [runId, period.rows[0]!.id]);
       let batchId = existing.rows[0]?.id as string | undefined;
       if (!batchId) {
-        const batch = await this.db.query<QueryResultRow & Record<string, unknown>>(`INSERT INTO sababuka.data_batches (dataset_version_id,organization_id,reporting_period_id,submission_method,source_metadata,row_count,status,submitted_by,submitted_at,approved_by,approved_at,created_by) VALUES ($1,$2,$3,'api_import',$4::jsonb,0,'approved',$5,now(),$5,now(),$5) RETURNING id::text`, [datasetVersionId, row.organization_id, period.rows[0].id, JSON.stringify({ connector_run_id: runId, mapping_id: row.mapping_id, source_url: row.source_url, response_checksum: row.response_checksum, source_system: row.source_id }), auth.user.id]);
+        const batch = await this.db.query<QueryResultRow & Record<string, unknown>>(`INSERT INTO sababuka.data_batches (dataset_version_id,organization_id,reporting_period_id,submission_method,source_metadata,row_count,status,submitted_by,submitted_at,approved_by,approved_at,created_by) VALUES ($1,$2,$3,'api_import',$4::jsonb,0,'approved',$5,now(),$5,now(),$5) RETURNING id::text`, [datasetVersionId, row.organization_id, period.rows[0]!.id, JSON.stringify({ connector_run_id: runId, mapping_id: row.mapping_id, source_url: row.source_url, response_checksum: row.response_checksum, source_system: row.source_id }), auth.user.id]);
         batchId = batch.rows[0]!.id as string;
       }
       if (!firstBatch) firstBatch = batchId;
       for (const item of values) {
         const warnings = Array.isArray(item.validation_errors) ? item.validation_errors.map(asText).filter(Boolean) : [];
-        await this.db.query(`INSERT INTO sababuka.observations (batch_id,indicator_version_id,period_id,geography_id,numeric_value,text_value,quality_status,notes,created_by,source_name,source_url,source_status,source_retrieved_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'verified_calculated',$12) ON CONFLICT (batch_id,indicator_version_id,period_id,geography_id,dimension_hash) DO NOTHING`, [batchId, row.indicator_version_id, period.rows[0].id, geographyIds.get(String(item.geography_code)), item.numeric_value ?? null, item.text_value ?? null, warnings.length ? "warning" : "valid", warnings.length ? `Perlu rekonsiliasi: ${warnings.join(" ")}` : null, auth.user.id, row.source_name, item.source_url, item.source_retrieved_at]);
+        await this.db.query(`INSERT INTO sababuka.observations (batch_id,indicator_version_id,period_id,geography_id,numeric_value,text_value,quality_status,notes,created_by,source_name,source_url,source_status,source_retrieved_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'verified_calculated',$12) ON CONFLICT (batch_id,indicator_version_id,period_id,geography_id,dimension_hash) DO NOTHING`, [batchId, row.indicator_version_id, period.rows[0]!.id, geographyIds.get(String(item.geography_code)), item.numeric_value ?? null, item.text_value ?? null, warnings.length ? "warning" : "valid", warnings.length ? `Perlu rekonsiliasi: ${warnings.join(" ")}` : null, auth.user.id, row.source_name, item.source_url, item.source_retrieved_at]);
       }
       await this.db.query(`UPDATE sababuka.data_batches SET row_count=(SELECT count(*) FROM sababuka.observations WHERE batch_id=$1), updated_at=now() WHERE id=$1`, [batchId]);
     }
