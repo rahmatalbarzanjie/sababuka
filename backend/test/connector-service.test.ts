@@ -75,10 +75,10 @@ test("BPS connection profile exposes sanitized metrics and candidate summary", a
   }
 });
 
-test("rentang tahun konektor 2024-2029 konsisten dengan CHECK database", () => {
-  assert.equal(CONNECTOR_YEAR_MIN, 2024);
-  assert.equal(CONNECTOR_YEAR_MAX, 2029);
-  const migration = readFileSync(new URL("../database/migrations/053_connector_year_range_2024.sql", import.meta.url), "utf8");
+test("rentang tahun konektor 1990-2035 konsisten dengan CHECK database", () => {
+  assert.equal(CONNECTOR_YEAR_MIN, 1990);
+  assert.equal(CONNECTOR_YEAR_MAX, 2035);
+  const migration = readFileSync(new URL("../database/migrations/064_bank_data_open_years_and_assistant_menu.sql", import.meta.url), "utf8");
   assert.ok(migration.includes(`CHECK (year BETWEEN ${CONNECTOR_YEAR_MIN} AND ${CONNECTOR_YEAR_MAX})`));
 });
 

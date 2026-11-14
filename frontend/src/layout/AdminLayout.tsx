@@ -133,10 +133,12 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
   const guidanceEntries = useMemo(() => menu.filter((item) => item.code === "statistical-guidance" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const auditEntries = useMemo(() => menu.filter((item) => item.code === "audit" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const isPimpinan = user?.roles.some((role) => role.code === "pimpinan") ?? false;
+  const assistantEntries = useMemo(() => menu.filter((item) => item.code === "assistant" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const accountEntries = useMemo<MenuItem[]>(() => user && !user.simulation?.active ? [{ code: "my-account", label: adminEntries.some((item) => item.code === "users") ? "Akun saya" : "Pengguna", icon: "user", route_name: "/admin/profile", navigation_disabled: false, display_order: 9999, children: [] }] : [], [user, adminEntries]);
   const navigationSections = useMemo(() => [
     { code: "system", label: "Administrasi sistem", entries: systemEntries },
     { code: "primary", label: "Ruang pimpinan", entries: primaryEntries },
+    { code: "assistant", label: "Asisten", entries: assistantEntries },
     { code: "analysis", label: "Analisis keputusan", entries: analysisEntries },
     { code: "governance", label: "Tata kelola data", entries: governanceEntries },
     { code: "sources", label: "Walidata", entries: sourceEntries },
@@ -146,7 +148,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     { code: "audit", label: "Pengawasan", entries: auditEntries },
     { code: "administration", label: "Konfigurasi internal", entries: adminEntries },
     { code: "account", label: "Akun", entries: accountEntries },
-  ].filter((section) => section.entries.length > 0).sort((a, b) => Math.min(...a.entries.map((entry) => entry.display_order)) - Math.min(...b.entries.map((entry) => entry.display_order))), [accountEntries, adminEntries, analysisEntries, auditEntries, consolidationEntries, guidanceEntries, governanceEntries, isBapperida, isPimpinan, isSuperadmin, operationalEntries, primaryEntries, sourceEntries, systemEntries]);
+  ].filter((section) => section.entries.length > 0).sort((a, b) => Math.min(...a.entries.map((entry) => entry.display_order)) - Math.min(...b.entries.map((entry) => entry.display_order))), [accountEntries, assistantEntries, adminEntries, analysisEntries, auditEntries, consolidationEntries, guidanceEntries, governanceEntries, isBapperida, isPimpinan, isSuperadmin, operationalEntries, primaryEntries, sourceEntries, systemEntries]);
   const areaLabel = ["/admin", "/admin/opd-monitoring"].includes(pathname) ? "Administrasi Sistem"
     : pathname.startsWith("/admin") ? "Konfigurasi Internal"
     : ["/dashboard", "/executive", "/assistant"].includes(pathname) ? "Ruang Pimpinan"
