@@ -46,6 +46,8 @@ interface BpsSecretRow extends QueryResultRow { encrypted_secret: string; masked
 
 // Rentang tahun konektor mengikuti periode jabatan bupati; batas yang sama dijaga CHECK connector_staging_year_check.
 /** Bank Data Kapuas: tahun tidak lagi dikunci pada periode jabatan. Batas hanya menjaga data salah ketik. */
+const BPS_MIN_GAP_MS = 1_200;
+let bpsNextSlot = 0;
 export const CONNECTOR_YEAR_MIN = 1990;
 export const CONNECTOR_YEAR_MAX = 2035;
 const YEARS = new Set(Array.from({ length: CONNECTOR_YEAR_MAX - CONNECTOR_YEAR_MIN + 1 }, (_, index) => CONNECTOR_YEAR_MIN + index));
@@ -769,20 +771,33 @@ export class ConnectorService {
     const secret = await this.resolveBpsSecret();
     if (!secret) throw new ApiError(409, "CONNECTOR_WAITING_KEY", "API key BPS belum dikonfigurasi.");
     const url = buildUrl(secret.value);
-    let response: Response;
-    try {
-      response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
-    } catch {
-      throw new ApiError(502, "SOURCE_UNAVAILABLE", "WebAPI BPS tidak dapat dijangkau. Coba lagi sebentar lagi.");
+    // WebAPI BPS membatasi laju permintaan: beri jeda antarpermintaan dan ulangi dengan jeda bertahap bila ditolak.
+    const delays = [0, 8_000, 20_000, 45_000, 90_000];
+    for (let attempt = 0; attempt < delays.length; attempt += 1) {
+      if (delays[attempt]) await new Promise((resolve) => setTimeout(resolve, delays[attempt]));
+      const wait = bpsNextSlot - Date.now();
+      bpsNextSlot = Math.max(Date.now(), bpsNextSlot) + BPS_MIN_GAP_MS;
+      if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+      let response: Response;
+      try {
+        response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+      } catch {
+        if (attempt < delays.length - 1) continue;
+        throw new ApiError(502, "SOURCE_UNAVAILABLE", "WebAPI BPS tidak dapat dijangkau. Coba lagi sebentar lagi.");
+      }
+      if (response.status === 401 || response.status === 403) throw new ApiError(502, "SOURCE_UNAVAILABLE", "API key ditolak oleh WebAPI BPS.");
+      const raw = await response.text();
+      let payload: JsonObject;
+      try { payload = JSON.parse(raw) as JsonObject; } catch { throw new ApiError(502, "SOURCE_INVALID", `Respons BPS bukan JSON (${redactBpsUrl(url).slice(0, 120)}).`); }
+      const message = asText(payload.message);
+      const limited = response.status === 429 || /rate limit/iu.test(message);
+      if (limited && attempt < delays.length - 1) continue;
+      if (!response.ok || asText(payload.status).toLowerCase() === "error") {
+        throw new ApiError(502, "SOURCE_UNAVAILABLE", `BPS menolak permintaan: ${message.replaceAll(secret.value, "***").slice(0, 200) || `HTTP ${response.status}`}`);
+      }
+      return payload;
     }
-    if (response.status === 401 || response.status === 403) throw new ApiError(502, "SOURCE_UNAVAILABLE", "API key ditolak oleh WebAPI BPS.");
-    const raw = await response.text();
-    let payload: JsonObject;
-    try { payload = JSON.parse(raw) as JsonObject; } catch { throw new ApiError(502, "SOURCE_INVALID", `Respons BPS bukan JSON (${redactBpsUrl(url).slice(0, 120)}).`); }
-    if (!response.ok || asText(payload.status).toLowerCase() === "error") {
-      throw new ApiError(502, "SOURCE_UNAVAILABLE", `BPS menolak permintaan: ${asText(payload.message).replaceAll(secret.value, "***").slice(0, 200) || `HTTP ${response.status}`}`);
-    }
-    return payload;
+    throw new ApiError(502, "SOURCE_UNAVAILABLE", "BPS menolak permintaan: batas laju terlampaui.");
   }
 
   private bpsDomain(source: SourceRow): string { return asText(source.connection_config.domain_code) || "6203"; }
@@ -962,7 +977,7 @@ export class ConnectorService {
     const slug = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]+/gu, "_").replace(/^_+|_+$/gu, "").slice(0, 40) || "UMUM";
     const norm = (value: string) => value.toLowerCase().replace(/^kecamatan\s+/u, "").replace(/[^a-z0-9]+/gu, " ").trim();
     let merged: ReturnType<typeof parseBpsDataContent> | null = null;
-    for (const window of bpsYearWindows(2000, new Date().getFullYear() + 1)) {
+    for (const window of bpsYearWindows(2008, new Date().getFullYear() + 1)) {
       const payload = await this.bpsJson(source, (key) => buildBpsDataUrl(bpsApiBase(source.base_url), domain, variableId, window, key));
       const parsed = parseBpsDataContent(payload, {}, domain);
       if (!merged) merged = parsed;
