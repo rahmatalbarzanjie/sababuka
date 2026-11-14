@@ -1115,6 +1115,7 @@ export class ConnectorService {
       await client.query("ROLLBACK");
       throw error;
     } finally { client.release(); }
+    await this.db.query("SELECT sababuka.assign_responsible_opd()");
     for (const versionId of created) await this.publishIndicatorObservations(auth, versionId, audit);
     return { package_id: packageId, title: pkg.title, status: "imported", indicators: created.length, observations: observationCount, district_observations: districtCount };
   }
@@ -1232,6 +1233,7 @@ export class ConnectorService {
       await client.query("ROLLBACK");
       throw error;
     } finally { client.release(); }
+    await this.db.query("SELECT sababuka.assign_responsible_opd()");
     for (const versionId of created) await this.publishIndicatorObservations(auth, versionId, audit);
     await recordAudit(this.db, { ...audit, eventType: "connector.bank_data_imported", entityType: "bps_variable", entityId: null, metadata: { variable_id: variableId, indicators: created.length, observations: observationCount, district_observations: districtCount } });
     return { variable_id: variableId, title: merged.variable.title, status: "imported", indicators: created.length, observations: observationCount, district_observations: districtCount };
