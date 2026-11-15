@@ -1030,29 +1030,29 @@ export class ConnectorService {
   async listSatuDataTablePackages() {
     const base = "https://satudata.kapuaskab.go.id/api/3/action";
     const orgs = await (await fetch(`${base}/organization_list`, { signal: AbortSignal.timeout(30_000) })).json() as { result: string[] };
-    const packages: Array<{ id: string; title: string; organization: string; format: string }> = [];
+    const packages: Array<{ id: string; title: string; organization: string; format: string; modified: string | null }> = [];
     for (const org of orgs.result.filter((name) => !/data-pemerintah|ppid/u.test(name))) {
-      const page = await (await fetch(`${base}/package_search?fq=organization:${encodeURIComponent(org)}&rows=100`, { signal: AbortSignal.timeout(30_000) })).json() as { result: { results: Array<{ id: string; title: string; organization?: { title: string }; resources: Array<{ format: string }> }> } };
+      const page = await (await fetch(`${base}/package_search?fq=organization:${encodeURIComponent(org)}&rows=100`, { signal: AbortSignal.timeout(30_000) })).json() as { result: { results: Array<{ id: string; title: string; metadata_modified?: string; organization?: { title: string }; resources: Array<{ format: string }> }> } };
       for (const item of page.result.results) {
         const resource = item.resources.find((candidate) => /^xlsx$/iu.test(candidate.format));
-        if (resource) packages.push({ id: item.id, title: item.title, organization: item.organization?.title ?? org, format: "XLSX" });
+        if (resource) packages.push({ id: item.id, title: item.title, organization: item.organization?.title ?? org, format: "XLSX", modified: item.metadata_modified ?? null });
       }
     }
     return { data: packages };
   }
 
   /** Bank Data dari Satu Data: tabel Excel per kecamatan menjadi indikator berlabel "belum diverifikasi" lalu diterbitkan. */
-  async importSatuDataPackage(auth: AuthContext, packageId: string, audit: AuditContext) {
-    try { return await this.importSatuDataPackageInner(auth, packageId, audit); }
+  async importSatuDataPackage(auth: AuthContext, packageId: string, audit: AuditContext, refresh = false) {
+    try { return await this.importSatuDataPackageInner(auth, packageId, audit, refresh); }
     catch (error) {
       if (error instanceof ApiError) throw error;
       return { package_id: packageId, status: "failed", reason: `Galat: ${(error instanceof Error ? error.message : String(error)).slice(0, 240)}` };
     }
   }
 
-  private async importSatuDataPackageInner(auth: AuthContext, packageId: string, audit: AuditContext) {
+  private async importSatuDataPackageInner(auth: AuthContext, packageId: string, audit: AuditContext, refresh = false) {
     const already = await this.db.query(`SELECT 1 FROM sababuka.indicator_source_mappings m JOIN sababuka.data_sources s ON s.id = m.source_id WHERE s.code = 'SATUDATA_KAPUAS' AND m.external_dataset_id = $1 AND m.transform_json->>'bank_data' = 'true' LIMIT 1`, [packageId]);
-    if (already.rows.length) return { package_id: packageId, status: "skipped", reason: "Sudah diimpor sebelumnya." };
+    if (already.rows.length && !refresh) return { package_id: packageId, status: "skipped", reason: "Sudah diimpor sebelumnya." };
     const shown = await (await fetch(`https://satudata.kapuaskab.go.id/api/3/action/package_show?id=${encodeURIComponent(packageId)}`, { signal: AbortSignal.timeout(30_000) })).json() as { success: boolean; result?: { id: string; name: string; title: string; organization?: { title: string }; resources: Array<{ url: string; format: string }> } };
     const pkg = shown.result;
     if (!shown.success || !pkg) return { package_id: packageId, status: "skipped", reason: "Paket tidak ditemukan." };
@@ -1126,6 +1126,7 @@ export class ConnectorService {
       await client.query("ROLLBACK");
       throw error;
     } finally { client.release(); }
+    if (refresh && already.rows.length && observationCount === 0) return { package_id: packageId, title: pkg.title, status: "unchanged", observations: 0, district_observations: 0 };
     await this.db.query("SELECT sababuka.assign_responsible_opd()");
     for (const versionId of created) await this.publishIndicatorObservations(auth, versionId, audit);
     return { package_id: packageId, title: pkg.title, status: "imported", indicators: created.length, observations: observationCount, district_observations: districtCount };
@@ -1167,8 +1168,8 @@ export class ConnectorService {
   }
 
   /** Bank Data Kapuas: impor satu variabel BPS (semua tahun, per kecamatan) menjadi indikator berlabel "belum diverifikasi" lalu publikasikan. */
-  async importBankVariable(auth: AuthContext, variableId: string, audit: AuditContext) {
-    try { return await this.importBankVariableInner(auth, variableId, audit); }
+  async importBankVariable(auth: AuthContext, variableId: string, audit: AuditContext, refresh = false) {
+    try { return await this.importBankVariableInner(auth, variableId, audit, refresh); }
     catch (error) {
       if (error instanceof ApiError) throw error;
       const detail = error instanceof Error ? error.message : String(error);
@@ -1176,18 +1177,21 @@ export class ConnectorService {
     }
   }
 
-  private async importBankVariableInner(auth: AuthContext, variableId: string, audit: AuditContext) {
+  private async importBankVariableInner(auth: AuthContext, variableId: string, audit: AuditContext, refresh = false) {
     const source = await this.source("BPS_KAPUAS");
     const domain = this.bpsDomain(source);
     const slug = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]+/gu, "_").replace(/^_+|_+$/gu, "").slice(0, 40) || "UMUM";
     const norm = (value: string) => value.toLowerCase().replace(/^kecamatan\s+/u, "").replace(/[^a-z0-9]+/gu, " ").trim();
     const already = await this.db.query(`SELECT 1 FROM sababuka.indicator_source_mappings m JOIN sababuka.data_sources s ON s.id = m.source_id WHERE s.code = 'BPS_KAPUAS' AND m.external_dataset_id = $1 AND m.transform_json->>'bank_data' = 'true' LIMIT 1`, [variableId]);
-    if (already.rows.length) return { variable_id: variableId, status: "skipped", reason: "Sudah diimpor sebelumnya." };
+    if (already.rows.length && !refresh) return { variable_id: variableId, status: "skipped", reason: "Sudah diimpor sebelumnya." };
+    if (!already.rows.length && refresh) refresh = false;
     let merged: ReturnType<typeof parseBpsDataContent> | null = null;
     let foundData = false;
     let emptyRun = 0;
     // Dari tahun terbaru mundur; berhenti setelah dua jendela kosong berturut-turut sesudah data ditemukan.
-    for (const window of bpsYearWindows(2008, new Date().getFullYear() + 1).reverse()) {
+    // Mode refresh (sinkron otomatis) hanya mengambil beberapa tahun terakhir; impor awal mengambil seluruh riwayat.
+    const firstYear = refresh ? new Date().getFullYear() - 5 : 2008;
+    for (const window of bpsYearWindows(firstYear, new Date().getFullYear() + 1).reverse()) {
       const payload = await this.bpsJson(source, (key) => buildBpsDataUrl(bpsApiBase(source.base_url), domain, variableId, window, key));
       const parsed = parseBpsDataContent(payload, {}, domain);
       if (parsed.rows.length) { foundData = true; emptyRun = 0; } else if (foundData) emptyRun += 1;
@@ -1285,9 +1289,10 @@ export class ConnectorService {
       await client.query("ROLLBACK");
       throw error;
     } finally { client.release(); }
+    if (refresh && observationCount === 0) return { variable_id: variableId, title: merged.variable.title, status: "unchanged", observations: 0, district_observations: 0 };
     await this.db.query("SELECT sababuka.assign_responsible_opd()");
     for (const versionId of created) await this.publishIndicatorObservations(auth, versionId, audit);
-    await recordAudit(this.db, { ...audit, eventType: "connector.bank_data_imported", entityType: "bps_variable", entityId: null, metadata: { variable_id: variableId, indicators: created.length, observations: observationCount, district_observations: districtCount } });
+    await recordAudit(this.db, { ...audit, eventType: refresh ? "connector.bank_data_refreshed" : "connector.bank_data_imported", entityType: "bps_variable", entityId: null, metadata: { variable_id: variableId, indicators: created.length, observations: observationCount, district_observations: districtCount } });
     return { variable_id: variableId, title: merged.variable.title, status: "imported", indicators: created.length, observations: observationCount, district_observations: districtCount };
   }
 

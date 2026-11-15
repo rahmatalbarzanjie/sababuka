@@ -12,6 +12,7 @@ export interface AppConfig {
   connectorEncryptionKey: Buffer | null;
   evidenceStoragePath: string;
   evidenceMaxBytes: number;
+  bankDataSyncHours: number;
 }
 
 function integerEnv(name: string, fallback: number, minimum: number): number {
@@ -64,5 +65,7 @@ export function loadConfig(): AppConfig {
     connectorEncryptionKey,
     evidenceStoragePath: process.env.EVIDENCE_STORAGE_PATH ?? "./storage/evidence",
     evidenceMaxBytes: integerEnv("EVIDENCE_MAX_BYTES", 10_485_760, 1_024),
+    // Sinkron otomatis Bank Data (jam antar siklus); 0 = nonaktif. Bawaan 24 jam hanya di produksi.
+    bankDataSyncHours: integerEnv("BANK_DATA_SYNC_HOURS", nodeEnv === "production" ? 24 : 0, 0),
   };
 }

@@ -83,3 +83,11 @@ Izin: `consolidation.view` (OPD, BAPPERIDA, Walidata, Superadmin) dan `consolida
 ### Galat validasi per kolom
 
 Bila server menolak form (400), `api()` mengumumkan nama kolom bermasalah lewat event `sababuka:invalid-fields`; `installServerFieldMarking` (`frontend/src/fieldErrors.ts`, dipasang di AdminLayout) memberi bingkai merah (`aria-invalid`) dan fokus pada kolom bertanda `data-field` yang sama dengan nama properti body API, di dalam dialog yang terbuka atau seluruh halaman. Tanda hilang saat kolom diubah. Form baru cukup menambahkan `data-field="nama_properti_api"` pada input, select, atau textarea; tidak perlu kode di handler submit. Pesan galat tetap menyebut nama kolom bermasalah.
+
+## Sinkron otomatis Seri Data (Bank Data)
+
+- Penjadwal di `backend/src/server.ts` memeriksa tiap 10 menit; siklus baru dimulai bila siklus terakhir lebih tua dari `BANK_DATA_SYNC_HOURS` (bawaan 24 jam di produksi, `0` = nonaktif). Siklus juga bisa dipicu lewat tombol "Sinkronkan sekarang" di halaman Konektor.
+- Satu Data: paket XLSX diunduh ulang hanya bila `metadata_modified` berubah; paket baru langsung diimpor.
+- BPS Kapuas dalam Angka: tiap variabel dicek untuk 5 tahun terakhir; variabel baru diimpor penuh. Nilai yang sudah ada tidak ditimpa (revisi nilai lama ditangani OPD/BAPPERIDA lewat Konsolidasi Sumber).
+- Status per item di `bank_data_sync_items`, per siklus di `bank_data_sync_runs` (migration 070). Siklus yang terputus dilanjutkan (item dicek < 12 jam dilewati). Kegagalan memberi notifikasi ke Developer.
+- BPS memakai satu domain Kapuas (6203); tabel per kecamatan sudah menjadi dimensi wilayah variabel Kapuas dalam Angka. Publikasi "Kecamatan dalam Angka" per kecamatan diperkirakan tidak tersedia sebagai domain/variabel WebAPI terpisah (belum diverifikasi dengan kunci BPS); jika perlu, periksa lewat daftar domain BPS.

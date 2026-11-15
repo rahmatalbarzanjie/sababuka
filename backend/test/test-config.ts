@@ -14,4 +14,5 @@ export const testConfig: AppConfig = {
   connectorEncryptionKey: Buffer.alloc(32, 8),
   evidenceStoragePath: "./tmp/test-evidence",
   evidenceMaxBytes: 10_485_760,
+  bankDataSyncHours: 0,
 };
