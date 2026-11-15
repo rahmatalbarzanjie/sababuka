@@ -3488,6 +3488,8 @@ export interface operations {
                 page?: components["parameters"]["Page"];
                 page_size?: components["parameters"]["PageSize"];
                 status?: components["schemas"]["PublicationStatus"];
+                /** @description `resmi` (bawaan) menyembunyikan rilis otomatis Bank Data; `bank_data` hanya rilis tersebut; `semua` keduanya. */
+                source?: "resmi" | "bank_data" | "semua";
             };
             header?: never;
             path?: never;

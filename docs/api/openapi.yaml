@@ -1033,6 +1033,10 @@ paths:
         - name: status
           in: query
           schema: {$ref: "#/components/schemas/PublicationStatus"}
+        - name: source
+          in: query
+          description: "`resmi` (bawaan) menyembunyikan rilis otomatis Bank Data; `bank_data` hanya rilis tersebut; `semua` keduanya."
+          schema: {type: string, enum: [resmi, bank_data, semua], default: resmi}
       responses:
         "200":
           description: Daftar publikasi
