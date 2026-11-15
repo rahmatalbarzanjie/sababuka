@@ -1,4 +1,4 @@
-# Audit Pengalaman Pengguna Lintas Role — Finalisasi RPJMD
+# Audit Pengalaman Pengguna Lintas Role - Finalisasi RPJMD
 
 Tanggal audit: 9 Oktober 2026
 
@@ -49,7 +49,7 @@ Akibatnya, halaman Publikasi menyatakan ada publikasi aktif, tetapi Dashboard Pi
 | UX-07 | P1 | Pengguna tidak melihat alasan suatu aksi tersedia atau terkunci. Banyak sel tindakan hanya `-`. | Tampilkan `Aksi berikutnya`, `Penanggung jawab berikutnya`, dan `Alasan belum bisa diproses` pada setiap objek. Tombol terkunci boleh tampil jika penjelasannya berguna. |
 | UX-08 | P1 | Tidak ada tenggat, PIC, atau SLA pada antrean kerja. | Tambahkan PIC substansi, operator, tanggal diterima, tenggat, umur antrean, dan penanda terlambat. |
 | UX-09 | P1 | Istilah teknis seperti UUID, request ID, key publikasi, kode indikator panjang, `retrieval lokal`, `mapping`, dan event code mendominasi beberapa halaman. | Tampilkan bahasa manusia sebagai informasi utama. Kode teknis dipindah ke “Detail teknis” yang dapat diperluas atau disalin. |
-| UX-10 | P1 | Tidak ada glosarium atau bantuan kontekstual untuk membedakan target, realisasi, indikator aktif, capaian disetujui, dan publikasi. | Tambahkan ikon bantuan dan glosarium singkat. Sediakan tur pertama kali berdasarkan role, maksimal 3–5 langkah. |
+| UX-10 | P1 | Tidak ada glosarium atau bantuan kontekstual untuk membedakan target, realisasi, indikator aktif, capaian disetujui, dan publikasi. | Tambahkan ikon bantuan dan glosarium singkat. Sediakan tur pertama kali berdasarkan role, maksimal 3-5 langkah. |
 | UX-11 | P1 | Filter aktif tidak diringkas dan halaman kosong dapat disalahartikan sebagai tidak ada data. | Tampilkan chip filter, jumlah per status, dan tombol “Hapus filter”. Empty state harus menyebut filter yang aktif. |
 | UX-12 | P1 | Notifikasi berdiri sendiri dan tidak menjadi pusat tugas; kondisi kosong hanya berkata pembaruan akan tampil. | Setiap notifikasi harus memiliki objek, alasan, batas waktu, dan tombol “Buka tugas”. Gabungkan notifikasi sejenis agar tidak membanjiri pengguna. |
 | UX-13 | P1 | Tabel mobile masih memerlukan scroll horizontal. Status dan tindakan berada di luar layar tanpa petunjuk yang cukup. | Pada ponsel, ubah tabel operasional menjadi kartu dengan identitas, status, tenggat, dan aksi utama. Gunakan tabel scroll hanya untuk administrasi teknis. |
@@ -61,7 +61,7 @@ Akibatnya, halaman Publikasi menyatakan ada publikasi aktif, tetapi Dashboard Pi
 | ID | Prioritas | Temuan dan dampak | Rekomendasi |
 |---|---|---|---|
 | OPD-01 | P0 | Dashboard OPD menampilkan `Indikator aktif: 0` tetapi `Capaian disetujui: 3`. Operator tidak tahu apakah masih mempunyai indikator atau tidak. | Ganti metrik dengan “Indikator menjadi tanggung jawab OPD”, “Perlu verifikasi”, “Perlu diisi”, “Dikembalikan”, dan “Selesai”. Pisahkan status master dari status pelaporan. |
-| OPD-02 | P0 | Dua form DKPP untuk Tahun 2026 dapat tampil sebagai baris yang hampir identik. Operator tidak tahu perbedaannya. | Terapkan satu form kerja per OPD–periode, atau tampilkan versi/batch, tanggal pengajuan, indikator yang dicakup, dan alasan revisi. Cegah duplikasi tidak disengaja. |
+| OPD-02 | P0 | Dua form DKPP untuk Tahun 2026 dapat tampil sebagai baris yang hampir identik. Operator tidak tahu perbedaannya. | Terapkan satu form kerja per OPD-periode, atau tampilkan versi/batch, tanggal pengajuan, indikator yang dicakup, dan alasan revisi. Cegah duplikasi tidak disengaja. |
 | OPD-03 | P0 | Form baru otomatis memilih Tahun 2029, bukan tahun berjalan 2026. Risiko salah periode sangat tinggi. | Pilih tahun berjalan secara default. Tahun masa depan memerlukan konfirmasi dan label “Target/perencanaan”, bukan “Realisasi”. |
 | OPD-04 | P0 | Dialog pembuatan form hanya menampilkan kode `DKPP` dan periode; tidak memperlihatkan indikator apa yang akan diisi atau bahwa saat ini ada 0 indikator aktif. | Sebelum membuat draf, tampilkan nama lengkap OPD, jumlah serta daftar indikator, dan peringatan jika kosong. Nonaktifkan pembuatan form kosong. |
 | OPD-05 | P1 | Halaman Indikator OPD menampilkan status “Draf”, tetapi tidak menjelaskan apakah operator harus menunggu, memeriksa, atau memperbaiki. | Tambahkan tab “Perlu verifikasi saya”, “Menunggu BAPPERIDA”, “Aktif untuk pelaporan”, dan “Arsip”. |
@@ -84,7 +84,7 @@ Akibatnya, halaman Publikasi menyatakan ada publikasi aktif, tetapi Dashboard Pi
 | BAP-02 | P0 | Pemeriksaan Capaian default memfilter “Capaian dikirim” dan menampilkan “Belum ada data”, walaupun ada 13 capaian disetujui. | Gunakan tab dengan badge jumlah: Baru, Sedang diperiksa, Dikembalikan, Disetujui. Empty state harus berkata “Tidak ada capaian berstatus Dikirim”. |
 | BAP-03 | P0 | Memproses 29 kategori dan 69 indikator hanya bisa satu per satu melalui daftar panjang. | Tambahkan bulk review per fokus/OPD, checklist kesiapan, aksi “Ajukan semua yang lengkap”, dan ringkasan pengecualian. Keputusan final tetap tercatat per objek. |
 | BAP-04 | P1 | Filter kategori indikator berupa daftar datar lebih dari 30 opsi tanpa pengelompokan fokus atau pencarian. | Buat filter bertingkat Fokus → Kelompok isu → OPD, plus pencarian dan chip filter aktif. |
-| BAP-05 | P1 | Daftar indikator hanya menunjukkan “5 tahun”, bukan kelengkapan target 2025–2029 atau target yang kosong/aneh. | Tampilkan `5/5 target`, warning nilai kosong, pola tidak wajar, sumber belum pasti, dan definisi belum lengkap. |
+| BAP-05 | P1 | Daftar indikator hanya menunjukkan “5 tahun”, bukan kelengkapan target 2025-2029 atau target yang kosong/aneh. | Tampilkan `5/5 target`, warning nilai kosong, pola tidak wajar, sumber belum pasti, dan definisi belum lengkap. |
 | BAP-06 | P1 | Tidak ada matriks kesiapan 69 indikator yang memperlihatkan definisi, rumus, satuan, OPD, sumber, target, dan status verifikasi. | Tambahkan halaman “Kesiapan RPJMD” dengan kolom kelengkapan dan ekspor daftar tindak lanjut per OPD. |
 | BAP-07 | P1 | Aksi pengembalian capaian memakai prompt browser sederhana dan satu catatan umum. | Gunakan dialog terstruktur: alasan, indikator/field terdampak, batas waktu, dan dokumen yang perlu diganti. |
 | BAP-08 | P1 | Publikasi memakai istilah “kunci”, “versi”, dan “item” tanpa menjelaskan dampak ke dashboard. | Gunakan “Paket tayang”, “Revisi”, dan “Jumlah capaian”. Sediakan preview persis seperti yang akan dilihat pimpinan. |
@@ -144,7 +144,7 @@ Akibatnya, halaman Publikasi menyatakan ada publikasi aktif, tetapi Dashboard Pi
 ### BAPPERIDA
 
 1. **Beranda / Antrean Keputusan**
-2. **Master RPJMD** — fokus, kategori, indikator dalam satu ruang
+2. **Master RPJMD** - fokus, kategori, indikator dalam satu ruang
 3. **Verifikasi OPD**
 4. **Capaian OPD**
 5. **Paket Tayang Pimpinan**
@@ -172,14 +172,14 @@ Akibatnya, halaman Publikasi menyatakan ada publikasi aktif, tetapi Dashboard Pi
 
 ## 10. Urutan implementasi yang disarankan
 
-### Gelombang 0 — pemulihan konsistensi data
+### Gelombang 0 - pemulihan konsistensi data
 
 1. Rekonsiliasi status kategori, indikator, form capaian, dan publikasi.
 2. Pastikan form historis tetap menampilkan snapshot observasi.
 3. Batalkan atau tandai publikasi yang itemnya tidak lagi eligible.
-4. Cegah duplikasi form OPD–periode atau definisikan revisinya secara eksplisit.
+4. Cegah duplikasi form OPD-periode atau definisikan revisinya secara eksplisit.
 
-### Gelombang 1 — sebelum UAT OPD
+### Gelombang 1 - sebelum UAT OPD
 
 1. Buat Beranda Tugas Saya per role.
 2. Buat alur bulk pengajuan baseline RPJMD.
@@ -188,7 +188,7 @@ Akibatnya, halaman Publikasi menyatakan ada publikasi aktif, tetapi Dashboard Pi
 5. Terapkan istilah status lengkap dan stepper proses.
 6. Ubah daftar mobile operasional menjadi kartu.
 
-### Gelombang 2 — sebelum UAT lintas instansi
+### Gelombang 2 - sebelum UAT lintas instansi
 
 1. Matriks kesiapan 69 indikator.
 2. Catatan koreksi per indikator/field.
@@ -196,12 +196,12 @@ Akibatnya, halaman Publikasi menyatakan ada publikasi aktif, tetapi Dashboard Pi
 4. Dashboard kesehatan Kominfo.
 5. Audit manusia dan Integrity Center.
 
-### Gelombang 3 — penyempurnaan
+### Gelombang 3 - penyempurnaan
 
 1. Onboarding berbasis role dan glosarium.
 2. SLA, PIC, tenggat, dan eskalasi.
 3. Penyederhanaan administrasi role/menu/setting.
-4. Pengujian usability dengan 3–5 pegawai yang belum pernah melihat SABABUKA.
+4. Pengujian usability dengan 3-5 pegawai yang belum pernah melihat SABABUKA.
 
 ## 11. Kriteria siap UAT
 

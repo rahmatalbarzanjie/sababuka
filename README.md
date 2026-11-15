@@ -39,12 +39,12 @@ Backend API menjadi jalur data tunggal bagi seluruh kanal. Data mentah, data has
 - Frontend lokal telah mencakup autentikasi, administrasi internal, kategori, dan master indikator pilot.
 - Baseline MVP v1, matriks RBAC, workflow, OpenAPI, dan migration awal telah disiapkan.
 - VPS baru telah diinventarisasi, tetapi aplikasi, domain development, dan layanan produksi belum diterapkan. Seluruh verifikasi aplikasi saat ini tetap dilakukan secara lokal pada database sementara yang terisolasi.
-- Lima kategori, 15 indikator, pemetaan awal OPD, dan target 2025–2029 telah disiapkan sebagai data draft pilot yang masih memerlukan validasi.
+- Lima kategori, 15 indikator, pemetaan awal OPD, dan target 2025-2029 telah disiapkan sebagai data draft pilot yang masih memerlukan validasi.
 - Administrasi organisasi/OPD, pengguna, assignment role, permission, menu, pengaturan sistem, dan feature flag telah diimplementasikan sebagai API lokal.
 - Undangan pengguna dan aktivasi password telah diimplementasikan. MFA dihapus (migration 057): login memakai email/username dan kata sandi.
-- Migration 001–013, API master indikator, workflow data, publikasi, provenance sumber, asisten, dan antarmuka lokal telah melalui build serta integration test.
+- Migration 001-013, API master indikator, workflow data, publikasi, provenance sumber, asisten, dan antarmuka lokal telah melalui build serta integration test.
 - Transisi review, persetujuan, aktivasi, dan arsip versi indikator telah diimplementasikan dengan permission serta audit trail.
-- Formulir realisasi per OPD/periode, penyimpanan capaian, serta alur submit–return–approve telah diimplementasikan dan diuji pada database sementara.
+- Formulir realisasi per OPD/periode, penyimpanan capaian, serta alur submit-return-approve telah diimplementasikan dan diuji pada database sementara.
 - Bukti dukung privat dan ringkasan capaian aman untuk pimpinan telah masuk ke MVP; angka pimpinan hanya berasal dari publikasi aktif.
 - Modul kurasi/publikasi sudah menghubungkan capaian approved ke dashboard pimpinan melalui aktivasi yang terkendali dan teraudit.
 - Asisten Data Pimpinan lokal sudah membaca publikasi aktif, memberikan sitasi, dan menolak jawaban jika data belum cukup.

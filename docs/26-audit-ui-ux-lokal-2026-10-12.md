@@ -55,7 +55,7 @@ Total inventaris: 26 route terproteksi, 4 route autentikasi, 5 peran utama, 2 ko
 ## 4. Temuan yang tidak diubah karena menyentuh aturan bisnis atau data
 
 - rekonsiliasi publikasi aktif versus eligibility data;
-- duplikasi form OPD–periode dan kebijakan revisi;
+- duplikasi form OPD-periode dan kebijakan revisi;
 - default periode pelaporan serta validasi tahun berjalan;
 - SLA, tenggat, PIC, dan eskalasi antrean;
 - bulk approval baseline RPJMD;

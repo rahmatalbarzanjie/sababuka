@@ -20,7 +20,7 @@ Migration PostgreSQL/PostGIS untuk baseline MVP v1.
 | 006 | Seed role, permission, menu, organisasi induk, dan feature flag |
 | 007 | Session autentikasi, MFA, undangan, dan pemulihan kata sandi |
 | 008 | Perlindungan replay kode TOTP |
-| 009 | Metadata tambahan dan data pilot 5 kategori, 15 indikator, OPD, serta target 2025–2029 |
+| 009 | Metadata tambahan dan data pilot 5 kategori, 15 indikator, OPD, serta target 2025-2029 |
 | 010 | Periode pelaporan pada batch dan dataset sistem untuk input capaian manual OPD |
 | 011 | Metadata bukti dukung privat, checksum, relasi indikator, dan soft delete |
 | 012 | Menu dashboard operasional bagi role workflow data |
@@ -28,16 +28,16 @@ Migration PostgreSQL/PostGIS untuk baseline MVP v1.
 | 014 | Direktori 28 perangkat daerah/badan dan 17 kecamatan |
 | 015 | Baseline draf RPJMD: 8 fokus, 29 kategori, 69 indikator, pemilik, dan target |
 | 016 | Pembersihan placeholder target RPJMD yang tidak tersedia |
-| 017–029 | Workflow strategis, demo terisolasi, konektor, dan penguatan RBAC/audit |
+| 017-029 | Workflow strategis, demo terisolasi, konektor, dan penguatan RBAC/audit |
 | 030 | Pemetaan Disbudparpora dan pemeriksaan kelengkapan kepemilikan seluruh indikator RPJMD |
 | 031 | Penegasan Diskominfosantik sebagai Walidata dan alur registrasi PIC OPD yang diverifikasi Developer |
 | 032 | Profil integrasi sumber data OPD dan jadwal sinkronisasi |
 | 033 | Pembersihan katalog dan artefak demo dari data operasional |
 | 034 | Navigasi pelaporan berbasis peran: Beranda Tugas, Pelaporan Realisasi, dan Verifikasi Pelaporan OPD |
 | 035 | Analisis keputusan, master geografi 17 kecamatan, serta menu Keuangan Daerah dan Layanan Publik |
-| 036–038 | Profil digital OPD, periode pelaporan dinamis, dan finalisasi model akun/peran |
+| 036-038 | Profil digital OPD, periode pelaporan dinamis, dan finalisasi model akun/peran |
 | 039 | Penguatan akses Profil Data OPD dan sumber identitas PIC dari registrasi yang disetujui |
-| 040–042 | Peran ganda PIC, pembersihan katalog pilot, dan peran pembinaan statistik BPS |
+| 040-042 | Peran ganda PIC, pembersihan katalog pilot, dan peran pembinaan statistik BPS |
 | 043 | Staging kandidat privat Developer/Superadmin dan retensi nilai mentah 90 hari |
 | 044 | Usulan indikator OPD satu per satu secara manual, dengan asal dokumen perencanaan dan pembatasan scope OPD |
 

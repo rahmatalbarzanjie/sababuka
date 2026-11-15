@@ -48,10 +48,10 @@ Prinsip: angka hanya ditampilkan sebagai capaian resmi bila periode, definisi, s
 
 - Satu Data Kabupaten Kapuas: <https://satudata.kapuaskab.go.id/>
 - Kabupaten Kapuas Dalam Angka 2025: <https://papi.dpmptsp.kapuaskab.go.id/web/public/deploy/pdf/1759356859_f7c4eed3cc72d54abcaf.pdf>
-- IKP Kabupaten/Kota 2024–2026, Badan Pangan Nasional: <https://data.badanpangan.go.id/datasetpublications/cky/ikp-kabupaten-kota-2024-2026>
+- IKP Kabupaten/Kota 2024-2026, Badan Pangan Nasional: <https://data.badanpangan.go.id/datasetpublications/cky/ikp-kabupaten-kota-2024-2026>
 - SKI 2023, Kementerian Kesehatan: <https://kemkes.go.id/app_asset/file_content_download/17169067256655eae5553985.98376730.pdf>
 - Laporan Keuangan Audited Kabupaten Kapuas 2024: <https://ipkd.kapuaskab.go.id/dokumen/ipkd/16._Laporan_Keuangan_Audited_TA_2024_PEMKAB_KAPUAS.pdf>
-- PDRB Kabupaten Kapuas Menurut Lapangan Usaha 2021–2025, terbit 2026: <https://kapuaskab.bps.go.id/id/publication/2026/04/06/175e2f3645d9207eb4a58b21/produk-domestik-regional-bruto-kabupaten-kapuas-menurut-lapangan-usaha-2021-2025.html>
+- PDRB Kabupaten Kapuas Menurut Lapangan Usaha 2021-2025, terbit 2026: <https://kapuaskab.bps.go.id/id/publication/2026/04/06/175e2f3645d9207eb4a58b21/produk-domestik-regional-bruto-kabupaten-kapuas-menurut-lapangan-usaha-2021-2025.html>
 
 ## Aturan pengelolaan berikutnya
 

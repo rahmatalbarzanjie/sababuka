@@ -5,7 +5,7 @@ import { useAuth } from "../auth";
 import { Badge, RowLink, EmptyState, ErrorState, formatDate, formatDateOnly, Modal, Notice, PageSizeControl, Pagination, SortableHeader, Spinner, statusLabel, useAsync, type SortDirection } from "../components";
 import type { PageResponse, Publication, PublicationCandidate } from "../types";
 
-const cleanDisplayText = (value: string) => value.replace(/[—–]/gu, "-").replace(/--+/gu, "-");
+const cleanDisplayText = (value: string) => value.replace(/[\u2013\u2014]/gu, "-").replace(/--+/gu, "-");
 const formatPublishedValue = (numericValue: string | null, textValue: string | null, unit?: string | null) => {
   if (textValue) return textValue;
   if (numericValue === null || numericValue === "") return "-";

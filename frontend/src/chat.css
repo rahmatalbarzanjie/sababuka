@@ -4,7 +4,7 @@
 .chat-message.assistant > div { padding: 18px 22px; min-width: 0; flex: 1; }
 .rich-text { display: grid; gap: 10px; color: var(--ui-text); font-size: 15px; line-height: 1.65; }
 .rich-text p, .rich-text ul, .rich-text ol { margin: 0; }
-.rich-text h4 { margin: 8px 0 0; padding-top: 12px; border-top: 1px solid var(--ui-rule); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ui-accent); }
+.rich-text h4 { margin: 8px 0 0; padding-top: 12px; border-top: 1px solid var(--ui-rule); font-size: 13px; font-weight: 700; color: var(--ui-text); }
 .rich-text > h4:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
 .rich-text ul, .rich-text ol { padding-left: 22px; display: grid; gap: 6px; }
 .rich-text li::marker { color: var(--ui-accent); font-weight: 700; }

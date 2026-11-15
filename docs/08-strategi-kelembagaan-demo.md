@@ -57,7 +57,7 @@ Diskominfosantik tidak boleh diposisikan sebagai pemasok data biasa. Nilai strat
 
 1. Persetujuan prinsip untuk menguji SABABUKA sebagai lapisan integrasi yang selaras dengan SPBE daerah.
 2. Penunjukan PIC data dan PIC teknis untuk pilot terbatas.
-3. Pemilihan 5–10 indikator lintas sektor yang aman untuk proof of concept.
+3. Pemilihan 5-10 indikator lintas sektor yang aman untuk proof of concept.
 4. Persetujuan menyusun kamus indikator, SOP verifikasi, klasifikasi akses, dan blueprint integrasi.
 
 ## Arah nilai jual

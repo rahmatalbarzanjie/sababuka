@@ -165,7 +165,7 @@ tbody tr:hover { background: #fafbfc; }
   .state-skeleton-row span:last-child { display: none; }
 }
 
-/* Kapuas Resmi — shared application shell and interaction layer */
+/* Kapuas Resmi - shared application shell and interaction layer */
 :root {
   --ui-primary: #1b5796;
   --ui-primary-strong: #123d72;
@@ -429,7 +429,7 @@ html[data-theme="dark"] .loading-brand-mark { filter: drop-shadow(0 10px 22px rg
   }
 }
 
-/* Framed sheet — proportional application system for dense government analytics. */
+/* Framed sheet - proportional application system for dense government analytics. */
 :root {
   --ui-ground: #eef3f7;
   --ui-surface: #ffffff;
@@ -788,7 +788,7 @@ html[data-theme="dark"] .topbar { background: var(--ui-ground); }
   .user-mobile-card dl { gap: 10px 12px; margin-top: 13px; padding-top: 12px; }
 }
 
-/* Kapuas login story — lightweight SVG motion, calm enough for a work surface. */
+/* Kapuas login story - lightweight SVG motion, calm enough for a work surface. */
 .login-page.auth-layout {
   display: grid;
   grid-template-columns: minmax(540px, 58%) minmax(420px, 1fr);
@@ -1159,7 +1159,7 @@ html[data-theme="dark"] :is(input, select, textarea)[aria-invalid="true"] {
 .consolidation-decision { display: grid; gap: 8px; padding-top: 12px; }
 .consolidation-decision p { display: flex; align-items: center; gap: 8px; margin: 0; }
 .consolidation-decision svg { width: 18px; height: 18px; color: var(--ui-success, #1a7f4b); flex: none; }
-.consolidation-decision blockquote { margin: 0; padding: 8px 12px; border-left: 3px solid var(--ui-border-strong, var(--line)); overflow-wrap: anywhere; }
+.consolidation-decision blockquote { margin: 0; padding: 8px 12px; border-radius: 8px; background: var(--ui-surface-subtle); overflow-wrap: anywhere; }
 .consolidation-form { display: grid; gap: 12px; padding-top: 12px; }
 .consolidation-form textarea { width: 100%; max-width: 100%; box-sizing: border-box; resize: vertical; }
 @media (max-width: 640px) {
@@ -1186,7 +1186,7 @@ html[data-theme="dark"] :is(input, select, textarea)[aria-invalid="true"] {
 .row-link:focus-visible { outline: 3px solid color-mix(in srgb, var(--ui-primary) 40%, transparent); outline-offset: 2px; border-radius: 3px; }
 
 /* Beranda Tugas: sorot kartu berisi pekerjaan, redam kartu kosong */
-.task-card.has-work { border-color: var(--ui-primary); background: var(--ui-primary-soft); box-shadow: inset 3px 0 0 var(--ui-primary); }
+.task-card.has-work { border-color: var(--ui-primary); background: var(--ui-primary-soft); }
 .task-card.has-work strong { color: var(--ui-primary-strong); }
 .task-card.is-empty strong { color: var(--ui-muted); font-weight: 600; }
 html[data-theme="dark"] .task-card.has-work strong { color: var(--ui-text); }

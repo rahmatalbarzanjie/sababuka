@@ -5,6 +5,7 @@ import { SababukaAssistantMark, type SababukaAssistantState } from "../branding/
 import { DistrictBars, TrendChart } from "../components/InsightVisuals";
 import { Notice } from "../components";
 import { RichText } from "../components/RichText";
+import { plain } from "../text";
 
 interface Session { id: string; title: string | null; status: string; started_at: string }
 interface Citation { publication_item_id: string; label: string; indicator: string; period: string; organization: string; source: string }
@@ -42,7 +43,7 @@ export function AssistantChat({ compact = false }: { compact?: boolean }) {
       {messages.map((item, index) => <article key={index} className={`chat-message ${item.role}`} data-newest={index === messages.length - 1 ? "" : undefined}><span>{item.role === "assistant" ? <SababukaAssistantMark state={assistantState(item.answer)} /> : <UserRound />}</span><div>
         {item.role === "assistant" ? <RichText text={item.content} /> : <p className="chat-text">{item.content}</p>}
         {!!item.answer?.visuals?.length && <div className="chat-visuals">{item.answer.visuals.map((visual, position) => visual.kind === "trend" && visual.points ? <TrendChart key={position} points={visual.points} unit={visual.unit} title={visual.title} /> : visual.items ? <DistrictBars key={position} items={visual.items} unit={visual.unit} title={visual.title} /> : null)}</div>}
-        {item.answer && <><BadgeSufficiency value={item.answer.sufficiency} />{item.answer.citations.length > 0 && <details className="citation-list"><summary>Sumber data ({item.answer.citations.length})</summary>{item.answer.citations.map((citation) => <div key={citation.publication_item_id}><strong>{citation.label}</strong><small>{[citation.organization, citation.source].filter(Boolean).join(" · ")}</small></div>)}</details>}</>}
+        {item.answer && <><BadgeSufficiency value={item.answer.sufficiency} />{item.answer.citations.length > 0 && <details className="citation-list"><summary>Sumber data ({item.answer.citations.length})</summary>{item.answer.citations.map((citation) => <div key={citation.publication_item_id}><strong>{plain(citation.label)}</strong><small>{plain([citation.organization, citation.source].filter(Boolean).join(" · "))}</small></div>)}</details>}</>}
       </div></article>)}
     </div>
     {last?.suggestions && last.suggestions.length > 0 && !busy && <div className="assistant-suggestions follow-up">{last.suggestions.map((suggestion) => <button key={suggestion} type="button" onClick={() => void ask(suggestion)}>{suggestion}</button>)}</div>}

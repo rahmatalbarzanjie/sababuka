@@ -8,7 +8,7 @@ Mockup HTML statis (bisa dibuka langsung di browser) sebagai **acuan visual** im
 | `peran-opd-walidata-pembina.html` | Tiga halaman per peran (tab): OPD (Operator), Walidata, Pembina Data (BPS) | §5 |
 | `navigasi-halaman-padat.html` | Sidebar per-peran + badge "Segera", Beranda Tugas yang difokuskan, Matriks Indikator ringkas | §2.1, §2.4 |
 | `dashboard-developer.html` | POV developer: overview sistem (OPD belum gabung, indikator bermasalah, isu kosong, kesehatan sistem) + pusat sinkronisasi data (pipeline SatuData/BPS/SIPD + data mentah) | §2, §3 |
-| `audit-ui-ux.html` | Laporan audit UI/UX 21 halaman (temuan & prioritas) | — |
+| `audit-ui-ux.html` | Laporan audit UI/UX 21 halaman (temuan & prioritas) | - |
 
 ## Cara membuka
 Buka berkas `.html` langsung di browser, atau jalankan server demo lalu akses path `docs/mockups/...`.

@@ -41,7 +41,7 @@ Asisten Data harus tampil sebagai pemandu data resmi. Ia tidak boleh divisualkan
 
 Master logo harus digambar ulang sebagai geometri SVG yang rapi. Wordmark memakai teks/font nyata atau outline vektor yang sudah diperiksa, bukan huruf hasil generasi gambar.
 
-Asisten Data memakai pendekatan `living logo`: siluet dasar harus sama dengan mark Gerbang Data. Perubahan state dilakukan melalui mata, tiga checkpoint, cahaya, dan motion sederhana—bukan dengan menambahkan tubuh robot atau maskot baru.
+Asisten Data memakai pendekatan `living logo`: siluet dasar harus sama dengan mark Gerbang Data. Perubahan state dilakukan melalui mata, tiga checkpoint, cahaya, dan motion sederhana-bukan dengan menambahkan tubuh robot atau maskot baru.
 
 ## Titik integrasi awal
 
@@ -50,7 +50,7 @@ Asisten Data memakai pendekatan `living logo`: siluet dasar harus sama dengan ma
 - Evaluasi `frontend/src/pages/AuthPages.tsx`: tampilkan hubungan yang jelas antara lambang Pemerintah Kabupaten Kapuas dan identitas produk SABABUKA tanpa menggabungkan keduanya menjadi satu lambang.
 - Ganti penggunaan ikon `Bot` generik pada `frontend/src/pages/AssistantPage.tsx` dengan komponen avatar SABABUKA.
 - Gunakan avatar yang sama pada tombol mengambang/panel Asisten Data ketika fitur tersebut diterapkan.
-- Perbarui favicon hanya dengan mark produk yang tetap terbaca pada 16–32 piksel.
+- Perbarui favicon hanya dengan mark produk yang tetap terbaca pada 16-32 piksel.
 - Tambahkan alt text Bahasa Indonesia dan pastikan status tidak disampaikan melalui warna saja.
 
 ## Batas implementasi

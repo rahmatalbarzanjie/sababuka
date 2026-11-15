@@ -1,4 +1,4 @@
-# Konsep Identitas SABABUKA — Putaran 01
+# Konsep Identitas SABABUKA - Putaran 01
 
 Status: konsep awal untuk ditinjau, belum menjadi identitas resmi dan belum menggantikan aset aplikasi.
 
@@ -22,7 +22,7 @@ Logo produk dirancang untuk berdampingan dengan lambang Kabupaten Kapuas, bukan 
 
 ## Prompt logo
 
-Desain identitas vektor yang institusional dan modern untuk "SABABUKA — Sistem Analisis Big Data Kabupaten Kapuas". Simbol menggabungkan aliran sungai, simpul data yang terhubung, lintasan maju, kilau "Bersinar", dan bentuk abstrak huruf S. Gunakan navy, teal, emas yang terkendali, dan putih. Logo harus sederhana untuk favicon, bordir, dokumen, antarmuka, serta reproduksi satu warna. Jangan menyalin atau memasukkan lambang Kabupaten Kapuas. Hindari robot, otak, gelembung chat, globe, perisai, silinder basis data, efek 3D, dan tampilan logo stok.
+Desain identitas vektor yang institusional dan modern untuk "SABABUKA - Sistem Analisis Big Data Kabupaten Kapuas". Simbol menggabungkan aliran sungai, simpul data yang terhubung, lintasan maju, kilau "Bersinar", dan bentuk abstrak huruf S. Gunakan navy, teal, emas yang terkendali, dan putih. Logo harus sederhana untuk favicon, bordir, dokumen, antarmuka, serta reproduksi satu warna. Jangan menyalin atau memasukkan lambang Kabupaten Kapuas. Hindari robot, otak, gelembung chat, globe, perisai, silinder basis data, efek 3D, dan tampilan logo stok.
 
 ## Prompt karakter bot
 
@@ -32,7 +32,7 @@ Desain karakter Asisten Data SABABUKA yang mengambil siluet dari simbol aliran b
 
 Setelah konsep disetujui, simbol perlu digambar ulang secara geometris sebagai SVG. Wordmark harus disusun dengan tipografi nyata, bukan mengambil bentuk huruf dari gambar konsep. Karakter kemudian dipisahkan menjadi aset transparan per state untuk UI dan bahan rig animasi.
 
-## Putaran 02 — filosofi Topeng Sababuka
+## Putaran 02 - filosofi Topeng Sababuka
 
 Riset budaya dan batas penggunaan dicatat di `docs/FILOSOFI_VISUAL_SABABUKA.md`.
 
@@ -44,7 +44,7 @@ Rancang ulang identitas SABABUKA dengan pengaruh abstrak dari struktur dan filos
 
 Rancang Asisten Data non-humanoid sebagai turunan identitas baru: mata yang tenang, aliran berbentuk S, sumbu provenance, tiga simpul pemeriksaan, dan lampu Bersinar. Karakter harus menunjukkan mendengarkan, mencari sumber, data siap, perlu diperiksa, dan data belum cukup. Pengaruh Topeng Sababuka hanya bersifat abstrak; jangan mengubah objek sakral menjadi karakter kartun atau menyalin bentuk ritual secara literal.
 
-## Putaran 03 — topeng gerbang data
+## Putaran 03 - topeng gerbang data
 
 Aset: `sababuka-gateway-mask-concept-03.png`
 

@@ -39,7 +39,7 @@ try {
   const category = await db.query<{ id: string }>(
     `INSERT INTO sababuka.categories
        (code,name,description,display_order,is_active,created_by,review_status,submitted_by,submitted_at,decided_by,decided_at,decision_notes)
-     VALUES ('SATUDATA_LAYANAN_DASAR','Layanan Dasar — Data Operasional',
+     VALUES ('SATUDATA_LAYANAN_DASAR','Layanan Dasar - Data Operasional',
        'Indikator operasional dari portal Satu Data. Kategori ini terpisah dari 29 kategori RPJMD.',900,true,$1,'approved',$1,now(),$2,now(),
        'Pilot sumber resmi untuk membuktikan alur integrasi, pemeriksaan Walidata, publikasi, dan analisis pimpinan.')
      ON CONFLICT (code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,is_active=true,
@@ -64,7 +64,7 @@ try {
        'Persentase rumah tangga berlistrik PLN dan non-PLN terhadap jumlah rumah tangga yang dicatat Kecamatan Mantangai.',
        '((Rumah tangga berlistrik PLN + rumah tangga berlistrik non-PLN) / jumlah rumah tangga) × 100',$2,'annual','percentage',
        '{"geography_level":"district","operational_source":"Satu Data Kabupaten Kapuas","rpjmd_indicator":false}'::jsonb,
-       'increase','Satu Data Kabupaten Kapuas — Data Rasio Kelistrikan Triwulan I Tahun 2026','public',DATE '2026-01-01','active',
+       'increase','Satu Data Kabupaten Kapuas - Data Rasio Kelistrikan Triwulan I Tahun 2026','public',DATE '2026-01-01','active',
        'Indikator operasional resmi; terpisah dari katalog indikator RPJMD. Nilai sumber masih memerlukan rekonsiliasi aritmetika.',$3,now(),$4,now(),$4,now(),$3)
      ON CONFLICT (indicator_id,version_number) DO UPDATE SET definition=EXCLUDED.definition,formula=EXCLUDED.formula,
        unit_id=EXCLUDED.unit_id,dimension_schema=EXCLUDED.dimension_schema,direction=EXCLUDED.direction,
@@ -137,7 +137,7 @@ try {
     `INSERT INTO sababuka.publications
        (publication_key,version_number,publication_number,title,description,status,effective_at,change_notes,created_by,activated_by,activated_at)
      VALUES ('SATUDATA_OPERASIONAL_MANTANGAI',$1::integer,'SATUDATA-MANTANGAI-'||lpad(($1::integer)::text,3,'0'),
-       'Rasio Elektrifikasi Kecamatan Mantangai — Triwulan I 2026',
+       'Rasio Elektrifikasi Kecamatan Mantangai - Triwulan I 2026',
        'Pilot resmi alur Satu Data ke SABABUKA. Nilai ditampilkan dengan penanda rekonsiliasi karena total pada file sumber belum konsisten.','draft',now(),
        'Dihitung otomatis dari lembar DATA 02; sumber asli, checksum, dan hasil validasi dipertahankan.',$2,NULL,NULL) RETURNING id::text`,
     [nextVersion, creator.id]);

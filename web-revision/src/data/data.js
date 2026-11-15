@@ -8,7 +8,7 @@ export const indicators=[
 {id:'life',name:'Angka Harapan Hidup',value:70.82,unit:'tahun',target:70.7,prev:70.45,status:'good',opd:'Dinas Kesehatan',period:'2026',updated:'20 Agu 2026',higher:true,trend:[69.88,70.07,69.98,70.45,70.82]},
 {id:'roads',name:'Jalan Kondisi Mantap',value:68.4,unit:'%',target:72.0,prev:65.7,status:'critical',opd:'DPUPRPKP',period:'Semester I 2026',updated:'22 Agu 2026',higher:true,trend:[58.4,61.2,60.6,65.7,68.4]},
 {id:'water',name:'Air Minum Layak',value:84.6,unit:'%',target:85.0,prev:82.9,status:'good',opd:'DPUPRPKP',period:'Semester I 2026',updated:'23 Agu 2026',higher:true,trend:[77.8,80.3,79.7,82.9,84.6]},
-{id:'rice',name:'Produksi Padi',value:315.6,unit:'ribu ton',target:330,prev:301.4,status:'critical',opd:'Dinas Pertanian',period:'Jan–Jul 2026',updated:'26 Agu 2026',higher:true,trend:[276.2,289.8,283.5,301.4,315.6]},
+{id:'rice',name:'Produksi Padi',value:315.6,unit:'ribu ton',target:330,prev:301.4,status:'critical',opd:'Dinas Pertanian',period:'Jan-Jul 2026',updated:'26 Agu 2026',higher:true,trend:[276.2,289.8,283.5,301.4,315.6]},
 {id:'income',name:'Realisasi Pendapatan',value:61.8,unit:'%',target:60,prev:55.2,status:'good',opd:'Bapenda',period:'Agustus 2026',updated:'28 Agu 2026',higher:true,trend:[57.3,54.9,59.1,55.2,61.8]},
 {id:'budget',name:'Penyerapan Anggaran',value:58.7,unit:'%',target:60,prev:52.9,status:'attention',opd:'BPKAD',period:'Agustus 2026',updated:'28 Agu 2026',higher:true,trend:[54.2,57.6,55.4,52.9,58.7]},
 {id:'satisfaction',name:'Indeks Kepuasan Masyarakat',value:88.4,unit:'poin',target:87,prev:86.9,status:'good',opd:'Diskominfosantik',period:'Semester I 2026',updated:'21 Agu 2026',higher:true,trend:[82.1,84.6,83.8,86.9,88.4]}

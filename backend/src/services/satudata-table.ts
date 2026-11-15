@@ -24,7 +24,7 @@ function parseNumber(value: unknown): number | null {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
   if (typeof value !== "string") return null;
   const text = value.trim();
-  if (!text || /^[-–—.]+$/u.test(text)) return null;
+  if (!text || /^[-\u2013\u2014.]+$/u.test(text)) return null;
   const cleaned = text.replace(/\s/gu, "").replace(/^rp\.?/iu, "");
   // Format Indonesia: titik pemisah ribuan, koma desimal.
   const normalized = /^\d{1,3}(\.\d{3})+(,\d+)?$/u.test(cleaned) ? cleaned.replace(/\./gu, "").replace(",", ".") : cleaned.replace(",", ".");
@@ -70,7 +70,7 @@ export async function parseKecamatanTable(buffer: Buffer, title: string): Promis
     const parts = filled.map((row) => row[column]).filter((cell) => cell !== null && cell !== undefined).map((cell) => String(cell).replace(/\s+/gu, " ").trim());
     const yearPart = parts.map((part) => yearIn(part)).find((year) => year !== null) ?? titleYear;
     const label = [...new Set(parts.filter((part) => yearIn(part) === null || part.replace(/(?:19|20)\d{2}/gu, "").replace(/[^A-Za-z]/gu, "").length > 3))]
-      .map((part) => part.replace(/(?:19|20)\d{2}/gu, "").replace(/\s+/gu, " ").trim()).filter(Boolean).join(" — ") || "Jumlah";
+      .map((part) => part.replace(/(?:19|20)\d{2}/gu, "").replace(/\s+/gu, " ").trim()).filter(Boolean).join(" - ") || "Jumlah";
     if (!yearPart) continue;
     const points: SatuDataPoint[] = [];
     for (let rowIndex = firstDataRow; rowIndex <= lastDataRow; rowIndex += 1) {

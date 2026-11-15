@@ -1,5 +1,6 @@
 import type { Database, QueryResultRow } from "../database.js";
 import { inferDirection } from "./direction-inference.js";
+import { plainDash } from "./plain-text.js";
 import { analyzeDistricts, analyzeSeries, buildNarrative, type DistrictAnalysis, type Direction, type SeriesAnalysis, type SeriesPoint } from "./trend-engine.js";
 
 export interface InsightQuery { limit: number; source?: string | undefined; assessment?: string | undefined; q?: string | undefined; indicatorId?: string | undefined }
@@ -112,11 +113,11 @@ export class InsightService {
         return { name: name.replace(/^Kecamatan\s+/u, ""), value: series.get(districtYear)!, previous: earlier === undefined ? null : series.get(earlier)! };
       }) };
       const opds = (opdMap.get(indicatorId) ?? []).sort((a, b) => Number(b.primary) - Number(a.primary)).slice(0, 2).map((entry) => entry.label);
-      const narrative = buildNarrative({ name: first.name, unit, analysis, districts, opds, direction });
+      const narrative = buildNarrative({ name: plainDash(first.name), unit, analysis, districts, opds, direction });
       insights.push({
-        indicator_id: indicatorId, code: first.code, name: first.name, category: first.category_name, source_kind: sourceKind(first.origin_type, first.code),
+        indicator_id: indicatorId, code: first.code, name: plainDash(first.name), category: plainDash(first.category_name), source_kind: sourceKind(first.origin_type, first.code),
         unit, latest_year: analysis.latest_year, latest_value: analysis.latest_value, change_pct: analysis.change_pct, trend: analysis.trend,
-        assessment: analysis.assessment, score: analysis.score, ...narrative, opds, direction_inferred: !first.direction && direction !== null, source_label: items.find((entry) => entry.source_name)?.source_name ?? (sourceKind(first.origin_type, first.code) === "rpjmd" ? "RPJMD Kabupaten Kapuas" : "Sumber resmi"),
+        assessment: analysis.assessment, score: analysis.score, ...narrative, opds, direction_inferred: !first.direction && direction !== null, source_label: plainDash(items.find((entry) => entry.source_name)?.source_name ?? "") || (sourceKind(first.origin_type, first.code) === "rpjmd" ? "RPJMD Kabupaten Kapuas" : "Sumber resmi"),
         series: points.sort((a, b) => a.year - b.year).slice(-10), analysis, districts, district_latest: districtLatest, basis,
       });
     }

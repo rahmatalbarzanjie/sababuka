@@ -1,3 +1,5 @@
+import { plain } from "../text";
+
 export interface TrendPoint { year: number; value: number }
 export interface DistrictItem { name: string; value: number }
 
@@ -24,7 +26,7 @@ export function TrendChart({ points, unit, title, tone = "neutral" }: { points: 
   const y = (value: number) => top + (1 - (value - min) / span) * (height - top - bottom);
   const path = points.map((point, index) => `${index ? "L" : "M"}${x(index).toFixed(1)},${y(point.value).toFixed(1)}`).join(" ");
   const area = `${path} L${x(points.length - 1).toFixed(1)},${height - bottom} L${x(0).toFixed(1)},${height - bottom} Z`;
-  return <figure className={`insight-chart ${tone}`}><figcaption>{title}{unit ? ` (${unit})` : ""}</figcaption>
+  return <figure className={`insight-chart ${tone}`}><figcaption>{plain(title)}{unit ? ` (${plain(unit)})` : ""}</figcaption>
     <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`Grafik tren ${title}`}>
       <path d={area} className="area" /><path d={path} className="line" fill="none" strokeWidth="2.5" strokeLinejoin="round" />
       {points.map((point, index) => <g key={point.year}><circle cx={x(index)} cy={y(point.value)} r="3.5" /><text x={x(index)} y={height - 8} textAnchor="middle" className="axis">{point.year}</text>{(index === 0 || index === points.length - 1 || points.length <= 6) && <text x={x(index)} y={y(point.value) - 8} textAnchor="middle" className="value">{fmt(point.value)}</text>}</g>)}

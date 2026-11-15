@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { plain } from "../text";
 
 /** Penyaji teks jawaban asisten: hanya **tebal**, butir "- ", daftar "1.", dan judul bagian. Tidak pernah memakai HTML mentah. */
 function inline(text: string): ReactNode[] {
@@ -25,7 +26,7 @@ function parse(source: string): Block[] {
 }
 
 export function RichText({ text }: { text: string }) {
-  return <div className="rich-text">{parse(text).map((block, index) => {
+  return <div className="rich-text">{parse(plain(text)).map((block, index) => {
     if (block.kind === "heading") return <h4 key={index}>{block.text}</h4>;
     if (block.kind === "ul") return <ul key={index}>{block.items.map((item, position) => <li key={position}>{inline(item)}</li>)}</ul>;
     if (block.kind === "ol") return <ol key={index}>{block.items.map((item, position) => <li key={position}>{inline(item)}</li>)}</ol>;
