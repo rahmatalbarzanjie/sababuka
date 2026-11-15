@@ -1,9 +1,10 @@
 import { Send, ShieldCheck, UserRound } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, jsonBody } from "../api";
 import { SababukaAssistantMark, type SababukaAssistantState } from "../branding/SababukaBrand";
 import { DistrictBars, TrendChart } from "../components/InsightVisuals";
 import { Notice } from "../components";
+import { RichText } from "../components/RichText";
 
 interface Session { id: string; title: string | null; status: string; started_at: string }
 interface Citation { publication_item_id: string; label: string; indicator: string; period: string; organization: string; source: string }
@@ -29,14 +30,19 @@ export function AssistantChat({ compact = false }: { compact?: boolean }) {
   };
   const submit = (event: FormEvent) => { event.preventDefault(); const question = message.trim(); if (question && !busy) void ask(question); };
   const last = messages[messages.length - 1]?.answer;
+  const stream = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const node = stream.current; const newest = node?.querySelector<HTMLElement>("[data-newest]");
+    if (node && newest) node.scrollTo({ top: Math.max(0, newest.offsetTop - 12), behavior: "smooth" });
+  }, [messages.length]);
   return <section className={`panel assistant-panel${compact ? " compact" : ""}`}>
     {!compact && <header><span className="assistant-avatar"><SababukaAssistantMark state={busy ? "searching" : "neutral"} /></span><div><h2>Tanya Sababuka</h2><p><ShieldCheck /> Jawaban dihitung dari data resmi Kabupaten Kapuas, lengkap dengan sumbernya.</p></div></header>}
-    <div className="chat-stream">
+    <div className="chat-stream" ref={stream}>
       {!messages.length && <div className="assistant-welcome"><SababukaAssistantMark className="assistant-welcome-mark" state={busy ? "searching" : "neutral"} /><h3>Apa yang ingin Anda ketahui?</h3><p>Tanyakan tren, perbandingan kecamatan, OPD penanggung jawab, atau tindak lanjut.</p><div className="assistant-suggestions">{EXAMPLES.map((example) => <button key={example} type="button" onClick={() => void ask(example)}>{example}</button>)}</div></div>}
-      {messages.map((item, index) => <article key={index} className={`chat-message ${item.role}`}><span>{item.role === "assistant" ? <SababukaAssistantMark state={assistantState(item.answer)} /> : <UserRound />}</span><div>
-        <p className="chat-text">{item.content}</p>
-        {item.answer?.visuals?.map((visual, position) => visual.kind === "trend" && visual.points ? <TrendChart key={position} points={visual.points} unit={visual.unit} title={visual.title} /> : visual.items ? <DistrictBars key={position} items={visual.items} unit={visual.unit} title={visual.title} /> : null)}
-        {item.answer && <><BadgeSufficiency value={item.answer.sufficiency} />{item.answer.citations.length > 0 && <div className="citation-list">{item.answer.citations.map((citation) => <div key={citation.publication_item_id}><strong>{citation.label}</strong><small>{[citation.organization, citation.source].filter(Boolean).join(" · ")}</small></div>)}</div>}</>}
+      {messages.map((item, index) => <article key={index} className={`chat-message ${item.role}`} data-newest={index === messages.length - 1 ? "" : undefined}><span>{item.role === "assistant" ? <SababukaAssistantMark state={assistantState(item.answer)} /> : <UserRound />}</span><div>
+        {item.role === "assistant" ? <RichText text={item.content} /> : <p className="chat-text">{item.content}</p>}
+        {!!item.answer?.visuals?.length && <div className="chat-visuals">{item.answer.visuals.map((visual, position) => visual.kind === "trend" && visual.points ? <TrendChart key={position} points={visual.points} unit={visual.unit} title={visual.title} /> : visual.items ? <DistrictBars key={position} items={visual.items} unit={visual.unit} title={visual.title} /> : null)}</div>}
+        {item.answer && <><BadgeSufficiency value={item.answer.sufficiency} />{item.answer.citations.length > 0 && <details className="citation-list"><summary>Sumber data ({item.answer.citations.length})</summary>{item.answer.citations.map((citation) => <div key={citation.publication_item_id}><strong>{citation.label}</strong><small>{[citation.organization, citation.source].filter(Boolean).join(" · ")}</small></div>)}</details>}</>}
       </div></article>)}
     </div>
     {last?.suggestions && last.suggestions.length > 0 && !busy && <div className="assistant-suggestions follow-up">{last.suggestions.map((suggestion) => <button key={suggestion} type="button" onClick={() => void ask(suggestion)}>{suggestion}</button>)}</div>}

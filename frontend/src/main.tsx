@@ -11,6 +11,7 @@ import "./responsive.css";
 import "./interactions.css";
 import "./beranda.css";
 import "./exec.css";
+import "./chat.css";
 import { initInteractions } from "./interactions";
 import { initializeTheme } from "./theme";
 
