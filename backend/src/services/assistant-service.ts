@@ -4,6 +4,8 @@ import type { AuthContext } from "../types/auth.js";
 import { recordAudit, type AuditContext } from "./audit-service.js";
 import { buildReply } from "./assistant-intents.js";
 import { InsightService } from "./insight-service.js";
+import { LlmService } from "./llm-service.js";
+import type { AppConfig } from "../config.js";
 
 const stopWords = new Set(["apa", "berapa", "bagaimana", "dan", "atau", "yang", "dari", "untuk", "pada", "di", "ke", "tahun", "data", "capaian", "indikator", "tampilkan", "jelaskan", "nilai"]);
 function tokens(value: string) { return [...new Set(value.toLocaleLowerCase("id-ID").replace(/[^a-z0-9]+/gu, " ").split(/\s+/u).filter((word) => word.length > 1 && !stopWords.has(word)))]; }
@@ -14,7 +16,7 @@ function formatValue(row: Record<string, unknown>) {
 }
 
 export class AssistantService {
-  constructor(private readonly db: Database) {}
+  constructor(private readonly db: Database, private readonly config?: AppConfig) {}
   private async ensureEnabled() {
     const result = await this.db.query<{ is_enabled: boolean }>(`SELECT is_enabled FROM sababuka.feature_flags WHERE code = 'assistant.enabled'`);
     if (!result.rows[0]?.is_enabled) throw new ApiError(403, "PERMISSION_DENIED", "Asisten AI sedang dinonaktifkan oleh administrator.");
@@ -35,8 +37,10 @@ export class AssistantService {
     if (!session.rows[0]) throw new ApiError(404, "NOT_FOUND", "Sesi asisten tidak ditemukan atau sudah ditutup.");
     const insightReply = buildReply(question, await new InsightService(this.db).all());
     if (insightReply.sufficiency !== "insufficient") {
+      const narrated = insightReply.facts ? await new LlmService(this.db, this.config).narrate(question, insightReply.facts, insightReply.answer) : null;
+      if (narrated) insightReply.answer = narrated.text;
       const asked = await this.db.query<{ id: string }>(`INSERT INTO sababuka.assistant_messages (session_id, message_role, content, structured_data, request_id) VALUES ($1, 'user', $2, '{}'::jsonb, $3) RETURNING id::text`, [sessionId, question, audit.requestId]);
-      const replied = await this.db.query<{ id: string }>(`INSERT INTO sababuka.assistant_messages (session_id, message_role, content, model_name, structured_data, request_id) VALUES ($1, 'assistant', $2, 'sababuka-insight-v1', $3::jsonb, $4) RETURNING id::text`, [sessionId, insightReply.answer, JSON.stringify({ sufficiency: insightReply.sufficiency, retrieval: "trend_engine", user_message_id: asked.rows[0]!.id, sources: insightReply.sources }), audit.requestId]);
+      const replied = await this.db.query<{ id: string }>(`INSERT INTO sababuka.assistant_messages (session_id, message_role, content, model_name, structured_data, request_id) VALUES ($1, 'assistant', $2, $5, $3::jsonb, $4) RETURNING id::text`, [sessionId, insightReply.answer, JSON.stringify({ sufficiency: insightReply.sufficiency, retrieval: "trend_engine", narrated_by: narrated?.model ?? "rules", user_message_id: asked.rows[0]!.id, sources: insightReply.sources }), audit.requestId, narrated?.model ?? "sababuka-insight-v1"]);
       await recordAudit(this.db, { ...audit, eventType: "assistant.answer_generated", entityType: "assistant_session", entityId: sessionId, metadata: { sufficiency: insightReply.sufficiency, citation_count: insightReply.sources.length, engine: "trend_engine" } });
       return { message_id: replied.rows[0]!.id, answer: insightReply.answer, citations: insightReply.sources.map((entry) => ({ publication_item_id: entry.label, label: entry.label, indicator: entry.indicator, period: String(entry.year), organization: "", source: entry.source })), sufficiency: insightReply.sufficiency, visuals: insightReply.visuals, suggestions: insightReply.suggestions };
     }
