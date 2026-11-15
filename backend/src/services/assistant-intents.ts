@@ -6,7 +6,7 @@ const STOP = new Set(["apa", "apakah", "berapa", "bagaimana", "gimana", "dan", "
 export const tokenize = (value: string) => [...new Set(value.toLocaleLowerCase("id-ID").replace(/[^a-z0-9]+/gu, " ").split(/\s+/u).filter((word) => word.length > 2 && !STOP.has(word) && !/^\d{4}$/u.test(word)))];
 
 export interface Intent {
-  overview: boolean; district: boolean; opd: boolean; recommendation: boolean;
+  rankOpd: boolean; overview: boolean; district: boolean; opd: boolean; recommendation: boolean;
   worsening: boolean; improving: boolean; year: number | null; tokens: string[];
 }
 
@@ -15,6 +15,7 @@ export function parseIntent(question: string): Intent {
   const year = text.match(/(?:^|\D)((?:19|20)\d{2})(?!\d)/u);
   const tokens = tokenize(question);
   return {
+    rankOpd: /(opd|dinas|badan|instansi|perangkat daerah).{0,40}(paling|terbaik|terburuk|kinerja|baik|buruk|peringkat|ranking|prestasi|bagus|jelek)|(paling|terbaik|terburuk|kinerja|peringkat|ranking).{0,40}(opd|dinas|badan|instansi)/u.test(text),
     overview: /ringkas|rangkum|gambaran|overview|laporan|apa saja|perlu perhatian|prioritas|kabar|situasi|kondisi (umum|kabupaten)/u.test(text) || tokens.length === 0,
     district: /kecamatan|wilayah|daerah mana|peta|sebaran/u.test(text),
     opd: /\bopd\b|dinas|bertanggung|penanggung|siapa yang/u.test(text),
@@ -63,13 +64,50 @@ const factOf = (insight: Insight) => ({
 });
 const sourceOf = (insight: Insight) => ({ label: `${insight.name} · ${insight.latest_year}`, indicator: insight.name, year: insight.latest_year, source: insight.source_label });
 
+export interface OpdScore { name: string; total: number; membaik: number; memburuk: number; assessable: number; score: number | null }
+
+/** Skor perbaikan per OPD penanggung jawab utama: (membaik - memburuk) / (membaik + memburuk), dari indikator yang arah baik-buruknya diketahui. */
+export function opdScoreboard(insights: Insight[]): OpdScore[] {
+  const groups = new Map<string, OpdScore>();
+  for (const insight of insights) {
+    const name = insight.opds[0]; if (!name) continue;
+    const entry = groups.get(name) ?? { name, total: 0, membaik: 0, memburuk: 0, assessable: 0, score: null };
+    entry.total += 1;
+    if (insight.assessment === "membaik") { entry.membaik += 1; entry.assessable += 1; }
+    if (insight.assessment === "memburuk") { entry.memburuk += 1; entry.assessable += 1; }
+    groups.set(name, entry);
+  }
+  return [...groups.values()].map((entry) => ({ ...entry, score: entry.assessable >= 3 ? Math.round(((entry.membaik - entry.memburuk) / entry.assessable) * 100) : null }));
+}
+
+function opdReply(insights: Insight[]): AssistantReply {
+  const board = opdScoreboard(insights);
+  const ranked = board.filter((entry) => entry.score !== null).sort((a, b) => b.score! - a.score! || b.assessable - a.assessable);
+  const inferred = insights.filter((item) => item.direction_inferred).length;
+  const caveat = `Catatan: ini ukuran arah perubahan indikator di bawah tanggung jawab tiap OPD (membaik atau memburuk menurut tren data resmi), bukan penilaian kinerja resmi. Hanya indikator yang arah baik-buruknya jelas yang dihitung${inferred ? `; sebagian (${inferred}) arahnya diperkirakan dari nama indikator` : ""}.`;
+  if (ranked.length < 2) {
+    const partial = board.filter((entry) => entry.assessable > 0).sort((a, b) => b.assessable - a.assessable).slice(0, 4);
+    return { facts: { mode: "peringkat_opd", cukup: false, opd: partial }, answer: `Data belum cukup untuk memeringkat OPD: baru ${ranked.length} OPD yang punya minimal 3 indikator dengan arah baik-buruk yang jelas. ${partial.length ? `Yang sudah ada: ${partial.map((entry) => `${entry.name} (${entry.membaik} membaik, ${entry.memburuk} memburuk)`).join("; ")}.` : ""} ${caveat}`.trim(), visuals: [], suggestions: ["Apa yang perlu saya perhatikan hari ini?"], sources: [], sufficiency: "partial" };
+  }
+  const best = ranked.slice(0, 3); const worst = ranked.slice(-3).reverse();
+  const line = (entry: OpdScore) => `${entry.name} (${entry.membaik} membaik, ${entry.memburuk} memburuk dari ${entry.assessable} indikator)`;
+  const answer = `Berdasarkan arah perubahan indikator yang menjadi tanggung jawabnya, OPD dengan perkembangan terbaik: ${best.map(line).join("; ")}. Yang paling perlu perhatian: ${worst.map(line).join("; ")}. ${caveat}`;
+  return {
+    facts: { mode: "peringkat_opd", cukup: true, terbaik: best, perlu_perhatian: worst, catatan: caveat }, answer,
+    visuals: [{ kind: "districts", title: "Skor perbaikan indikator per OPD (−100 sampai +100)", unit: "", items: ranked.slice(0, 8).map((entry) => ({ name: entry.name.replace(/^Dinas |^Badan /u, ""), value: entry.score! })) }],
+    suggestions: [`Indikator apa saja yang memburuk di ${worst[0]!.name}?`, "Apa yang perlu saya perhatikan hari ini?"], sources: [], sufficiency: "partial",
+  };
+}
+
 export function buildReply(question: string, insights: Insight[]): AssistantReply {
   const intent = parseIntent(question);
+  if (intent.rankOpd) return opdReply(insights);
   const matches = intent.overview && !intent.tokens.length ? [] : matchInsights(intent.tokens, insights);
   const total = insights.length;
 
   if (!matches.length) {
-    const concerning = insights.filter((item) => item.assessment === "memburuk" || item.analysis.anomaly?.is_anomaly).sort((a, b) => b.score - a.score).slice(0, 4);
+    const wantsGood = intent.improving && !intent.worsening;
+    const concerning = insights.filter((item) => wantsGood ? item.assessment === "membaik" : item.assessment === "memburuk" || item.analysis.anomaly?.is_anomaly).sort((a, b) => b.score - a.score).slice(0, 4);
     const improving = insights.filter((item) => item.assessment === "membaik").length;
     if (!insights.length) return { facts: null, answer: "Belum ada data terpublikasi yang cukup untuk dianalisis.", visuals: [], suggestions: [], sources: [], sufficiency: "insufficient" };
     if (!intent.overview) {
@@ -77,7 +115,7 @@ export function buildReply(question: string, insights: Insight[]): AssistantRepl
       return { facts: null, answer: `Saya belum menemukan indikator yang cocok dengan pertanyaan itu di ${total} indikator yang tersedia. Coba sebutkan nama indikatornya, misalnya: ${sample.join("; ")}.`, visuals: [], suggestions: sample.map((name) => `Bagaimana tren ${name}?`), sources: [], sufficiency: "insufficient" };
     }
     const lines = concerning.map((item) => `• ${item.headline} ${item.opds.length ? `(${item.opds.join(", ")})` : ""}`);
-    const answer = `Dari ${total} indikator yang dianalisis, ${improving} menunjukkan perbaikan dan ${insights.filter((item) => item.assessment === "memburuk").length} memburuk. ${concerning.length ? `Yang paling perlu perhatian:\n${lines.join("\n")}` : "Tidak ada indikator yang menunjukkan kemunduran tajam saat ini."}`;
+    const answer = `Dari ${total} indikator yang dianalisis, ${improving} menunjukkan perbaikan dan ${insights.filter((item) => item.assessment === "memburuk").length} memburuk. ${concerning.length ? `${wantsGood ? "Perkembangan terbaik:" : "Yang paling perlu perhatian:"}\n${lines.join("\n")}` : "Tidak ada indikator yang menunjukkan kemunduran tajam saat ini."}`;
     return { facts: { mode: "ringkasan", total_indikator: total, membaik: improving, memburuk: insights.filter((item) => item.assessment === "memburuk").length, perlu_perhatian: concerning.map(factOf) }, answer, visuals: [], suggestions: concerning.slice(0, 3).map((item) => `Apa rekomendasi untuk ${item.name}?`), sources: concerning.map(sourceOf), sufficiency: "partial" };
   }
 

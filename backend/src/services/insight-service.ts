@@ -1,4 +1,5 @@
 import type { Database, QueryResultRow } from "../database.js";
+import { inferDirection } from "./direction-inference.js";
 import { analyzeDistricts, analyzeSeries, buildNarrative, type DistrictAnalysis, type Direction, type SeriesAnalysis, type SeriesPoint } from "./trend-engine.js";
 
 export interface InsightQuery { limit: number; source?: string | undefined; assessment?: string | undefined; q?: string | undefined; indicatorId?: string | undefined }
@@ -12,7 +13,7 @@ export interface Insight {
   indicator_id: string; code: string; name: string; category: string; source_kind: "rpjmd" | "bps" | "satudata" | "opd";
   unit: string; latest_year: number; latest_value: number; change_pct: number | null; trend: SeriesAnalysis["trend"];
   assessment: SeriesAnalysis["assessment"]; score: number; headline: string; detail: string; recommendation: string;
-  opds: string[]; source_label: string; series: SeriesPoint[]; analysis: SeriesAnalysis; districts: DistrictAnalysis | null; basis: "kabupaten" | "total_kecamatan";
+  opds: string[]; direction_inferred: boolean; source_label: string; series: SeriesPoint[]; analysis: SeriesAnalysis; districts: DistrictAnalysis | null; basis: "kabupaten" | "total_kecamatan";
 }
 
 const NON_ADDITIVE = /rata|persen|indeks|rasio|angka|laju|tingkat|per \d|proporsi|kepadatan|harga|upah/iu;
@@ -96,7 +97,8 @@ export class InsightService {
         points = [...totals.entries()].filter(([, entry]) => entry.count >= Math.ceil(complete * 0.9)).map(([year, entry]) => ({ year, value: entry.sum }));
         basis = "total_kecamatan";
       }
-      const analysis = analyzeSeries(points, first.direction);
+      const direction = first.direction ?? inferDirection(first.name);
+      const analysis = analyzeSeries(points, direction);
       if (!analysis || analysis.years < 3) continue;
 
       const latestYears = [...new Set([...districtSeries.values()].flatMap((series) => [...series.keys()]))].sort((a, b) => b - a);
@@ -106,11 +108,11 @@ export class InsightService {
         return { name: name.replace(/^Kecamatan\s+/u, ""), value: series.get(districtYear)!, previous: earlier === undefined ? null : series.get(earlier)! };
       }));
       const opds = (opdMap.get(indicatorId) ?? []).sort((a, b) => Number(b.primary) - Number(a.primary)).slice(0, 2).map((entry) => entry.label);
-      const narrative = buildNarrative({ name: first.name, unit, analysis, districts, opds, direction: first.direction });
+      const narrative = buildNarrative({ name: first.name, unit, analysis, districts, opds, direction });
       insights.push({
         indicator_id: indicatorId, code: first.code, name: first.name, category: first.category_name, source_kind: sourceKind(first.origin_type, first.code),
         unit, latest_year: analysis.latest_year, latest_value: analysis.latest_value, change_pct: analysis.change_pct, trend: analysis.trend,
-        assessment: analysis.assessment, score: analysis.score, ...narrative, opds, source_label: items.find((entry) => entry.source_name)?.source_name ?? (sourceKind(first.origin_type, first.code) === "rpjmd" ? "RPJMD Kabupaten Kapuas" : "Sumber resmi"),
+        assessment: analysis.assessment, score: analysis.score, ...narrative, opds, direction_inferred: !first.direction && direction !== null, source_label: items.find((entry) => entry.source_name)?.source_name ?? (sourceKind(first.origin_type, first.code) === "rpjmd" ? "RPJMD Kabupaten Kapuas" : "Sumber resmi"),
         series: points.sort((a, b) => a.year - b.year).slice(-10), analysis, districts, basis,
       });
     }
