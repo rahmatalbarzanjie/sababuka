@@ -18,17 +18,25 @@ Aturan ketat:
 
 interface SecretRow { encrypted_secret: string; masked_hint: string | null; last_tested_at: string | null; last_test_status: string | null; last_test_error: string | null }
 
-/** Angka pada teks (selain tahun dan bilangan kecil) harus muncul pada FAKTA; jika tidak, jawaban model ditolak. */
-export function numbersGrounded(answer: string, facts: string): boolean {
+export interface ToolDefinition { name: string; description: string; input_schema: Record<string, unknown> }
+export interface ContentBlock { type: string; text?: string; id?: string; name?: string; input?: unknown }
+
+/** Angka pada teks (selain tahun dan bilangan kecil) yang tidak muncul pada bukti. Kosong = semua angka berdasar data. */
+export function ungroundedNumbers(answer: string, facts: string): string[] {
   const canon = (value: string) => value.replace(/\./gu, "").replace(",", ".").replace(/^0+(?=\d)/u, "");
   const known = new Set((facts.match(/\d[\d.,]*/gu) ?? []).map((token) => canon(token.replace(/[.,]$/u, ""))));
+  const bad: string[] = [];
   for (const raw of answer.match(/\d[\d.,]*/gu) ?? []) {
     const token = canon(raw.replace(/[.,]$/u, ""));
     const value = Number(token);
     if (!Number.isFinite(value) || (Number.isInteger(value) && (value <= 12 || (value >= 1990 && value <= 2040)))) continue;
-    if (!known.has(token)) return false;
+    if (!known.has(token)) bad.push(raw.replace(/[.,]$/u, ""));
   }
-  return true;
+  return [...new Set(bad)];
+}
+
+export function numbersGrounded(answer: string, facts: string): boolean {
+  return ungroundedNumbers(answer, facts).length === 0;
 }
 
 export class LlmService {
@@ -48,6 +56,23 @@ export class LlmService {
   }
 
   private model() { return process.env.LLM_MODEL?.trim() || DEFAULT_MODEL; }
+  modelName() { return this.model(); }
+  async available(): Promise<boolean> { return Boolean(await this.apiKey()); }
+
+  /** Satu putaran percakapan dengan alat (tool use). */
+  async converse(system: string, messages: Array<{ role: "user" | "assistant"; content: unknown }>, tools: ToolDefinition[], maxTokens: number): Promise<{ content: ContentBlock[]; stop_reason: string }> {
+    const key = await this.apiKey();
+    if (!key) throw new Error("Kunci API belum dikonfigurasi.");
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model: this.model(), max_tokens: maxTokens, system, tools, messages }),
+      signal: AbortSignal.timeout(40_000),
+    });
+    const payload = await response.json().catch(() => ({})) as { content?: ContentBlock[]; stop_reason?: string; error?: { message?: string } };
+    if (!response.ok) throw new Error(payload.error?.message?.replaceAll(key, "***").slice(0, 200) ?? `HTTP ${response.status}`);
+    return { content: payload.content ?? [], stop_reason: payload.stop_reason ?? "end_turn" };
+  }
 
   async status() {
     const row = await this.row();
