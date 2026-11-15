@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, Building2, CheckCircle2, Minus, TrendingUp } from "lucide-react";
+import { AlertTriangle, Database, ArrowDownRight, ArrowUpRight, Building2, CheckCircle2, Minus, TrendingUp } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "../api";
 import { Badge, EmptyState, ErrorState, PageLoading, useAsync } from "../components";
@@ -14,8 +14,10 @@ interface Insight {
   series: Array<{ year: number; value: number }>;
   analysis: { anomaly: { is_anomaly: boolean } | null; change_pct: number | null; previous_year: number | null; cagr_pct: number | null; years: number; first_year: number; streak: { direction: "naik" | "turun" | null; length: number } };
   district_latest: { year: number; items: DistrictValue[] } | null;
+  links: Array<{ relation: "primary" | "supporting" | "comparison"; notes: string | null; indicator_id: string; name: string; unit: string; latest_year: number; latest_value: number; change_pct: number | null; trend: "naik" | "turun" | "stabil" | "fluktuatif"; source_label: string }>;
 }
-interface InsightsResponse { generated_at: string; analyzed: number; summary: { membaik: number; memburuk: number; naik: number; turun: number; anomali: number }; insights: Insight[] }
+const relationLabel = { primary: "Utama", supporting: "Pendukung", comparison: "Pembanding" } as const;
+interface InsightsResponse { generated_at: string; analyzed: number; context: { series: number; linked: number }; summary: { membaik: number; memburuk: number; naik: number; turun: number; anomali: number }; insights: Insight[] }
 
 const pct = (value: number | null) => value === null ? "-" : `${value > 0 ? "+" : ""}${value.toLocaleString("id-ID", { maximumFractionDigits: 1 })}%`;
 const num = (value: number) => value.toLocaleString("id-ID", { maximumFractionDigits: 2 });
@@ -54,6 +56,7 @@ function Spotlight({ item, rank }: { item: Insight; rank: number }) {
       </div>
     </div>
     <p className="spotlight-action"><b>Tindak lanjut.</b> {plain(item.recommendation)}</p>
+    {item.links.length > 0 && <div className="spotlight-links"><b>Data pendukung dan pembanding (Bank Data, belum diverifikasi)</b><ul>{item.links.map((link) => <li key={`${link.relation}:${link.indicator_id}`}><Badge tone="neutral">{relationLabel[link.relation]}</Badge><span>{plain(link.name)}</span><strong>{num(link.latest_value)} {plain(link.unit)}</strong><small>{link.latest_year} · {pct(link.change_pct)}</small></li>)}</ul></div>}
     <footer>{item.opds.length > 0 && <span><Building2 aria-hidden />{item.opds.join(", ")}</span>}<small>Sumber: {plain(item.source_label)}</small></footer>
   </article>;
 }
@@ -126,10 +129,11 @@ function DistrictPanel({ insights }: { insights: Insight[] }) {
 }
 
 export function BerandaPage() {
-  const data = useAsync(() => api<InsightsResponse>("/executive/insights?limit=100"), []);
+  const data = useAsync(async () => { const [kinerja, konteks] = await Promise.all([api<InsightsResponse>("/executive/insights?layer=kinerja&limit=100"), api<InsightsResponse>("/executive/insights?layer=konteks&limit=100")]); return { ...kinerja, context: konteks.context, konteks: konteks.insights }; }, []);
   if (data.loading) return <PageLoading />;
   if (data.error || !data.data) return <ErrorState title="Dashboard belum dapat dimuat" onRetry={data.reload}>{data.error}</ErrorState>;
-  const { summary, insights, analyzed, generated_at } = data.data;
+  const { summary, insights, analyzed, generated_at, context, konteks } = data.data;
+  const contextMovers = konteks.filter((item) => item.change_pct !== null).sort((a, b) => Math.abs(b.change_pct ?? 0) - Math.abs(a.change_pct ?? 0)).slice(0, 6);
   const assessed = summary.membaik + summary.memburuk;
   const netral = Math.max(0, analyzed - assessed);
   const attention = insights.filter((item) => item.assessment === "memburuk" || item.analysis.anomaly?.is_anomaly);
@@ -167,11 +171,13 @@ export function BerandaPage() {
       </aside>
     </div>
 
-    <DistrictPanel insights={insights} />
+    <DistrictPanel insights={[...insights, ...konteks]} />
+
+    <section className="panel-card" aria-labelledby="konteks"><header className="card-head"><div><h2 id="konteks"><Database aria-hidden />Konteks dari Bank Data</h2><p>{context.series.toLocaleString("id-ID")} seri BPS Kapuas dalam Angka dan Satu Data tersedia sebagai pembanding, {context.linked} indikator RPJMD sudah ditautkan. Seri ini tidak menilai kinerja dan dibaca lengkap lewat Tanya Sababuka.</p></div><Badge tone="neutral">Bank Data · belum diverifikasi</Badge></header>{contextMovers.length > 0 ? <ChangeBoard items={contextMovers} /> : <EmptyState title="Belum ada seri Bank Data">Seri akan tampil setelah sinkron Bank Data berjalan.</EmptyState>}</section>
 
     {better.length > 0 && <section className="panel-card" aria-labelledby="membaik"><header className="card-head"><div><h2 id="membaik"><CheckCircle2 aria-hidden />Perkembangan baik</h2><p>Capaian yang perlu dipertahankan dan dapat direplikasi.</p></div></header>
       <ul className="good-grid">{better.map((item) => <li key={item.indicator_id}><Sparkline points={item.series} tone="good" /><span><strong>{plain(item.name)}</strong><small>{sector(item.category)}</small></span><b className="good">{pct(item.change_pct)}</b></li>)}</ul></section>}
 
-    <p className="exec-footnote">Dihitung otomatis dari data tersimpan per {dateLabel(generated_at)}. Data bersumber BPS Kabupaten Kapuas, Satu Data Kapuas, dan indikator RPJMD; data Bank Data berstatus belum diverifikasi OPD dan BAPPERIDA. Tren menunjukkan arah, bukan sebab.</p>
+    <p className="exec-footnote">Dihitung otomatis dari data tersimpan per {dateLabel(generated_at)}. Penilaian kinerja hanya dari indikator RPJMD dan usulan OPD yang diverifikasi. Data BPS Kabupaten Kapuas dan Satu Data Kapuas berstatus belum diverifikasi OPD dan BAPPERIDA, dipakai sebagai konteks dan pembanding. Tren menunjukkan arah, bukan sebab.</p>
   </div>;
 }
