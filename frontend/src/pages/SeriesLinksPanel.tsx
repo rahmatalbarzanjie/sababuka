@@ -45,14 +45,13 @@ export function SeriesLinksPanel({ indicators }: { indicators: Indicator[] }) {
 
   return <section className="panel connector-panel" aria-labelledby="series-links-title">
     <header className="panel-heading"><div><h2 id="series-links-title">Tautan Seri Data ke RPJMD</h2><p>Seri Data BPS dan Satu Data berdiri sendiri sebagai bank data. Tautkan ke indikator RPJMD hanya bila memang berkaitan, sebagai data utama, pendukung, atau pembanding. Seri tanpa tautan tetap dipakai untuk tren, peta, dan Tanya Sababuka.</p></div><Link2 aria-hidden /></header>
-    <div className="panel-body">
     {message && <Notice tone={message.tone}>{message.text}</Notice>}
-    <div className="form-grid link-form">
-      <label>Indikator RPJMD<select value={rpjmdId} onChange={(event) => setRpjmdId(event.target.value)}><option value="">Pilih indikator…</option>{indicators.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-      <label>Jenis hubungan<select value={relation} onChange={(event) => setRelation(event.target.value)}><option value="primary">Utama</option><option value="supporting">Pendukung</option><option value="comparison">Pembanding</option></select></label>
-      <label>Catatan (opsional)<input value={notes} maxLength={1000} onChange={(event) => setNotes(event.target.value)} /></label>
+    <div className="form-grid connector-form">
+      <label className="field"><span>Indikator RPJMD</span><select value={rpjmdId} onChange={(event) => setRpjmdId(event.target.value)}><option value="">Pilih indikator…</option>{indicators.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+      <label className="field"><span>Jenis hubungan</span><select value={relation} onChange={(event) => setRelation(event.target.value)}><option value="primary">Utama</option><option value="supporting">Pendukung</option><option value="comparison">Pembanding</option></select></label>
+      <label className="field connector-wide"><span>Catatan (opsional)</span><input value={notes} maxLength={1000} onChange={(event) => setNotes(event.target.value)} /></label>
     </div>
-    <form className="panel-actions flush link-search" onSubmit={(event) => { event.preventDefault(); void search(); }}>
+    <form className="toolbar connector-toolbar" onSubmit={(event) => { event.preventDefault(); void search(); }}>
       <label className="search-field"><Search aria-hidden /><input aria-label="Cari Seri Data" placeholder="Cari Seri Data, mis. kemiskinan" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
       <button className="button secondary" type="submit" disabled={searching || query.trim().length < 2}>{searching ? "Mencari…" : "Cari Seri Data"}</button>
     </form>
@@ -60,6 +59,5 @@ export function SeriesLinksPanel({ indicators }: { indicators: Indicator[] }) {
     <h3 className="link-heading">Tautan yang ada</h3>
     {links.loading ? <div className="panel-loading"><Spinner /></div> : links.error ? <ErrorState title="Tautan belum dapat dimuat" onRetry={links.reload}>{links.error}</ErrorState> : !links.data?.data.length ? <EmptyState title="Belum ada tautan">Cari Seri Data lalu tautkan ke indikator RPJMD yang berkaitan.</EmptyState> :
       <div className="table-scroll"><table><thead><tr><th>Indikator RPJMD</th><th>Hubungan</th><th>Seri Data</th><th>Data</th><th><span className="sr-only">Aksi</span></th></tr></thead><tbody>{links.data.data.map((item) => <tr key={item.id}><td><strong>{item.rpjmd_name}</strong><small>{item.rpjmd_code}</small></td><td><Badge tone="neutral">{relationLabel[item.relation_type] ?? item.relation_type}</Badge></td><td>{item.series_name}{item.notes && <small>{item.notes}</small>}</td><td>{item.series_observations}</td><td><button className="button secondary" aria-label={`Lepas tautan ${item.series_name}`} disabled={busy !== null} onClick={() => void remove(item)}><Trash2 aria-hidden />Lepas</button></td></tr>)}</tbody></table></div>}
-    </div>
   </section>;
 }

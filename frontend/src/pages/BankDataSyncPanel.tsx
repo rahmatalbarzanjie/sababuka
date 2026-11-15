@@ -33,13 +33,11 @@ export function BankDataSyncPanel({ canManage }: { canManage: boolean }) {
   const total = (key: keyof Counter) => (last?.summary.bps?.[key] ?? 0) + (last?.summary.satudata?.[key] ?? 0);
   return <section className="panel connector-panel" aria-labelledby="bank-sync-title">
     <header className="panel-heading"><div><h2 id="bank-sync-title">Sinkron otomatis Seri Data</h2><p>{status.data?.enabled ? `Sistem memeriksa BPS Kapuas dalam Angka dan Satu Data Kapuas tiap ${status.data.interval_hours} jam, lalu menambahkan data tahun baru dan seri baru. Nilai yang sudah ada tidak ditimpa.` : "Sinkron otomatis nonaktif di lingkungan ini (BANK_DATA_SYNC_HOURS=0)."}</p></div><RefreshCw aria-hidden /></header>
-    <div className="panel-body">
     {message && <Notice tone={message.tone}>{message.text}</Notice>}
     {status.loading ? <div className="panel-loading"><Spinner /></div> : status.error ? <ErrorState title="Status sinkron belum dapat dimuat" onRetry={status.reload}>{status.error}</ErrorState> : <>
       {last ? <p className="sync-status"><Badge tone={tone(last.status)}>{statusLabel[last.status] ?? last.status}</Badge> {last.finished_at ? `Selesai ${formatDate(last.finished_at)}` : `Dimulai ${formatDate(last.started_at)}`} · {total("added")} seri baru, {total("updated")} diperbarui, {total("unchanged")} tanpa perubahan, {total("failed")} gagal{last.summary.error ? ` · ${last.summary.error}` : ""}</p> : <p>Belum ada sinkron yang berjalan.</p>}
       {!!status.data?.failures?.length && <details className="sync-failures"><summary>{status.data.failures.length} sumber gagal diperiksa</summary><ul>{status.data.failures.map((item) => <li key={`${item.source_code}:${item.external_id}`}><strong>{item.source_code === "BPS_KAPUAS" ? "BPS" : "Satu Data"} {item.external_id}</strong>: {item.detail ?? "tanpa keterangan"}</li>)}</ul></details>}
-      {canManage && <div className="panel-actions flush"><button className="button primary" disabled={busy || running} onClick={() => void start()}><RefreshCw aria-hidden />{running ? "Sinkron berjalan…" : "Sinkronkan sekarang"}</button></div>}
+      {canManage && <div className="panel-actions"><button className="button primary" disabled={busy || running} onClick={() => void start()}><RefreshCw aria-hidden />{running ? "Sinkron berjalan…" : "Sinkronkan sekarang"}</button></div>}
     </>}
-    </div>
   </section>;
 }
