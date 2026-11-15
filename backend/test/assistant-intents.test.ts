@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildReply, matchInsights, parseIntent, tokenize } from "../src/services/assistant-intents.js";
+import { buildReply, matchInsights, opdScoreboard, parseIntent, tokenize } from "../src/services/assistant-intents.js";
 import type { Insight } from "../src/services/insight-service.js";
 import { analyzeDistricts, analyzeSeries, buildNarrative } from "../src/services/trend-engine.js";
 
@@ -9,7 +9,7 @@ function make(name: string, values: number[], opds: string[], direction: "increa
   const analysis = analyzeSeries(points, direction)!;
   const districts = withDistricts ? analyzeDistricts([{ name: "Selat", value: 5, previous: 9 }, { name: "Basarang", value: 12, previous: 11 }, { name: "Timpah", value: 30, previous: 28 }]) : null;
   const narrative = buildNarrative({ name, unit: "%", analysis, districts, opds, direction });
-  return { indicator_id: name, code: name, name, category: "Kemiskinan", source_kind: "bps", unit: "%", latest_year: analysis.latest_year, latest_value: analysis.latest_value, change_pct: analysis.change_pct, trend: analysis.trend, assessment: analysis.assessment, score: analysis.score, ...narrative, opds, source_label: "BPS Kabupaten Kapuas", series: points, analysis, districts, basis: "kabupaten" };
+  return { indicator_id: name, code: name, name, category: "Kemiskinan", source_kind: "bps", unit: "%", latest_year: analysis.latest_year, latest_value: analysis.latest_value, change_pct: analysis.change_pct, trend: analysis.trend, assessment: analysis.assessment, score: analysis.score, ...narrative, opds, direction_inferred: false, source_label: "BPS Kabupaten Kapuas", series: points, analysis, districts, district_latest: districts ? { year: 2024, items: [{ name: "Selat", value: 5, previous: 9 }, { name: "Basarang", value: 12, previous: 11 }, { name: "Timpah", value: 30, previous: 28 }] } : null, basis: "kabupaten" };
 }
 
 const insights = [
@@ -54,4 +54,24 @@ test("pertanyaan umum menghasilkan ringkasan prioritas", () => {
 test("pertanyaan di luar data dijawab jujur", () => {
   const reply = buildReply("berapa harga bitcoin", insights);
   assert.equal(reply.sufficiency, "insufficient");
+});
+
+test("pertanyaan peringkat OPD dijawab dengan skor, bukan pencarian indikator acak", () => {
+  const many = [
+    make("A1", [5, 6, 7, 8, 9, 10], ["Dinas Pendidikan"]), make("A2", [5, 6, 7, 8, 9, 10], ["Dinas Pendidikan"]), make("A3", [5, 6, 7, 8, 9, 10], ["Dinas Pendidikan"]),
+    make("B1", [10, 9, 8, 7, 6, 5], ["Dinas Sosial"]), make("B2", [10, 9, 8, 7, 6, 5], ["Dinas Sosial"]), make("B3", [10, 9, 8, 7, 6, 5], ["Dinas Sosial"]),
+  ];
+  assert.equal(parseIntent("Opd mana yang paling baik kinerjanya tahun ini").rankOpd, true);
+  const board = opdScoreboard(many);
+  assert.equal(board.find((entry) => entry.name === "Dinas Pendidikan")!.score, 100);
+  assert.equal(board.find((entry) => entry.name === "Dinas Sosial")!.score, -100);
+  const reply = buildReply("Opd mana yang paling baik kinerjanya tahun ini", many);
+  assert.match(reply.answer, /terbaik: Dinas Pendidikan/);
+  assert.match(reply.answer, /bukan penilaian kinerja resmi/);
+  assert.ok(!/Indeks Gini/.test(reply.answer));
+});
+
+test("peringkat OPD jujur bila data penilaian belum cukup", () => {
+  const reply = buildReply("OPD mana yang kinerjanya terburuk?", [make("X", [1, 2, 3, 4, 5, 6], ["Dinas A"], null)]);
+  assert.match(reply.answer, /belum cukup/);
 });
