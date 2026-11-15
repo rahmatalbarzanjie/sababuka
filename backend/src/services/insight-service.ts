@@ -5,14 +5,14 @@ export interface InsightQuery { limit: number; source?: string | undefined; asse
 
 interface ObservationRow extends QueryResultRow {
   indicator_id: string; code: string; name: string; origin_type: string; category_name: string; direction: Direction;
-  unit_symbol: string | null; unit_name: string | null; geo_level: string | null; geo_name: string | null; year: number; value: string;
+  unit_symbol: string | null; unit_name: string | null; source_name: string | null; geo_level: string | null; geo_name: string | null; year: number; value: string;
 }
 
 export interface Insight {
   indicator_id: string; code: string; name: string; category: string; source_kind: "rpjmd" | "bps" | "satudata" | "opd";
   unit: string; latest_year: number; latest_value: number; change_pct: number | null; trend: SeriesAnalysis["trend"];
   assessment: SeriesAnalysis["assessment"]; score: number; headline: string; detail: string; recommendation: string;
-  opds: string[]; series: SeriesPoint[]; analysis: SeriesAnalysis; districts: DistrictAnalysis | null; basis: "kabupaten" | "total_kecamatan";
+  opds: string[]; source_label: string; series: SeriesPoint[]; analysis: SeriesAnalysis; districts: DistrictAnalysis | null; basis: "kabupaten" | "total_kecamatan";
 }
 
 const NON_ADDITIVE = /rata|persen|indeks|rasio|angka|laju|tingkat|per \d|proporsi|kepadatan|harga|upah/iu;
@@ -23,13 +23,23 @@ function sourceKind(origin: string, code: string): Insight["source_kind"] {
   return code.startsWith("SD_") ? "satudata" : "bps";
 }
 
+let cache: { at: number; value: Awaited<ReturnType<InsightService["insights"]>> } | null = null;
+
 export class InsightService {
   constructor(private readonly db: Database) {}
+
+  /** Seluruh indikator yang dapat dianalisis, disimpan 5 menit agar chat dan beranda tidak menghitung ulang. */
+  async all(): Promise<Insight[]> {
+    if (cache && Date.now() - cache.at < 300_000) return cache.value.insights;
+    const value = await this.insights({ limit: 5000 });
+    cache = { at: Date.now(), value };
+    return value.insights;
+  }
 
   async insights(query: InsightQuery) {
     const rows = await this.db.query<ObservationRow>(
       `SELECT i.id::text AS indicator_id, i.code, i.name, i.origin_type, c.name AS category_name, iv.direction,
-              u.symbol AS unit_symbol, u.name AS unit_name, g.level AS geo_level, g.name AS geo_name,
+              u.symbol AS unit_symbol, u.name AS unit_name, o.source_name, g.level AS geo_level, g.name AS geo_name,
               p.code::int AS year, o.numeric_value::text AS value
        FROM sababuka.observations o
        JOIN sababuka.data_batches b ON b.id = o.batch_id AND b.status IN ('approved', 'published')
@@ -100,7 +110,7 @@ export class InsightService {
       insights.push({
         indicator_id: indicatorId, code: first.code, name: first.name, category: first.category_name, source_kind: sourceKind(first.origin_type, first.code),
         unit, latest_year: analysis.latest_year, latest_value: analysis.latest_value, change_pct: analysis.change_pct, trend: analysis.trend,
-        assessment: analysis.assessment, score: analysis.score, ...narrative, opds,
+        assessment: analysis.assessment, score: analysis.score, ...narrative, opds, source_label: items.find((entry) => entry.source_name)?.source_name ?? (sourceKind(first.origin_type, first.code) === "rpjmd" ? "RPJMD Kabupaten Kapuas" : "Sumber resmi"),
         series: points.sort((a, b) => a.year - b.year).slice(-10), analysis, districts, basis,
       });
     }

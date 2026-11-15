@@ -9,6 +9,7 @@ import "./ui-system.css";
 import "./vitality.css";
 import "./responsive.css";
 import "./interactions.css";
+import "./beranda.css";
 import { initInteractions } from "./interactions";
 import { initializeTheme } from "./theme";
 
