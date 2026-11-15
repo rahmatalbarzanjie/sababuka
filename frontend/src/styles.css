@@ -497,6 +497,7 @@ td small { color: var(--muted); margin-top: 3px; }
 .select-column { width: 42px; padding-right: 5px; text-align: center; }
 .select-column input { width: 17px; height: 17px; accent-color: var(--navy-700); cursor: pointer; }
 .readiness-table { min-width: 1180px; }
+.readiness-table th:last-child { white-space: nowrap; }
 .readiness-mobile-list { display: none; }
 .readiness-mobile-card { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; cursor: pointer; }
 .readiness-mobile-card > header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 10px; }

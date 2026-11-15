@@ -37,7 +37,8 @@ export class BankDataSyncService {
 
   async status() {
     const runs = await this.db.query(`SELECT id::text, trigger, started_at::text, finished_at::text, status, summary FROM sababuka.bank_data_sync_runs ORDER BY started_at DESC LIMIT 5`);
-    return { interval_hours: this.intervalHours, enabled: this.intervalHours > 0, running, runs: runs.rows };
+    const failures = await this.db.query(`SELECT source_code, external_id, left(detail, 200) AS detail, last_checked_at::text FROM sababuka.bank_data_sync_items WHERE last_status = 'failed' ORDER BY last_checked_at DESC LIMIT 10`);
+    return { interval_hours: this.intervalHours, enabled: this.intervalHours > 0, running, runs: runs.rows, failures: failures.rows };
   }
 
   /** Mulai siklus di latar belakang (tombol "Sinkronkan sekarang"). */
