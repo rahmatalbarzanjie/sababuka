@@ -9,7 +9,7 @@ function make(name: string, values: number[], opds: string[], direction: "increa
   const analysis = analyzeSeries(points, direction)!;
   const districts = withDistricts ? analyzeDistricts([{ name: "Selat", value: 5, previous: 9 }, { name: "Basarang", value: 12, previous: 11 }, { name: "Timpah", value: 30, previous: 28 }]) : null;
   const narrative = buildNarrative({ name, unit: "%", analysis, districts, opds, direction });
-  return { indicator_id: name, code: name, name, category: "Kemiskinan", source_kind: "bps", unit: "%", latest_year: analysis.latest_year, latest_value: analysis.latest_value, change_pct: analysis.change_pct, trend: analysis.trend, assessment: analysis.assessment, score: analysis.score, ...narrative, opds, direction_inferred: false, source_label: "BPS Kabupaten Kapuas", series: points, analysis, districts, district_latest: districts ? { year: 2024, items: [{ name: "Selat", value: 5, previous: 9 }, { name: "Basarang", value: 12, previous: 11 }, { name: "Timpah", value: 30, previous: 28 }] } : null, basis: "kabupaten" };
+  return { layer: "konteks", links: [], indicator_id: name, code: name, name, category: "Kemiskinan", source_kind: "bps", unit: "%", latest_year: analysis.latest_year, latest_value: analysis.latest_value, change_pct: analysis.change_pct, trend: analysis.trend, assessment: analysis.assessment, score: analysis.score, ...narrative, opds, direction_inferred: false, source_label: "BPS Kabupaten Kapuas", series: points, analysis, districts, district_latest: districts ? { year: 2024, items: [{ name: "Selat", value: 5, previous: 9 }, { name: "Basarang", value: 12, previous: 11 }, { name: "Timpah", value: 30, previous: 28 }] } : null, basis: "kabupaten" };
 }
 
 const insights = [
