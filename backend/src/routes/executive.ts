@@ -218,13 +218,13 @@ export async function executiveRoutes(app: FastifyInstance): Promise<void> {
     }, items: result.rows, series, reconciliation, recommendations };
   });
 
-  app.get<{ Querystring: { limit?: number; source?: string; assessment?: string; q?: string; indicator_id?: string } }>("/executive/insights", {
+  app.get<{ Querystring: { limit?: number; source?: string; assessment?: string; q?: string; indicator_id?: string; layer?: "kinerja" | "konteks" } }>("/executive/insights", {
     schema: { querystring: { type: "object", additionalProperties: false, properties: {
       limit: { type: "integer", minimum: 1, maximum: 100, default: 20 }, source: { type: "string", enum: ["rpjmd", "bps", "satudata", "opd"] },
-      assessment: { type: "string", enum: ["membaik", "memburuk", "netral"] }, q: { type: "string", maxLength: 120 }, indicator_id: uuid,
+      assessment: { type: "string", enum: ["membaik", "memburuk", "netral"] }, q: { type: "string", maxLength: 120 }, indicator_id: uuid, layer: { type: "string", enum: ["kinerja", "konteks"] },
     } } },
   }, async (request) => {
     requirePermission(request, "executive_dashboard.view");
-    return new InsightService(app.db).insights({ limit: request.query.limit ?? 20, source: request.query.source, assessment: request.query.assessment, q: request.query.q, indicatorId: request.query.indicator_id });
+    return new InsightService(app.db).insights({ limit: request.query.limit ?? 20, source: request.query.source, assessment: request.query.assessment, q: request.query.q, indicatorId: request.query.indicator_id, layer: request.query.layer });
   });
 }

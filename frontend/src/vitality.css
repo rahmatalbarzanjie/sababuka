@@ -109,7 +109,7 @@ button.metric-card:active { transform: translateY(0) scale(.99); }
 .task-card.has-work { background: linear-gradient(135deg, color-mix(in srgb, var(--vt-accent, var(--vt-blue)) 12%, var(--ui-surface)), var(--ui-surface) 70%); }
 
 /* Banner kesehatan sistem: status berdenyut halus. */
-.system-health-banner { border-left: 4px solid var(--vt-teal); }
+.system-health-banner { border-color: var(--vt-teal); }
 .system-health-banner.attention { border-left-color: var(--vt-amber); }
 .system-health-banner > span:first-child svg { animation: vt-pulse 2.6s ease-in-out infinite; }
 .system-health-banner.attention > span:first-child svg { color: var(--vt-amber); }

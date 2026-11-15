@@ -1,15 +1,19 @@
 import type { Database, QueryResultRow } from "../database.js";
 import { inferDirection } from "./direction-inference.js";
+import { plainDash } from "./plain-text.js";
 import { analyzeDistricts, analyzeSeries, buildNarrative, type DistrictAnalysis, type Direction, type SeriesAnalysis, type SeriesPoint } from "./trend-engine.js";
 
-export interface InsightQuery { limit: number; source?: string | undefined; assessment?: string | undefined; q?: string | undefined; indicatorId?: string | undefined }
+export interface InsightQuery { limit: number; source?: string | undefined; assessment?: string | undefined; q?: string | undefined; indicatorId?: string | undefined; layer?: "kinerja" | "konteks" | undefined }
 
 interface ObservationRow extends QueryResultRow {
   indicator_id: string; code: string; name: string; origin_type: string; category_name: string; direction: Direction;
   unit_symbol: string | null; unit_name: string | null; source_name: string | null; geo_level: string | null; geo_name: string | null; year: number; value: string;
 }
 
+export interface LinkedSeries { relation: "primary" | "supporting" | "comparison"; notes: string | null; indicator_id: string; name: string; unit: string; latest_year: number; latest_value: number; change_pct: number | null; trend: SeriesAnalysis["trend"]; source_label: string }
+
 export interface Insight {
+  layer: "kinerja" | "konteks"; links: LinkedSeries[];
   indicator_id: string; code: string; name: string; category: string; source_kind: "rpjmd" | "bps" | "satudata" | "opd";
   unit: string; latest_year: number; latest_value: number; change_pct: number | null; trend: SeriesAnalysis["trend"];
   assessment: SeriesAnalysis["assessment"]; score: number; headline: string; detail: string; recommendation: string;
@@ -112,30 +116,44 @@ export class InsightService {
         return { name: name.replace(/^Kecamatan\s+/u, ""), value: series.get(districtYear)!, previous: earlier === undefined ? null : series.get(earlier)! };
       }) };
       const opds = (opdMap.get(indicatorId) ?? []).sort((a, b) => Number(b.primary) - Number(a.primary)).slice(0, 2).map((entry) => entry.label);
-      const narrative = buildNarrative({ name: first.name, unit, analysis, districts, opds, direction });
+      const narrative = buildNarrative({ name: plainDash(first.name), unit, analysis, districts, opds, direction });
       insights.push({
-        indicator_id: indicatorId, code: first.code, name: first.name, category: first.category_name, source_kind: sourceKind(first.origin_type, first.code),
+        layer: first.origin_type === "bank_data" ? "konteks" : "kinerja", links: [],
+        indicator_id: indicatorId, code: first.code, name: plainDash(first.name), category: plainDash(first.category_name), source_kind: sourceKind(first.origin_type, first.code),
         unit, latest_year: analysis.latest_year, latest_value: analysis.latest_value, change_pct: analysis.change_pct, trend: analysis.trend,
-        assessment: analysis.assessment, score: analysis.score, ...narrative, opds, direction_inferred: !first.direction && direction !== null, source_label: items.find((entry) => entry.source_name)?.source_name ?? (sourceKind(first.origin_type, first.code) === "rpjmd" ? "RPJMD Kabupaten Kapuas" : "Sumber resmi"),
+        assessment: analysis.assessment, score: analysis.score, ...narrative, opds, direction_inferred: !first.direction && direction !== null, source_label: plainDash(items.find((entry) => entry.source_name)?.source_name ?? "") || (sourceKind(first.origin_type, first.code) === "rpjmd" ? "RPJMD Kabupaten Kapuas" : "Sumber resmi"),
         series: points.sort((a, b) => a.year - b.year).slice(-10), analysis, districts, district_latest: districtLatest, basis,
       });
     }
 
+    // Tautan manual Seri Data ke indikator RPJMD: seri yang dapat dianalisis dilampirkan sebagai data pendukung/pembanding.
+    const byId = new Map(insights.map((item) => [item.indicator_id, item]));
+    const linkRows = await this.db.query<QueryResultRow & { rpjmd_id: string; series_id: string; relation_type: LinkedSeries["relation"]; notes: string | null }>(
+      `SELECT rpjmd_indicator_id::text AS rpjmd_id, series_indicator_id::text AS series_id, relation_type, notes FROM sababuka.indicator_series_links ORDER BY relation_type, created_at`,
+    );
+    for (const link of linkRows.rows) {
+      const owner = byId.get(link.rpjmd_id); const series = byId.get(link.series_id);
+      if (!owner || !series) continue;
+      owner.links.push({ relation: link.relation_type, notes: link.notes ? plainDash(link.notes) : null, indicator_id: series.indicator_id, name: series.name, unit: series.unit, latest_year: series.latest_year, latest_value: series.latest_value, change_pct: series.change_pct, trend: series.trend, source_label: series.source_label });
+    }
+
+    const scoped = query.layer ? insights.filter((item) => item.layer === query.layer) : insights;
     const needle = query.q?.trim().toLowerCase();
-    const filtered = insights
+    const filtered = scoped
       .filter((item) => !query.source || item.source_kind === query.source)
       .filter((item) => !query.assessment || item.assessment === query.assessment)
       .filter((item) => !needle || `${item.name} ${item.category}`.toLowerCase().includes(needle))
       .sort((a, b) => b.score - a.score);
     return {
       generated_at: new Date().toISOString(),
-      analyzed: insights.length,
+      analyzed: scoped.length,
+      context: { series: insights.filter((item) => item.layer === "konteks").length, linked: insights.filter((item) => item.layer === "kinerja" && item.links.length > 0).length },
       summary: {
-        membaik: insights.filter((item) => item.assessment === "membaik").length,
-        memburuk: insights.filter((item) => item.assessment === "memburuk").length,
-        naik: insights.filter((item) => item.trend === "naik").length,
-        turun: insights.filter((item) => item.trend === "turun").length,
-        anomali: insights.filter((item) => item.analysis.anomaly?.is_anomaly).length,
+        membaik: scoped.filter((item) => item.assessment === "membaik").length,
+        memburuk: scoped.filter((item) => item.assessment === "memburuk").length,
+        naik: scoped.filter((item) => item.trend === "naik").length,
+        turun: scoped.filter((item) => item.trend === "turun").length,
+        anomali: scoped.filter((item) => item.analysis.anomaly?.is_anomaly).length,
       },
       insights: filtered.slice(0, query.limit),
     };

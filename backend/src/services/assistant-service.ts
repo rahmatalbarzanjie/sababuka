@@ -1,4 +1,5 @@
 import type { Database, QueryResultRow } from "../database.js";
+import { plainDash } from "./plain-text.js";
 import { ApiError } from "../errors.js";
 import type { AuthContext } from "../types/auth.js";
 import { recordAudit, type AuditContext } from "./audit-service.js";
@@ -41,12 +42,13 @@ export class AssistantService {
     try { agent = await new AgentService(this.db, this.config).run(question, history.rows.reverse().map((row) => ({ role: row.message_role, content: row.content }))); } catch { agent = null; }
     const insightReply = buildReply(question, await new InsightService(this.db).all());
     if (agent) {
-      insightReply.answer = agent.answer; insightReply.visuals = agent.visuals; insightReply.sources = agent.sources.length ? agent.sources : insightReply.sources;
+      insightReply.answer = plainDash(agent.answer); insightReply.visuals = agent.visuals; insightReply.sources = agent.sources.length ? agent.sources : insightReply.sources;
       insightReply.sufficiency = "sufficient"; insightReply.suggestions = [];
     }
     {
       const narrated = !agent && insightReply.facts ? await new LlmService(this.db, this.config).narrate(question, insightReply.facts, insightReply.answer) : null;
       if (narrated) insightReply.answer = narrated.text;
+      insightReply.answer = plainDash(insightReply.answer);
       const asked = await this.db.query<{ id: string }>(`INSERT INTO sababuka.assistant_messages (session_id, message_role, content, structured_data, request_id) VALUES ($1, 'user', $2, '{}'::jsonb, $3) RETURNING id::text`, [sessionId, question, audit.requestId]);
       const replied = await this.db.query<{ id: string }>(`INSERT INTO sababuka.assistant_messages (session_id, message_role, content, model_name, structured_data, request_id) VALUES ($1, 'assistant', $2, $5, $3::jsonb, $4) RETURNING id::text`, [sessionId, insightReply.answer, JSON.stringify({ sufficiency: insightReply.sufficiency, retrieval: "trend_engine", narrated_by: agent?.model ?? narrated?.model ?? "rules", tools: agent?.toolsUsed ?? [], user_message_id: asked.rows[0]!.id, sources: insightReply.sources }), audit.requestId, agent?.model ?? narrated?.model ?? "sababuka-insight-v1"]);
       await recordAudit(this.db, { ...audit, eventType: "assistant.answer_generated", entityType: "assistant_session", entityId: sessionId, metadata: { sufficiency: insightReply.sufficiency, citation_count: insightReply.sources.length, engine: "trend_engine" } });

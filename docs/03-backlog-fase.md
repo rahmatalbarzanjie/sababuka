@@ -71,17 +71,17 @@ Contoh kontrak sumber:
 
 Setiap nilai melewati status berikut dan seluruh perubahannya dicatat:
 
-1. **Ditemukan** — dataset atau rilis sumber teridentifikasi.
-2. **Terambil** — data berhasil diambil dan salinan mentah tercatat.
-3. **Ternormalisasi** — indikator, satuan, periode, wilayah, serta versi sudah dipetakan.
-4. **Lulus pemeriksaan teknis** — tipe, rentang, kelengkapan, duplikasi, dan konsistensi dasar diperiksa.
-5. **Menunggu konfirmasi OPD** — produsen data perlu memastikan substansi apabila sumbernya sektoral.
-6. **Dikonfirmasi OPD** — nilai dan konteksnya sesuai dengan sumber sektoral.
-7. **Dalam rekonsiliasi** — terdapat perbedaan definisi, periode, cakupan, metode, atau nilai antar-sumber.
-8. **Layak tayang** — BAPPERIDA menetapkan nilai layak untuk konteks Ringkasan Pimpinan.
-9. **Perlu perbaikan** — data dikembalikan dengan alasan yang tercatat.
-10. **Dibatasi** — data tersedia tetapi hanya boleh dilihat oleh pengguna tertentu.
-11. **Kedaluwarsa** — data melewati batas waktu pembaruan dan tidak boleh ditampilkan tanpa penanda.
+1. **Ditemukan** - dataset atau rilis sumber teridentifikasi.
+2. **Terambil** - data berhasil diambil dan salinan mentah tercatat.
+3. **Ternormalisasi** - indikator, satuan, periode, wilayah, serta versi sudah dipetakan.
+4. **Lulus pemeriksaan teknis** - tipe, rentang, kelengkapan, duplikasi, dan konsistensi dasar diperiksa.
+5. **Menunggu konfirmasi OPD** - produsen data perlu memastikan substansi apabila sumbernya sektoral.
+6. **Dikonfirmasi OPD** - nilai dan konteksnya sesuai dengan sumber sektoral.
+7. **Dalam rekonsiliasi** - terdapat perbedaan definisi, periode, cakupan, metode, atau nilai antar-sumber.
+8. **Layak tayang** - BAPPERIDA menetapkan nilai layak untuk konteks Ringkasan Pimpinan.
+9. **Perlu perbaikan** - data dikembalikan dengan alasan yang tercatat.
+10. **Dibatasi** - data tersedia tetapi hanya boleh dilihat oleh pengguna tertentu.
+11. **Kedaluwarsa** - data melewati batas waktu pembaruan dan tidak boleh ditampilkan tanpa penanda.
 
 Jika data sudah melalui mekanisme Satu Data, SABABUKA menggunakan metadata dan status yang tersedia. OPD tidak diminta mengulangi unggahan. BAPPERIDA hanya memeriksa kelayakannya untuk konteks perencanaan dan paparan pimpinan.
 
@@ -123,19 +123,19 @@ Indikator berbasis sampel, termasuk sebagian keluaran Susenas, hanya ditampilkan
 
 Analitik dan AI dibangun setelah kamus indikator, sumber, serta workflow verifikasi stabil.
 
-### Tingkat 1 — deskriptif
+### Tingkat 1 - deskriptif
 
 - menjelaskan nilai, target, tren, dan perubahan;
 - menunjukkan wilayah tertinggal atau berbeda dari pola kabupaten;
 - menyebut periode, sumber, dan status validasi.
 
-### Tingkat 2 — diagnostik terbatas
+### Tingkat 2 - diagnostik terbatas
 
 - menunjukkan faktor yang berjalan bersamaan berdasarkan data yang tersedia;
 - membedakan korelasi, indikasi, dan bukti sebab-akibat;
 - meminta data tambahan jika penjelasan belum cukup.
 
-### Tingkat 3 — dukungan keputusan
+### Tingkat 3 - dukungan keputusan
 
 - menyusun pilihan wilayah prioritas;
 - menyebut OPD yang perlu dilibatkan;
@@ -156,7 +156,7 @@ Asisten Data hanya membaca data yang boleh diakses pengguna. Jika data tidak ter
 
 ## 8. Roadmap pelaksanaan
 
-### Fase 0 — mandat dan tata kelola
+### Fase 0 - mandat dan tata kelola
 
 **Tujuan:** memastikan kewenangan dan pemilik keputusan jelas sebelum membangun konektor.
 
@@ -172,7 +172,7 @@ Asisten Data hanya membaca data yang boleh diakses pengguna. Jika data tidak ter
 
 **Gerbang lanjut:** setiap keputusan data memiliki pemilik yang jelas.
 
-### Fase 1 — fokus kebijakan dan kebutuhan keputusan
+### Fase 1 - fokus kebijakan dan kebutuhan keputusan
 
 **Tujuan:** memulai dari pertanyaan yang perlu dijawab pimpinan.
 
@@ -188,7 +188,7 @@ Asisten Data hanya membaca data yang boleh diakses pengguna. Jika data tidak ter
 
 **Gerbang lanjut:** setiap fokus mempunyai keputusan atau tindakan yang hendak didukung.
 
-### Fase 2 — kamus indikator dan target
+### Fase 2 - kamus indikator dan target
 
 **Tujuan:** memastikan istilah yang sama dibaca dengan arti yang sama.
 
@@ -204,7 +204,7 @@ Asisten Data hanya membaca data yang boleh diakses pengguna. Jika data tidak ter
 
 **Gerbang lanjut:** indikator pilot disetujui BAPPERIDA, produsen data, wali data, dan BPS untuk aspek statistik yang relevan.
 
-### Fase 3 — inventarisasi dan audit sumber
+### Fase 3 - inventarisasi dan audit sumber
 
 **Tujuan:** mengetahui data apa yang benar-benar tersedia dan dapat diakses.
 
@@ -216,11 +216,11 @@ Asisten Data hanya membaca data yang boleh diakses pengguna. Jika data tidak ter
 - menilai struktur, lisensi, frekuensi, kualitas, sensitivitas, serta stabilitas akses;
 - menentukan jalur integrasi dan fallback tanpa duplikasi input.
 
-**Output:** matriks indikator–sumber, register akses, nilai kesiapan, dan prioritas konektor.
+**Output:** matriks indikator-sumber, register akses, nilai kesiapan, dan prioritas konektor.
 
 **Gerbang lanjut:** setiap indikator pilot memiliki sumber primer yang dapat diuji dan dasar akses yang jelas.
 
-### Fase 4 — fondasi data, metadata, dan keamanan
+### Fase 4 - fondasi data, metadata, dan keamanan
 
 **Tujuan:** menyediakan penyimpanan yang dapat ditelusuri serta hak akses yang benar.
 
@@ -237,7 +237,7 @@ Asisten Data hanya membaca data yang boleh diakses pengguna. Jika data tidak ter
 
 **Gerbang lanjut:** nilai dapat ditelusuri kembali ke sumber dan pengguna hanya melihat data sesuai kewenangan.
 
-### Fase 5 — integrasi pilot
+### Fase 5 - integrasi pilot
 
 **Tujuan:** menghubungkan sumber resmi tanpa meminta input ganda.
 
@@ -254,7 +254,7 @@ Asisten Data hanya membaca data yang boleh diakses pengguna. Jika data tidak ter
 
 **Gerbang lanjut:** sinkronisasi dapat diulang, hasilnya konsisten, dan tidak menciptakan kewajiban unggah ulang.
 
-### Fase 6 — konfirmasi OPD dan kurasi BAPPERIDA
+### Fase 6 - konfirmasi OPD dan kurasi BAPPERIDA
 
 **Tujuan:** membangun tata kelola operasional sebelum data masuk ke pimpinan.
 
@@ -271,7 +271,7 @@ Asisten Data hanya membaca data yang boleh diakses pengguna. Jika data tidak ter
 
 **Gerbang lanjut:** sampel data telah direkonsiliasi dan disetujui melalui mekanisme yang dapat diaudit.
 
-### Fase 7 — dashboard Bupati dan BAPPERIDA
+### Fase 7 - dashboard Bupati dan BAPPERIDA
 
 **Tujuan:** menyajikan informasi yang berbeda sesuai kebutuhan pengguna.
 
@@ -290,7 +290,7 @@ Asisten Data hanya membaca data yang boleh diakses pengguna. Jika data tidak ter
 
 **Gerbang lanjut:** pengguna dapat menjawab apa yang terjadi, di mana, dibanding apa, dari sumber mana, dan siapa penanggung jawabnya.
 
-### Fase 8 — analitik, peringatan, dan Asisten Data
+### Fase 8 - analitik, peringatan, dan Asisten Data
 
 **Tujuan:** mempercepat pembacaan data tanpa melampaui bukti.
 
@@ -307,7 +307,7 @@ Asisten Data hanya membaca data yang boleh diakses pengguna. Jika data tidak ter
 
 **Gerbang lanjut:** jawaban tidak mengarang, selalu membawa periode/sumber, dan tidak menyatakan korelasi sebagai sebab.
 
-### Fase 9 — uji, operasional, dan perluasan
+### Fase 9 - uji, operasional, dan perluasan
 
 **Tujuan:** mengubah pilot menjadi layanan yang dapat dipelihara.
 
@@ -326,13 +326,13 @@ Asisten Data hanya membaca data yang boleh diakses pengguna. Jika data tidak ter
 
 ## 9. Rekomendasi lingkup pilot
 
-Pilot sebaiknya menggunakan 3–5 fokus, sekitar 10–15 indikator, dan OPD yang memiliki data paling siap. Kandidat awal:
+Pilot sebaiknya menggunakan 3-5 fokus, sekitar 10-15 indikator, dan OPD yang memiliki data paling siap. Kandidat awal:
 
-1. **Kesehatan dan stunting** — Dinas Kesehatan, DPUPRPKP, DPMD, dan P3APPKB.
-2. **Infrastruktur dan konektivitas** — DPUPRPKP, Dinas Perhubungan, serta kecamatan.
-3. **Pangan dan pertanian** — Dinas Pertanian, BPS, perangkat daerah pangan, dan DPUPRPKP.
-4. **Keuangan dan pelaksanaan program** — BPKAD, Bapenda, BAPPERIDA, serta OPD pilot.
-5. **Pelayanan publik** — Disdukcapil dan satu atau dua penyelenggara layanan yang sudah memiliki data terstruktur.
+1. **Kesehatan dan stunting** - Dinas Kesehatan, DPUPRPKP, DPMD, dan P3APPKB.
+2. **Infrastruktur dan konektivitas** - DPUPRPKP, Dinas Perhubungan, serta kecamatan.
+3. **Pangan dan pertanian** - Dinas Pertanian, BPS, perangkat daerah pangan, dan DPUPRPKP.
+4. **Keuangan dan pelaksanaan program** - BPKAD, Bapenda, BAPPERIDA, serta OPD pilot.
+5. **Pelayanan publik** - Disdukcapil dan satu atau dua penyelenggara layanan yang sudah memiliki data terstruktur.
 
 Pemilihan akhir ditentukan berdasarkan nilai kebijakan, kesiapan sumber, ketersediaan PIC, granularitas wilayah, sensitivitas, dan kemampuan menghasilkan tindak lanjut.
 

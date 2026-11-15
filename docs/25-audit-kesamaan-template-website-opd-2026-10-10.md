@@ -33,7 +33,7 @@ Atribusi pengembang: **belum diketahui**.
 
 - **DINSOS**: WordPress, footer menyebut “Developed By Good Looking Themes”.
 - **DISARPUSTAKA**: WordPress, footer menyebut “Powered by Majalah Berita X”.
-- **DPUPR**: WordPress pada jalur `/web/` dan `/wp-content/uploads/`, tetapi tata letaknya berbeda dari kelompok DINKES–DP3APPKB.
+- **DPUPR**: WordPress pada jalur `/web/` dan `/wp-content/uploads/`, tetapi tata letaknya berbeda dari kelompok DINKES-DP3APPKB.
 - **DINKES** dan **DP3APPKB**: masuk kelompok tema majalah di atas.
 
 Kesamaan CMS WordPress saja tidak cukup untuk menyatakan template atau pembuatnya sama.
@@ -65,7 +65,7 @@ Kesamaan CMS WordPress saja tidak cukup untuk menyatakan template atau pembuatny
 | DP3APPKB | Tema majalah “Latest Post/You missed” | Sama dengan DINKES |
 | DPMD | Konten terhalang proteksi | Belum terverifikasi |
 | DPMPTSP | Konten terhalang proteksi | Belum terverifikasi |
-| DPUPR | WordPress `/web/` | Berbeda dari kelompok DINKES–DP3APPKB |
+| DPUPR | WordPress `/web/` | Berbeda dari kelompok DINKES-DP3APPKB |
 | DUKCAPIL | Situs PHP lama/khusus, pola `index1.php?modul=` | Berdiri sendiri |
 | INSPEKTORAT | Konten terhalang proteksi | Belum terverifikasi |
 | SATPOLPP | Konten terhalang proteksi | Belum terverifikasi |
@@ -74,8 +74,8 @@ Kesamaan CMS WordPress saja tidak cukup untuk menyatakan template atau pembuatny
 
 ## Kesimpulan yang aman digunakan
 
-1. Kelompok yang paling kuat terbukti sama adalah **BAPENDA–BKPSDM–SETWAN**.
-2. Kelompok tema publik lain yang terbukti sangat serupa adalah **DINKES–DP3APPKB**.
+1. Kelompok yang paling kuat terbukti sama adalah **BAPENDA-BKPSDM-SETWAN**.
+2. Kelompok tema publik lain yang terbukti sangat serupa adalah **DINKES-DP3APPKB**.
 3. BAPPERIDA kemungkinan memakai keluarga portal yang sama dengan kelompok pertama, tetapi belum final.
 4. Bukti yang ada belum cukup untuk menyatakan seluruh kelompok tersebut “digarap Diskominfosantik”. Bukti publik hanya memastikan SETWAN menyebut **IT Pemkab Kapuas**; identitas unit pembuat, pengelola konten, pemilik hosting, dan pemegang admin harus dikonfirmasi terpisah.
 5. Form Profil Data dan Baseline OPD di SABABUKA sekarang memuat nama template, pengembang/vendor, pengelola, hosting, pemegang akses admin, dan bukti pengelolaan. Jawaban tersebut diperiksa Diskominfosantik sehingga status “100% terkonfirmasi” dapat dibentuk tanpa asumsi.

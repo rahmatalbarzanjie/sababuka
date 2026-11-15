@@ -866,7 +866,7 @@ export class GovernanceService {
                  (publication_key, version_number, publication_number, title, description, status, effective_at, change_notes, created_by)
                VALUES ($1, $2, $3, $4, $5, 'draft', now(), $6, $7) RETURNING id::text`,
               [publicationKey, versionNumber, buildAutoPublicationNumber(publicationKey, versionNumber),
-               `Rilis otomatis — ${indicator.indicator_name}`,
+               `Rilis otomatis - ${indicator.indicator_name}`,
                "Capaian bersumber dari observasi resmi yang telah lolos validasi teknis OPD.",
                "Diterbitkan otomatis saat BAPPERIDA mengaktifkan indikator.", auth.user.id],
             );

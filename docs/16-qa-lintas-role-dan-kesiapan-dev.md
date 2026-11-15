@@ -54,7 +54,7 @@ Skenario integration mencakup administrasi Superadmin, login/session/menu/logout
 ## 5. Temuan yang diperbaiki dalam QA
 
 1. Landing non-Superadmin sebelumnya selalu menuju dashboard pimpinan. Routing sekarang mengarahkan Pimpinan ke ringkasan, sedangkan OPD/BAPPERIDA/Kominfo ke dashboard operasional.
-2. Migration 010–012 sebelumnya belum seluruhnya mencatat ledger. Ketiganya sekarang memiliki ledger/checksum dan aman dijalankan ulang.
+2. Migration 010-012 sebelumnya belum seluruhnya mencatat ledger. Ketiganya sekarang memiliki ledger/checksum dan aman dijalankan ulang.
 3. Test administrasi masih mengunci jumlah 19 menu. Ekspektasi diperbarui menjadi 20 dan secara eksplisit memeriksa menu `operations`.
 4. Dashboard operasional belum masuk kontrak API. Endpoint, schema, changelog, permission, dan dokumentasinya sudah diselaraskan.
 5. OpenAPI lama memiliki parameter pencarian organisasi ganda. Duplikasi dihapus dan kontrak divalidasi ulang hingga bersih.
@@ -86,4 +86,4 @@ Urutan lanjut yang aman adalah:
 5. perbaiki temuan dan terbitkan berita acara penerimaan;
 6. baru susun keputusan deployment `sababuka.com` sebagai produksi.
 
-Dengan posisi pekerjaan saat ini, fondasi MVP dapat dinilai sekitar **50–55% terhadap layanan pilot yang siap operasional**. Fitur inti lokal sudah terhubung, sedangkan pekerjaan environment, integrasi sumber, validasi data resmi, UAT, dan kesiapan operasional masih menjadi separuh pekerjaan berikutnya.
+Dengan posisi pekerjaan saat ini, fondasi MVP dapat dinilai sekitar **50-55% terhadap layanan pilot yang siap operasional**. Fitur inti lokal sudah terhubung, sedangkan pekerjaan environment, integrasi sumber, validasi data resmi, UAT, dan kesiapan operasional masih menjadi separuh pekerjaan berikutnya.

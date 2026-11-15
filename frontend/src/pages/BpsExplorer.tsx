@@ -139,7 +139,7 @@ export function BpsExplorer({ onApply }: { onApply(suggestion: BpsMappingSuggest
           <p className="bps-count">{[detail.variable.subject, detail.variable.unit ? `satuan ${detail.variable.unit}` : null].filter(Boolean).join(" · ")}</p>
           {detail.years.length === 0
             ? <Notice tone="warning">BPS tidak memiliki nilai variabel ini untuk 2021-2029 (mungkin hanya tersedia untuk tahun yang lebih lama). Mapping tidak akan menghasilkan data 2024 dan seterusnya.</Notice>
-            : <p className="bps-count">Tahun tersedia: <strong>{detail.years.join(", ")}</strong>{detail.years.every((year) => year < 2024) ? " — belum ada data 2024 atau lebih baru." : ""}</p>}
+            : <p className="bps-count">Tahun tersedia: <strong>{detail.years.join(", ")}</strong>{detail.years.every((year) => year < 2024) ? " - belum ada data 2024 atau lebih baru." : ""}</p>}
           {detail.vervars.length > 1 && (
             <label className="field">
               <span>{detail.vervar_label ?? "Kategori"}</span>

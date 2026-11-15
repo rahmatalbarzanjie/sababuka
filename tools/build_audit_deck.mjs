@@ -108,13 +108,13 @@ async function main() {
   await fs.mkdir(FINAL_DIR, { recursive: true });
   const presentation = Presentation.create({ slideSize: { width: W, height: H } });
 
-  // 1 — Cover
+  // 1 - Cover
   {
     const s = presentation.slides.add(); s.background.fill = C.navy;
     await addBrand(s, true);
     addText(s, "AUDIT EKOSISTEM DATA\nKABUPATEN KAPUAS", 70, 170, 760, 150, 46, C.white, true);
     addRule(s, 70, 338, 150, C.gold, 6);
-    addText(s, "Temuan BPS 2017–2026, Satu Data Kapuas, kesiapan SABABUKA, dan arah Bank Data", 70, 372, 760, 90, 23, "#D9EAF5", false);
+    addText(s, "Temuan BPS 2017-2026, Satu Data Kapuas, kesiapan SABABUKA, dan arah Bank Data", 70, 372, 760, 90, 23, "#D9EAF5", false);
     addBox(s, 905, 160, 300, 350, "#123D62", "#2B5678", "rounded-2xl");
     addText(s, "BAHAN PAPARAN", 935, 200, 240, 26, 13, "#9FC8E2", true);
     addText(s, "BAPPERIDA\nKABUPATEN KAPUAS", 935, 246, 240, 95, 29, C.white, true);
@@ -123,10 +123,10 @@ async function main() {
     setNotes(s, ["Paparan ini membedakan fakta hasil audit, interpretasi, dan rekomendasi.", `Sumber utama: ${bpsUrls[2017]} ; ${bpsUrls[2026]} ; ${ckanUrl}`]);
   }
 
-  // 2 — scope
+  // 2 - scope
   {
-    const s = presentation.slides.add(); await addHeader(s, "Apa yang diaudit—dan apa yang belum boleh disimpulkan", "Ruang lingkup", 2);
-    addMetric(s, 70, 270, 250, "Edisi BPS", "10", "Kabupaten Kapuas Dalam Angka 2017–2026", "blue");
+    const s = presentation.slides.add(); await addHeader(s, "Apa yang diaudit-dan apa yang belum boleh disimpulkan", "Ruang lingkup", 2);
+    addMetric(s, 70, 270, 250, "Edisi BPS", "10", "Kabupaten Kapuas Dalam Angka 2017-2026", "blue");
     addMetric(s, 338, 270, 250, "Dataset CKAN", "3.927", "Hitungan global API resmi pada tanggal audit", "green");
     addMetric(s, 606, 270, 250, "Dataset terpetakan", "3.906", "Terhubung ke 25 organisasi pada snapshot", "amber");
     addMetric(s, 874, 270, 336, "Batas audit", "Metadata", "Belum menilai kebenaran setiap nilai observasi", "red");
@@ -136,13 +136,13 @@ async function main() {
     setNotes(s, ["Audit BPS menggunakan URL publikasi resmi, hash SHA-256, jumlah halaman, keterbacaan teks, dan rekonsiliasi daftar tabel.", `CKAN: ${ckanUrl}`]);
   }
 
-  // 3 — executive
+  // 3 - executive
   {
     const s = presentation.slides.add(); await addHeader(s, "Tiga pesan utama untuk pengambilan keputusan", "Ringkasan eksekutif", 3);
     const cards = [
       ["01", "Seri BPS kuat, tetapi heterogen", "Tema besar berulang, sedangkan struktur tabel, definisi, unit, dan sumber dapat berubah antar-edisi."],
       ["02", "Volume Satu Data belum identik dengan kesiapan analisis", "Lisensi, tag, konsentrasi koleksi, dan rekonsiliasi organisasi masih menjadi hambatan tata kelola."],
-      ["03", "SABABUKA perlu menjadi lapisan makna", "Simpan katalog, observasi terpilih, provenance, kualitas, dan relasi indikator—bukan menggandakan semua berkas sumber."],
+      ["03", "SABABUKA perlu menjadi lapisan makna", "Simpan katalog, observasi terpilih, provenance, kualitas, dan relasi indikator-bukan menggandakan semua berkas sumber."],
     ];
     cards.forEach((c, i) => {
       const x = 70 + i * 378;
@@ -155,7 +155,7 @@ async function main() {
     setNotes(s, ["Pesan 1 dan 2 adalah interpretasi dari hasil inventaris; pesan 3 adalah rekomendasi arsitektur."]);
   }
 
-  // 4 — BPS tables
+  // 4 - BPS tables
   {
     const s = presentation.slides.add(); await addHeader(s, "Inventaris tabel BPS berubah antar-edisi", "BPS Kapuas Dalam Angka", 4);
     const cats = ["2017","2018","2019","2021","2022","2023","2024","2025","2026"];
@@ -172,11 +172,11 @@ async function main() {
     addBox(s, 920, 270, 290, 260, C.softAmber, "#EBCB88");
     addText(s, "2020 tidak dibandingkan otomatis", 946, 300, 238, 58, 21, C.amber, true);
     addText(s, "PDF berbasis gambar: hanya 1 dari 461 halaman memiliki teks yang dapat diekstrak. Ini celah metode, bukan nol tabel.", 946, 378, 238, 118, 15, C.ink, false);
-    addFooter(s, "Sumber: publikasi resmi BPS Kapuas 2017–2026; rekonsiliasi daftar tabel dan badan publikasi.");
+    addFooter(s, "Sumber: publikasi resmi BPS Kapuas 2017-2026; rekonsiliasi daftar tabel dan badan publikasi.");
     setNotes(s, [`BPS 2017: ${bpsUrls[2017]}`, `BPS 2020: ${bpsUrls[2020]}`, `BPS 2026: ${bpsUrls[2026]}`, "Nilai chart adalah jumlah tabel hasil rekonsiliasi, bukan jumlah indikator."]);
   }
 
-  // 5 — readability
+  // 5 - readability
   {
     const s = presentation.slides.add(); await addHeader(s, "Keterbacaan mesin tidak konsisten", "BPS Kapuas Dalam Angka", 5);
     const years = ["2017","2018","2019","2020","2021","2022","2023","2024","2025","2026"];
@@ -198,7 +198,7 @@ async function main() {
     setNotes(s, ["Halaman dengan teks dihitung dari kemampuan ekstraksi PDF, bukan penilaian mutu statistik.", `BPS 2020: ${bpsUrls[2020]}`]);
   }
 
-  // 6 — stable themes
+  // 6 - stable themes
   {
     const s = presentation.slides.add(); await addHeader(s, "Bandingkan konsep, bukan nomor tabel", "Pola seri waktu", 6);
     addText(s, "Tema yang berulang", 70, 270, 345, 35, 22, C.navy, true);
@@ -215,11 +215,11 @@ async function main() {
       if (i < 4) addText(s, "→", x + 119, 418, 12, 26, 14, C.gold, true, "center");
     });
     addText(s, "Nomor tabel dapat berubah. Identitas indikator harus bertahan melalui metadata konseptual dan provenance.", 490, 602, 720, 44, 17, C.blue, true);
-    addFooter(s, "Sumber: perbandingan struktur publikasi BPS 2017–2026; interpretasi metodologis.");
+    addFooter(s, "Sumber: perbandingan struktur publikasi BPS 2017-2026; interpretasi metodologis.");
     setNotes(s, ["Tema berulang adalah klasifikasi konseptual. Pernyataan perubahan definisi/unit adalah risiko yang harus diverifikasi per tabel sebelum penyambungan seri."]);
   }
 
-  // 7 — rules
+  // 7 - rules
   {
     const s = presentation.slides.add(); await addHeader(s, "Lima pemeriksaan sebelum membuat tren", "Aturan analisis", 7);
     addFlow(s, [["Definisi", "Sama atau direkonsiliasi"], ["Unit", "Skala konsisten"], ["Cakupan", "Populasi & wilayah"], ["Waktu", "Periode rujukan"], ["Sumber", "Produsen & metode"]], 290);
@@ -229,7 +229,7 @@ async function main() {
     setNotes(s, ["Aturan ini adalah quality gate, bukan hasil penilaian nilai statistik individual."]);
   }
 
-  // 8 — CKAN scale
+  // 8 - CKAN scale
   {
     const s = presentation.slides.add(); await addHeader(s, "Ada selisih yang perlu direkonsiliasi pada katalog", "Satu Data Kapuas", 8);
     addMetric(s, 70, 260, 250, "Hitungan global CKAN", "3.927", "package_search rows=0", "blue");
@@ -247,11 +247,11 @@ async function main() {
     setNotes(s, [`API global: ${ckanUrl}`, "Selisih = 3.927 − 3.906 = 21. Selisih ini memerlukan rekonsiliasi, bukan asumsi penghapusan."]);
   }
 
-  // 9 — concentration
+  // 9 - concentration
   {
     const s = presentation.slides.add(); await addHeader(s, "97,6% dataset terpetakan terkonsentrasi pada dua koleksi", "Satu Data Kapuas", 9);
     addMetric(s, 70, 270, 340, "Data Pemkab Kapuas 2025", "2.061", "52,8% dari dataset terpetakan", "blue");
-    addMetric(s, 430, 270, 340, "PPID 2011–2026", "1.751", "44,8% dari dataset terpetakan", "amber");
+    addMetric(s, 430, 270, 340, "PPID 2011-2026", "1.751", "44,8% dari dataset terpetakan", "amber");
     addMetric(s, 790, 270, 420, "Dua koleksi terbesar", "3.812", "97,6% dari 3.906 dataset terpetakan", "green");
     addBox(s, 70, 450, 1140, 120, C.pale, C.line);
     addText(s, "Makna audit", 96, 476, 170, 28, 16, C.blue, true);
@@ -260,7 +260,7 @@ async function main() {
     setNotes(s, ["2.061 + 1.751 = 3.812; 3.812 / 3.906 = 97,6% (dibulatkan satu desimal)."]);
   }
 
-  // 10 — metadata gaps
+  // 10 - metadata gaps
   {
     const s = presentation.slides.add(); await addHeader(s, "Kesenjangan terbesar berada pada metadata tata kelola", "Satu Data Kapuas", 10);
     s.charts.add("bar", {
@@ -279,7 +279,7 @@ async function main() {
     setNotes(s, ["3.833 / 3.906 = 98,1%; 1.608 / 3.906 = 41,2% (dibulatkan satu desimal).", "Deskripsi dinilai sebatas keberadaan field, bukan kualitas semantik."]);
   }
 
-  // 11 — readiness table
+  // 11 - readiness table
   {
     const s = presentation.slides.add(); await addHeader(s, "Kesiapan berbeda antar-organisasi", "Satu Data Kapuas", 11);
     const table = s.tables.add({
@@ -287,10 +287,10 @@ async function main() {
       values: [
         ["Organisasi/koleksi", "Dataset", "Resource", "Catatan audit"],
         ["Data Pemkab Kapuas 2025", "2.061", "2.061", "1.817 resource terstruktur"],
-        ["PPID 2011–2026", "1.751", "1.751", "8 resource terstruktur"],
+        ["PPID 2011-2026", "1.751", "1.751", "8 resource terstruktur"],
         ["DPUPR", "21", "118", "93 resource geospasial"],
         ["Dinas Kesehatan", "13", "13", "13 resource terstruktur"],
-        ["Organisasi tanpa dataset", "4 org.", "—", "Perlu konfirmasi mandat/publikasi"],
+        ["Organisasi tanpa dataset", "4 org.", "-", "Perlu konfirmasi mandat/publikasi"],
       ],
     });
     table.styleOptions = { headerRow: true, bandedRows: true };
@@ -302,7 +302,7 @@ async function main() {
     setNotes(s, ["Kategori terstruktur mengikuti format resource pada snapshot audit; belum membuktikan kelengkapan isi atau konsistensi nilai."]);
   }
 
-  // 12 — format ≠ readiness
+  // 12 - format ≠ readiness
   {
     const s = presentation.slides.add(); await addHeader(s, "Format terstruktur baru langkah pertama", "Kesiapan analitik", 12);
     addFlow(s, [["Dapat dibaca", "CSV/XLS/API/Geo"], ["Dapat dipahami", "Metadata jelas"], ["Dapat dipercaya", "Validasi & provenance"], ["Dapat dibandingkan", "Konsep/unit konsisten"], ["Dapat dipakai", "Disetujui & dipublikasi"]], 290);
@@ -312,7 +312,7 @@ async function main() {
     setNotes(s, ["Kerangka ini harus diterapkan per dataset dan per seri indikator."]);
   }
 
-  // 13 — current system gap
+  // 13 - current system gap
   {
     const s = presentation.slides.add(); await addHeader(s, "Fondasi tata kelola sudah ada; lapisan data perlu diperluas", "Posisi SABABUKA", 13);
     const cols = [
@@ -324,7 +324,7 @@ async function main() {
     setNotes(s, ["Status fitur mengikuti kode aktif, bukan catatan placeholder lama.", "Data pimpinan tetap hanya berasal dari data yang disetujui dan dipublikasikan."]);
   }
 
-  // 14 — architecture
+  // 14 - architecture
   {
     const s = presentation.slides.add(); await addHeader(s, "Berkas tetap di sumber; SABABUKA menyimpan makna dan bukti", "Arsitektur Bank Data", 14);
     addFlow(s, [["Sumber eksternal", "BPS, CKAN, OPD, API"], ["Katalog", "URL, checksum, lisensi"], ["Normalisasi", "Konsep, unit, dimensi"], ["Governance", "Validasi, persetujuan"], ["Konsumsi", "Dashboard & analitik"]], 280);
@@ -338,7 +338,7 @@ async function main() {
     setNotes(s, ["SABABUKA tidak menjadi mirror seluruh file. Cache hanya bila diizinkan, terbatas, dan memiliki kebijakan kedaluwarsa."]);
   }
 
-  // 15 — analytics
+  // 15 - analytics
   {
     const s = presentation.slides.add(); await addHeader(s, "Ringkasan pimpinan harus deterministik dan dapat diaudit", "Analitik & AI", 15);
     const layers = [
@@ -353,7 +353,7 @@ async function main() {
     setNotes(s, ["Machine learning bukan default. Model hanya boleh dipakai bila ada data cukup, baseline, evaluasi out-of-sample, dan pemantauan drift."]);
   }
 
-  // 16 — decisions
+  // 16 - decisions
   {
     const s = presentation.slides.add(); await addHeader(s, "Keputusan yang diperlukan dari BAPPERIDA", "Prioritas 90 hari", 16);
     const items = [
@@ -368,10 +368,10 @@ async function main() {
     setNotes(s, ["Urutan dipilih untuk mengurangi risiko sebelum menambah analitik lanjutan."]);
   }
 
-  // 17 — roadmap / close
+  // 17 - roadmap / close
   {
     const s = presentation.slides.add(); await addHeader(s, "Dari katalog menuju bank data yang dapat dipercaya", "Peta jalan", 17);
-    addFlow(s, [["0–30 hari", "Standar & rekonsiliasi"], ["31–60 hari", "Model data & pilot"], ["61–90 hari", "Dashboard tervalidasi"], ["Tahap berikutnya", "Analitik & ML terkontrol"]], 285);
+    addFlow(s, [["0-30 hari", "Standar & rekonsiliasi"], ["31-60 hari", "Model data & pilot"], ["61-90 hari", "Dashboard tervalidasi"], ["Tahap berikutnya", "Analitik & ML terkontrol"]], 285);
     addBox(s, 70, 490, 1140, 105, C.navy, C.navy, "rounded-2xl");
     addText(s, "Target akhir: satu tempat untuk menemukan data Kapuas, memahami konteksnya, menilai kualitasnya, dan memakai insight yang dapat dipertanggungjawabkan.", 102, 514, 1076, 58, 22, C.white, true, "center");
     addFooter(s, "Dokumen pendamping: audit ekosistem data dan blueprint Bank Data Kapuas.");

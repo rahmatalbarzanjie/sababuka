@@ -12,14 +12,14 @@ const HLS_PAGE = "https://kalteng.bps.go.id/id/statistics-table/2/NDQjMg%3D%3D/h
 const IPM_PAGE = "https://kapuaskab.bps.go.id/id/statistics-table/2/MzMzIzI%3D/-metode-baru-indeks-pembangunan-manusia-ipm-.html";
 
 const series = [
-  { code: "TINGKAT_KEMISKINAN", values: { 2025: 5.48 }, sourceUrl: IKR_PAGE, location: "Gambar 8.1, halaman buku 61", sourceName: "BPS Kabupaten Kapuas — Indikator Kesejahteraan Rakyat 2025" },
-  { code: "RPJMD_I027_TINGKAT_PENGANGGURAN_TERBUKA_TPT", values: { 2024: 3.61, 2025: 3.51 }, sourceUrl: IKR_PAGE, location: "Gambar 5.3, halaman buku 38", sourceName: "BPS Kabupaten Kapuas — Sakernas Agustus 2023–2025" },
-  { code: "RPJMD_I028_TINGKAT_PARTISIPASI_ANGKATAN_KERJA_TPAK", values: { 2024: 71.52, 2025: 67.92 }, sourceUrl: IKR_PAGE, location: "Gambar 5.2, halaman buku 37", sourceName: "BPS Kabupaten Kapuas — Sakernas Agustus 2023–2025" },
-  { code: "RPJMD_I029_TPAK_PEREMPUAN", values: { 2024: 53.90, 2025: 51.82 }, sourceUrl: IKR_PAGE, location: "Gambar 5.2, halaman buku 37", sourceName: "BPS Kabupaten Kapuas — Sakernas Agustus 2023–2025" },
-  { code: "RPJMD_I030_USIA_HARAPAN_HIDUP_UHH", values: { 2024: 72.86, 2025: 73.02 }, sourceUrl: IKR_PAGE, location: "Gambar 3.1, halaman buku 16", sourceName: "BPS Kabupaten Kapuas — Indeks Pembangunan Manusia 2024–2025" },
-  { code: "RPJMD_I036_RATA_RATA_LAMA_SEKOLAH_RLS", values: { 2024: 7.93, 2025: 8.04 }, sourceUrl: IKR_PAGE, location: "Gambar 4.2, halaman buku 27", sourceName: "BPS Kabupaten Kapuas — Indeks Pembangunan Manusia 2021–2025" },
-  { code: "RPJMD_I037_HARAPAN_LAMA_SEKOLAH_HLS", values: { 2025: 13.02 }, sourceUrl: HLS_PAGE, location: "Tabel Statistik HLS kabupaten/kota, 2025", sourceName: "BPS Provinsi Kalimantan Tengah — Harapan Lama Sekolah 2025" },
-  { code: "RPJMD_I024_INDEKS_PEMBANGUNAN_MANUSIA_IPM", values: { 2024: 71.32 }, sourceUrl: IPM_PAGE, location: "Tabel Statistik IPM kabupaten/kota, 2024", sourceName: "BPS Kabupaten Kapuas — Indeks Pembangunan Manusia 2024" },
+  { code: "TINGKAT_KEMISKINAN", values: { 2025: 5.48 }, sourceUrl: IKR_PAGE, location: "Gambar 8.1, halaman buku 61", sourceName: "BPS Kabupaten Kapuas - Indikator Kesejahteraan Rakyat 2025" },
+  { code: "RPJMD_I027_TINGKAT_PENGANGGURAN_TERBUKA_TPT", values: { 2024: 3.61, 2025: 3.51 }, sourceUrl: IKR_PAGE, location: "Gambar 5.3, halaman buku 38", sourceName: "BPS Kabupaten Kapuas - Sakernas Agustus 2023-2025" },
+  { code: "RPJMD_I028_TINGKAT_PARTISIPASI_ANGKATAN_KERJA_TPAK", values: { 2024: 71.52, 2025: 67.92 }, sourceUrl: IKR_PAGE, location: "Gambar 5.2, halaman buku 37", sourceName: "BPS Kabupaten Kapuas - Sakernas Agustus 2023-2025" },
+  { code: "RPJMD_I029_TPAK_PEREMPUAN", values: { 2024: 53.90, 2025: 51.82 }, sourceUrl: IKR_PAGE, location: "Gambar 5.2, halaman buku 37", sourceName: "BPS Kabupaten Kapuas - Sakernas Agustus 2023-2025" },
+  { code: "RPJMD_I030_USIA_HARAPAN_HIDUP_UHH", values: { 2024: 72.86, 2025: 73.02 }, sourceUrl: IKR_PAGE, location: "Gambar 3.1, halaman buku 16", sourceName: "BPS Kabupaten Kapuas - Indeks Pembangunan Manusia 2024-2025" },
+  { code: "RPJMD_I036_RATA_RATA_LAMA_SEKOLAH_RLS", values: { 2024: 7.93, 2025: 8.04 }, sourceUrl: IKR_PAGE, location: "Gambar 4.2, halaman buku 27", sourceName: "BPS Kabupaten Kapuas - Indeks Pembangunan Manusia 2021-2025" },
+  { code: "RPJMD_I037_HARAPAN_LAMA_SEKOLAH_HLS", values: { 2025: 13.02 }, sourceUrl: HLS_PAGE, location: "Tabel Statistik HLS kabupaten/kota, 2025", sourceName: "BPS Provinsi Kalimantan Tengah - Harapan Lama Sekolah 2025" },
+  { code: "RPJMD_I024_INDEKS_PEMBANGUNAN_MANUSIA_IPM", values: { 2024: 71.32 }, sourceUrl: IPM_PAGE, location: "Tabel Statistik IPM kabupaten/kota, 2024", sourceName: "BPS Kabupaten Kapuas - Indeks Pembangunan Manusia 2024" },
 ] as const;
 
 interface IndicatorRow extends QueryResultRow {
@@ -91,7 +91,7 @@ try {
   const source = await db.query<{ id: string } & QueryResultRow>(
     `INSERT INTO sababuka.data_sources
        (code,name,source_type,base_url,owner_organization_id,connection_config,is_active,last_checked_at,created_by)
-     VALUES ('BPS_KAPUAS_RPJMD','BPS Kabupaten Kapuas — Sumber RPJMD','bps',$1,$2,
+     VALUES ('BPS_KAPUAS_RPJMD','BPS Kabupaten Kapuas - Sumber RPJMD','bps',$1,$2,
        '{"verification_mode":"official_publication_and_statistics_table","contains_secrets":false}'::jsonb,true,now(),$3)
      ON CONFLICT (code) DO UPDATE SET base_url=EXCLUDED.base_url,owner_organization_id=EXCLUDED.owner_organization_id,
        connection_config=EXCLUDED.connection_config,is_active=true,last_checked_at=now(),updated_at=now()
@@ -100,7 +100,7 @@ try {
   );
   const dataset = await db.query<{ id: string } & QueryResultRow>(
     `INSERT INTO sababuka.datasets (code,title,owner_organization_id,source_id,is_active,created_by)
-     VALUES ('BPS.KAPUAS.RPJMD.2024_2025','Indikator RPJMD Kabupaten Kapuas dari BPS 2024–2025',$1,$2,true,$3)
+     VALUES ('BPS.KAPUAS.RPJMD.2024_2025','Indikator RPJMD Kabupaten Kapuas dari BPS 2024-2025',$1,$2,true,$3)
      ON CONFLICT (code) DO UPDATE SET title=EXCLUDED.title,source_id=EXCLUDED.source_id,is_active=true,updated_at=now()
      RETURNING id::text`,
     [bpsOrganization.rows[0].id, source.rows[0]!.id, creatorId],
@@ -109,7 +109,7 @@ try {
     `INSERT INTO sababuka.dataset_versions
        (dataset_id,version_number,name,title,notes,organization_id,author,maintainer,license_id,visibility,
         metadata_profile_id,metadata_json,effective_from,status,source_modified_at,submitted_by,submitted_at,approved_by,approved_at,created_by)
-     VALUES ($1,1,'bps-kapuas-rpjmd-2024-2025','Indikator RPJMD Kabupaten Kapuas dari BPS 2024–2025',
+     VALUES ($1,1,'bps-kapuas-rpjmd-2024-2025','Indikator RPJMD Kabupaten Kapuas dari BPS 2024-2025',
        'Kompilasi nilai yang cocok langsung dengan definisi indikator RPJMD aktif.',$2,'Badan Pusat Statistik',
        'Walidata Kabupaten Kapuas','public-domain','public',$3,$4::jsonb,DATE '2024-01-01','active',now(),$5,now(),$6,now(),$5)
      ON CONFLICT (dataset_id,version_number) DO UPDATE SET notes=EXCLUDED.notes,metadata_json=EXCLUDED.metadata_json,
@@ -148,7 +148,7 @@ try {
     await db.query(
       `INSERT INTO sababuka.indicator_source_audits
          (indicator_version_id,audit_status,source_name,source_url,source_period,notes,retrieved_at)
-       VALUES ($1,'verified_direct',$2,$3,'2024–2025',$4,now())
+       VALUES ($1,'verified_direct',$2,$3,'2024-2025',$4,now())
        ON CONFLICT (indicator_version_id,source_name,source_period) DO UPDATE SET audit_status='verified_direct',
          source_url=EXCLUDED.source_url,notes=EXCLUDED.notes,retrieved_at=now(),updated_at=now()`,
       [indicator.version_id, item.sourceName, item.sourceUrl, `Cocok langsung dengan definisi indikator; ${item.location}.`],
@@ -217,11 +217,11 @@ try {
     await db.query(
       `INSERT INTO sababuka.indicator_source_audits
          (indicator_version_id,audit_status,source_name,source_url,source_period,notes,retrieved_at)
-       VALUES ($1,$2,$3,$4,'RPJMD 2025–2029',$5,now())
+       VALUES ($1,$2,$3,$4,'RPJMD 2025-2029',$5,now())
        ON CONFLICT (indicator_version_id,source_name,source_period) DO UPDATE SET audit_status=EXCLUDED.audit_status,
          source_url=EXCLUDED.source_url,notes=EXCLUDED.notes,retrieved_at=now(),updated_at=now()`,
       [indicator.version_id, proposedBps ? "candidate" : "requires_opd",
-        proposedBps ? "BPS — kandidat sumber indikator RPJMD" : "Sumber sektoral sesuai metadata RPJMD",
+        proposedBps ? "BPS - kandidat sumber indikator RPJMD" : "Sumber sektoral sesuai metadata RPJMD",
         proposedBps ? "https://kapuaskab.bps.go.id/id" : null,
         proposedBps
           ? "Belum ditemukan nilai Kabupaten Kapuas yang cocok langsung dan terverifikasi pada sumber resmi yang diperiksa; jangan diisi otomatis."
@@ -240,8 +240,8 @@ try {
       `INSERT INTO sababuka.publications
          (publication_key,version_number,publication_number,title,description,status,effective_at,change_notes,created_by)
        VALUES ('BPS_RPJMD_KAPUAS_VERIFIED',$1,'BPS-RPJMD-'||lpad(($1::integer)::text,3,'0'),
-         'Capaian RPJMD Kabupaten Kapuas — sumber BPS terverifikasi',
-         'Nilai 2024–2025 yang cocok langsung dengan definisi indikator RPJMD aktif dan diverifikasi dari sumber resmi BPS.',
+         'Capaian RPJMD Kabupaten Kapuas - sumber BPS terverifikasi',
+         'Nilai 2024-2025 yang cocok langsung dengan definisi indikator RPJMD aktif dan diverifikasi dari sumber resmi BPS.',
          'draft',now(),'Hanya nilai dengan kecocokan definisi dan sumber langsung yang dipublikasikan.',$2)
        RETURNING id::text`,
       [version, creatorId],

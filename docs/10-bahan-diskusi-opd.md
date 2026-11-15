@@ -116,7 +116,7 @@ Prinsip awal: tidak ada ranking antar-OPD. Setiap perangkat daerah dibaca terhad
 
 ## Output yang diminta dari forum
 
-- Daftar 5–10 indikator pilot.
+- Daftar 5-10 indikator pilot.
 - PIC substansi dan PIC teknis dari setiap sumber data.
 - Definisi, rumus, satuan, periode, serta tingkat wilayah setiap indikator.
 - Sumber resmi dan jalur integrasi yang disepakati.

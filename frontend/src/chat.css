@@ -1,0 +1,22 @@
+/* Penyajian jawaban Tanya Sababuka */
+.assistant-panel:not(.compact) .chat-stream { min-height: 420px; max-height: calc(100vh - 330px); position: relative; }
+.chat-message.assistant { max-width: min(100%, 940px); }
+.chat-message.assistant > div { padding: 18px 22px; min-width: 0; flex: 1; }
+.rich-text { display: grid; gap: 10px; color: var(--ui-text); font-size: 15px; line-height: 1.65; }
+.rich-text p, .rich-text ul, .rich-text ol { margin: 0; }
+.rich-text h4 { margin: 8px 0 0; padding-top: 12px; border-top: 1px solid var(--ui-rule); font-size: 13px; font-weight: 700; color: var(--ui-text); }
+.rich-text > h4:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.rich-text ul, .rich-text ol { padding-left: 22px; display: grid; gap: 6px; }
+.rich-text li::marker { color: var(--ui-accent); font-weight: 700; }
+.rich-text strong { font-weight: 700; }
+.chat-visuals { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--ui-rule); }
+.chat-visuals .insight-chart, .chat-visuals .insight-bars { margin: 0; max-width: none; padding: 12px 14px; border: 1px solid var(--ui-border); border-radius: 12px; background: var(--ui-surface-subtle); }
+.chat-message .sufficiency { margin-top: 14px; }
+.chat-message .citation-list { margin-top: 12px; display: block; }
+.citation-list summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--ui-muted); }
+.citation-list[open] summary { margin-bottom: 8px; }
+.citation-list > div { margin-top: 6px; }
+@media (max-width: 720px) {
+  .chat-message.assistant > div { padding: 14px 16px; }
+  .rich-text { font-size: 14.5px; }
+}

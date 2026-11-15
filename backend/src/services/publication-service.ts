@@ -14,7 +14,7 @@ function isPimpinanOnly(auth: AuthContext) { return auth.user.roles.some((role) 
 export class PublicationService {
   constructor(private readonly db: Database) {}
 
-  async list(auth: AuthContext, page: number, pageSize: number, status?: string, sortBy?: string, sortOrder?: "asc" | "desc") {
+  async list(auth: AuthContext, page: number, pageSize: number, status?: string, sortBy?: string, sortOrder?: "asc" | "desc", source: "resmi" | "bank_data" | "semua" = "resmi") {
     const effectiveStatus = isPimpinanOnly(auth) ? "active" : status ?? null;
     const orderColumns: Record<string, string> = { created_at: "p.created_at", updated_at: "p.updated_at", title: "p.title", number: "p.publication_number", version: "p.version_number", items: "eligible_item_count", status: "p.status" };
     const orderColumn = orderColumns[sortBy ?? "updated_at"] ?? orderColumns.updated_at!;
@@ -41,6 +41,9 @@ export class PublicationService {
        LEFT JOIN sababuka.indicators i ON i.id = iv.indicator_id
        LEFT JOIN sababuka.categories c ON c.id = i.category_id
        WHERE ($1::text IS NULL OR p.status = $1)
+         AND ($5::text = 'semua' OR ($5::text = 'bank_data') = (
+           EXISTS (SELECT 1 FROM sababuka.publication_items bx WHERE bx.publication_id = p.id)
+           AND NOT EXISTS (SELECT 1 FROM sababuka.publication_items bx JOIN sababuka.observations bo ON bo.id = bx.observation_id JOIN sababuka.indicator_versions bv ON bv.id = bo.indicator_version_id JOIN sababuka.indicators bi ON bi.id = bv.indicator_id WHERE bx.publication_id = p.id AND bi.origin_type <> 'bank_data')))
          AND ($4::boolean = false OR EXISTS (
            SELECT 1 FROM sababuka.publication_items valid_pi
            JOIN sababuka.observations valid_obs ON valid_obs.id = valid_pi.observation_id
@@ -51,7 +54,7 @@ export class PublicationService {
            WHERE valid_pi.publication_id = p.id
          ))
        GROUP BY p.id ORDER BY ${orderColumn} ${orderDirection} NULLS LAST, p.updated_at DESC, p.created_at DESC, p.id DESC LIMIT $2 OFFSET $3`,
-      [effectiveStatus, pageSize, (page - 1) * pageSize, isPimpinanOnly(auth)],
+      [effectiveStatus, pageSize, (page - 1) * pageSize, isPimpinanOnly(auth), source],
     );
     const total = Number(result.rows[0]?.total_count ?? 0);
     return { data: result.rows.map(({ total_count: _, ...row }) => row), meta: { page, page_size: pageSize, total_items: total, total_pages: total ? Math.ceil(total / pageSize) : 0 } };

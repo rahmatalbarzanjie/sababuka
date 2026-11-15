@@ -102,7 +102,7 @@ WebAPI BPS memerlukan token aplikasi. Token wajib disimpan di backend atau secre
 
 ## Fokus strategis
 
-Ringkasan Pimpinan menampilkan empat fokus keputusan: ketahanan pangan dan cetak sawah, konektivitas, stunting, serta ketepatan sasaran DTSEN. Inflasi, bencana, pendidikan, dan integrasi digital berada pada panel pemantauan. Dashboard BAPPERIDA menampilkan seluruh delapan fokus sebagai matriks pengampu–pendukung tanpa menjadikannya ranking antar-OPD.
+Ringkasan Pimpinan menampilkan empat fokus keputusan: ketahanan pangan dan cetak sawah, konektivitas, stunting, serta ketepatan sasaran DTSEN. Inflasi, bencana, pendidikan, dan integrasi digital berada pada panel pemantauan. Dashboard BAPPERIDA menampilkan seluruh delapan fokus sebagai matriks pengampu-pendukung tanpa menjadikannya ranking antar-OPD.
 
 ## State pengujian
 
@@ -115,8 +115,8 @@ Navigasi menu, sidebar collapse, mobile drawer + overlay, tahun, tab grafik, pem
 ## Data demonstrasi dan Asisten Data
 
 Seluruh angka pada proyek ini adalah **data dummy** untuk demonstrasi antarmuka dan tidak
-boleh digunakan sebagai dasar keputusan. Time series 2022–2026 sengaja memuat pola yang
-bervariasi—kenaikan, penurunan sementara, pemulihan, dan stagnasi—agar perubahan pada
+boleh digunakan sebagai dasar keputusan. Time series 2022-2026 sengaja memuat pola yang
+bervariasi-kenaikan, penurunan sementara, pemulihan, dan stagnasi-agar perubahan pada
 grafik dapat terlihat dengan jelas.
 
 Pemilih tahun pada topbar mengubah data aktif di seluruh dashboard, termasuk nilai dan

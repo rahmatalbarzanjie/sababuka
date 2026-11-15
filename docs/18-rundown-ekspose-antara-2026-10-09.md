@@ -10,7 +10,7 @@ SABABUKA sudah berjalan sebagai aplikasi web MVP yang menghubungkan autentikasi 
 ## Angka progres yang aman disampaikan
 
 - 5 kategori pilot aktif.
-- 15 indikator pilot aktif dengan target 2025–2029.
+- 15 indikator pilot aktif dengan target 2025-2029.
 - 6 capaian indikator telah ditelusuri ke sumber pemerintah dan dipublikasikan sebagai data resmi.
 - 9 indikator masih menunggu data atau konfirmasi OPD dan hanya dipakai untuk demonstrasi alur.
 - 5 role sudah tersedia: Developer/Superadmin, BAPPERIDA, Kominfo baca-saja, OPD, dan Pimpinan.
@@ -29,7 +29,7 @@ SABABUKA sudah berjalan sebagai aplikasi web MVP yang menghubungkan autentikasi 
 
 Istilah **rilis data resmi terpilih** berarti kategori tersebut sudah memiliki minimal satu capaian terverifikasi dalam publikasi aktif. Istilah ini tidak berarti seluruh indikator di dalam kategori sudah lengkap.
 
-## Urutan demo 10–12 menit
+## Urutan demo 10-12 menit
 
 1. Login sebagai **Pimpinan** dan buka Ringkasan Pimpinan.
 2. Tunjukkan panel **Kesiapan kategori untuk paparan**: 3 dari 5 kategori sudah memuat capaian bersumber resmi.

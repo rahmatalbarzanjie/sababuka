@@ -4,27 +4,27 @@
 
 SABABUKA ditampilkan sebagai purwarupa ruang kerja bersama untuk menyatukan data lintas OPD, bukan sebagai pengganti aplikasi milik OPD. Angka pada demonstrasi merupakan baseline pembahasan; angka final tetap mengikuti produsen data, sumber resmi, periode, definisi, serta verifikasi BAPPERIDA.
 
-## Alur paparan 12–15 menit
+## Alur paparan 12-15 menit
 
-1. **Pembuka — masalah bersama (1 menit)**  
+1. **Pembuka - masalah bersama (1 menit)**  
    Data sudah tersedia di banyak tempat, tetapi pimpinan memerlukan satu cara membaca kondisi, sumber, dan tindak lanjut secara cepat.
 
-2. **Ringkasan Pimpinan — keputusan, bukan keramaian data (4 menit)**  
+2. **Ringkasan Pimpinan - keputusan, bukan keramaian data (4 menit)**  
    Tunjukkan empat fokus utama, empat fokus pantauan, status kelayakan data, serta peringatan yang sudah ditinjau BAPPERIDA. Tekankan bahwa fokus dipilih karena membutuhkan koordinasi lintas OPD.
 
-3. **Peta kecamatan — melihat kesenjangan wilayah (2 menit)**  
+3. **Peta kecamatan - melihat kesenjangan wilayah (2 menit)**  
    Ganti indikator kemiskinan, stunting, dan jalan mantap. Jelaskan bahwa warna adalah alat penajaman lokasi, bukan label kinerja kecamatan.
 
-4. **Dashboard BAPPERIDA — gerbang mutu (3 menit)**  
+4. **Dashboard BAPPERIDA - gerbang mutu (3 menit)**  
    Tunjukkan portofolio delapan isu, antrean kerja, dan hubungan antara produsen data, verifikasi BAPPERIDA, dan ringkasan pimpinan.
 
-5. **Verifikasi dan peringatan — simulasi alur (2 menit)**  
+5. **Verifikasi dan peringatan - simulasi alur (2 menit)**  
    Setujui satu data, lalu buka kembali Ringkasan Pimpinan untuk memperlihatkan perubahan status menjadi siap tayang. Validasi satu peringatan untuk memperlihatkan bahwa Bupati hanya menerima peringatan yang telah ditinjau.
 
-6. **Jejak sumber — kolaborasi, bukan pengambilalihan (2 menit)**  
+6. **Jejak sumber - kolaborasi, bukan pengambilalihan (2 menit)**  
    Tunjukkan BPS, Satu Data Kapuas, dan sumber sektoral. Tegaskan bahwa identitas pemilik data tetap dibawa dan data yang berbeda tidak dicampur tanpa berita acara.
 
-7. **Penutup — keputusan forum (1 menit)**  
+7. **Penutup - keputusan forum (1 menit)**  
    Minta kesepakatan mengenai indikator tahap awal, produsen dan validator data, frekuensi pembaruan, batas akses, serta dua atau tiga integrasi prioritas untuk uji coba.
 
 ## Kalimat pengaman saat membuka demo

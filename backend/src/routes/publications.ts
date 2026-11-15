@@ -7,14 +7,14 @@ const service = (request: FastifyRequest) => new PublicationService(request.serv
 const mutate = (request: FastifyRequest, permission: string) => { requireCsrf(request); requirePermission(request, permission); };
 
 export async function publicationRoutes(app: FastifyInstance) {
-  app.get<{ Querystring: { page?: number; page_size?: number; status?: string; sort_by?: string; sort_order?: "asc" | "desc" } }>("/publications", {
+  app.get<{ Querystring: { page?: number; page_size?: number; status?: string; sort_by?: string; sort_order?: "asc" | "desc"; source?: "resmi" | "bank_data" | "semua" } }>("/publications", {
     schema: { querystring: { type: "object", additionalProperties: false, properties: {
       page: { type: "integer", minimum: 1 }, page_size: { type: "integer", minimum: 1, maximum: 100 },
-      status: { type: "string", enum: ["draft", "active", "replaced", "withdrawn"] },
+      status: { type: "string", enum: ["draft", "active", "replaced", "withdrawn"] }, source: { type: "string", enum: ["resmi", "bank_data", "semua"] },
       sort_by: { type: "string", enum: ["created_at", "updated_at", "title", "number", "version", "items", "status"] },
       sort_order: { type: "string", enum: ["asc", "desc"] },
     } } },
-  }, async (request) => { requirePermission(request, "publication.view"); return service(request).list(request.auth!, request.query.page ?? 1, request.query.page_size ?? 25, request.query.status, request.query.sort_by, request.query.sort_order); });
+  }, async (request) => { requirePermission(request, "publication.view"); return service(request).list(request.auth!, request.query.page ?? 1, request.query.page_size ?? 25, request.query.status, request.query.sort_by, request.query.sort_order, request.query.source); });
   app.get<{ Querystring: { period_id?: string } }>("/publications/candidates", async (request) => { requirePermission(request, "publication.manage"); return service(request).candidates(request.query.period_id); });
   app.get<{ Params: { publication_id: string } }>("/publications/:publication_id", async (request) => { requirePermission(request, "publication.view"); return service(request).get(request.auth!, request.params.publication_id); });
   app.post<{ Body: PublicationInput }>("/publications", { schema: { body: { type: "object", additionalProperties: false, required: ["publication_key", "publication_number", "title"], properties: { publication_key: { type: "string", pattern: "^[A-Z0-9][A-Z0-9._-]*$", maxLength: 80 }, publication_number: { type: "string", minLength: 2, maxLength: 120 }, title: { type: "string", minLength: 3, maxLength: 500 }, description: { type: ["string", "null"], maxLength: 4000 }, effective_at: { type: ["string", "null"], format: "date-time" }, change_notes: { type: ["string", "null"], maxLength: 4000 } } } } }, async (request, reply) => { mutate(request, "publication.manage"); return reply.code(201).send(await service(request).create(request.auth!, request.body, requestAuditContext(request))); });
