@@ -619,7 +619,7 @@ td small { color: var(--muted); margin-top: 3px; }
 .modal-content { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #9aaabd transparent; }
 .modal-content::-webkit-scrollbar { width: 8px; }
 .modal-content::-webkit-scrollbar-thumb { background: #9aaabd; border-radius: 4px; border: 2px solid #fff; }
-.modal-content > .notice, .modal-content > .success-symbol, .modal-content > .modal-lead, .modal-content > .invite-link, .modal-content > .modal-actions { margin-left: 22px; margin-right: 22px; }
+.modal-content > .notice, .modal-content > .success-symbol, .modal-content > .modal-lead, .modal-content > .invite-link, .modal-content > .modal-actions, .modal-content > .change-summary, .modal-content > .field { margin-left: 22px; margin-right: 22px; }
 .modal-content > .success-symbol { margin-top: 24px; }
 .modal-lead { margin-top: 15px; color: var(--muted); line-height: 1.6; }
 .form-stack { padding: 22px; display: flex; flex-direction: column; gap: 15px; }
@@ -1484,7 +1484,7 @@ td small { color: var(--muted); margin-top: 3px; }
 .mobile-card-action { display: block; padding-top: 10px; border-top: 1px solid #e5ebf1; color: var(--navy-700); font-weight: 700; }
 .permission-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 14px 0; }
 .permission-toolbar .search-field { flex: 1 1 260px; }
-.change-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+.change-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; margin-bottom: 14px; }
 .change-summary span { padding: 13px; border: 1px solid #d8e1eb; border-radius: 9px; background: #f8fafc; }
 .change-summary strong { display: block; font-size: 1.4rem; }
 @media (max-width: 920px) {

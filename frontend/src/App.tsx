@@ -36,7 +36,7 @@ const OpdMonitoringPage = lazy(() => import("./pages/OpdMonitoringPage").then((m
 
 const pageMeta: Record<string, { title: string; subtitle: string; permission?: string }> = {
   "/admin": { title: "Dashboard Sistem", subtitle: "Kesehatan layanan dan pekerjaan administrasi yang perlu ditindaklanjuti.", permission: "system.configure" },
-  "/dashboard": { title: "Beranda", subtitle: "Kondisi Kabupaten Kapuas, perubahan penting, dan tindak lanjut.", permission: "executive_dashboard.view" },
+  "/dashboard": { title: "Dashboard Eksekutif", subtitle: "Kondisi, tren, dan sebaran wilayah Kabupaten Kapuas untuk pengambilan keputusan.", permission: "executive_dashboard.view" },
   "/executive": { title: "Ringkasan Pimpinan", subtitle: "Capaian terkurasi dari data yang telah disetujui dan dipublikasikan.", permission: "executive_dashboard.view" },
   "/assistant": { title: "Tanya Sababuka", subtitle: "Tanyakan data, tren, dan tindak lanjut; jawaban dihitung dari data resmi.", permission: "assistant.use" },
   "/analysis": { title: "Analisis dan Peta", subtitle: "Baca tren, kesenjangan wilayah, konsistensi sumber, dan rekomendasi keputusan.", permission: "executive_dashboard.view" },
