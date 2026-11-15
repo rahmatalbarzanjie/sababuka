@@ -5,7 +5,8 @@ import { Badge, ErrorState, formatDate, Notice, Spinner, useAsync } from "../com
 
 interface Counter { checked: number; updated: number; added: number; unchanged: number; failed: number }
 interface SyncRun { id: string; trigger: string; started_at: string; finished_at: string | null; status: string; summary: { bps?: Counter; satudata?: Counter; error?: string } }
-interface SyncStatus { interval_hours: number; enabled: boolean; running: boolean; runs: SyncRun[] }
+interface SyncFailure { source_code: string; external_id: string; detail: string | null; last_checked_at: string }
+interface SyncStatus { interval_hours: number; enabled: boolean; running: boolean; runs: SyncRun[]; failures?: SyncFailure[] }
 
 const statusLabel: Record<string, string> = { running: "Berjalan", success: "Berhasil", partial: "Sebagian gagal", failed: "Gagal" };
 const tone = (status: string) => status === "success" ? "success" : status === "running" ? "neutral" : "warning";
@@ -35,6 +36,7 @@ export function BankDataSyncPanel({ canManage }: { canManage: boolean }) {
     {message && <Notice tone={message.tone}>{message.text}</Notice>}
     {status.loading ? <div className="panel-loading"><Spinner /></div> : status.error ? <ErrorState title="Status sinkron belum dapat dimuat" onRetry={status.reload}>{status.error}</ErrorState> : <>
       {last ? <p><Badge tone={tone(last.status)}>{statusLabel[last.status] ?? last.status}</Badge> {last.finished_at ? `Selesai ${formatDate(last.finished_at)}` : `Dimulai ${formatDate(last.started_at)}`} · {total("added")} seri baru, {total("updated")} diperbarui, {total("unchanged")} tanpa perubahan, {total("failed")} gagal{last.summary.error ? ` · ${last.summary.error}` : ""}</p> : <p>Belum ada sinkron yang berjalan.</p>}
+      {!!status.data?.failures?.length && <details><summary>{status.data.failures.length} sumber gagal diperiksa</summary><ul>{status.data.failures.map((item) => <li key={`${item.source_code}:${item.external_id}`}><strong>{item.source_code === "BPS_KAPUAS" ? "BPS" : "Satu Data"} {item.external_id}</strong>: {item.detail ?? "tanpa keterangan"}</li>)}</ul></details>}
       {canManage && <div className="panel-actions"><button className="button primary" disabled={busy || running} onClick={() => void start()}><RefreshCw aria-hidden />{running ? "Sinkron berjalan…" : "Sinkronkan sekarang"}</button></div>}
     </>}
   </section>;

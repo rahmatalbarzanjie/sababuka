@@ -134,7 +134,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
   const auditEntries = useMemo(() => menu.filter((item) => item.code === "audit" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const isPimpinan = user?.roles.some((role) => role.code === "pimpinan") ?? false;
   const assistantEntries = useMemo(() => menu.filter((item) => item.code === "assistant" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
-  const accountEntries = useMemo<MenuItem[]>(() => user && !user.simulation?.active ? [{ code: "my-account", label: adminEntries.some((item) => item.code === "users") ? "Akun saya" : "Pengguna", icon: "user", route_name: "/admin/profile", navigation_disabled: false, display_order: 9999, children: [] }] : [], [user, adminEntries]);
+  const accountEntries = useMemo<MenuItem[]>(() => user && !user.simulation?.active ? [{ code: "my-account", label: "Akun saya", icon: "user", route_name: "/admin/profile", navigation_disabled: false, display_order: 9999, children: [] }] : [], [user, adminEntries]);
   const navigationSections = useMemo(() => [
     { code: "system", label: "Administrasi sistem", entries: systemEntries },
     { code: "primary", label: "Ruang pimpinan", entries: primaryEntries },
