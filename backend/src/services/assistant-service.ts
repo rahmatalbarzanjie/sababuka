@@ -2,6 +2,8 @@ import type { Database, QueryResultRow } from "../database.js";
 import { ApiError } from "../errors.js";
 import type { AuthContext } from "../types/auth.js";
 import { recordAudit, type AuditContext } from "./audit-service.js";
+import { buildReply } from "./assistant-intents.js";
+import { InsightService } from "./insight-service.js";
 
 const stopWords = new Set(["apa", "berapa", "bagaimana", "dan", "atau", "yang", "dari", "untuk", "pada", "di", "ke", "tahun", "data", "capaian", "indikator", "tampilkan", "jelaskan", "nilai"]);
 function tokens(value: string) { return [...new Set(value.toLocaleLowerCase("id-ID").replace(/[^a-z0-9]+/gu, " ").split(/\s+/u).filter((word) => word.length > 1 && !stopWords.has(word)))]; }
@@ -31,6 +33,13 @@ export class AssistantService {
     await this.ensureEnabled();
     const session = await this.db.query(`SELECT id FROM sababuka.assistant_sessions WHERE id = $1 AND user_id = $2 AND status = 'active'`, [sessionId, auth.user.id]);
     if (!session.rows[0]) throw new ApiError(404, "NOT_FOUND", "Sesi asisten tidak ditemukan atau sudah ditutup.");
+    const insightReply = buildReply(question, await new InsightService(this.db).all());
+    if (insightReply.sufficiency !== "insufficient") {
+      const asked = await this.db.query<{ id: string }>(`INSERT INTO sababuka.assistant_messages (session_id, message_role, content, structured_data, request_id) VALUES ($1, 'user', $2, '{}'::jsonb, $3) RETURNING id::text`, [sessionId, question, audit.requestId]);
+      const replied = await this.db.query<{ id: string }>(`INSERT INTO sababuka.assistant_messages (session_id, message_role, content, model_name, structured_data, request_id) VALUES ($1, 'assistant', $2, 'sababuka-insight-v1', $3::jsonb, $4) RETURNING id::text`, [sessionId, insightReply.answer, JSON.stringify({ sufficiency: insightReply.sufficiency, retrieval: "trend_engine", user_message_id: asked.rows[0]!.id, sources: insightReply.sources }), audit.requestId]);
+      await recordAudit(this.db, { ...audit, eventType: "assistant.answer_generated", entityType: "assistant_session", entityId: sessionId, metadata: { sufficiency: insightReply.sufficiency, citation_count: insightReply.sources.length, engine: "trend_engine" } });
+      return { message_id: replied.rows[0]!.id, answer: insightReply.answer, citations: insightReply.sources.map((entry) => ({ publication_item_id: entry.label, label: entry.label, indicator: entry.indicator, period: String(entry.year), organization: "", source: entry.source })), sufficiency: insightReply.sufficiency, visuals: insightReply.visuals, suggestions: insightReply.suggestions };
+    }
     const source = await this.db.query<QueryResultRow & Record<string, unknown>>(
       `SELECT pi.id::text AS publication_item_id, i.code AS indicator_code, i.name AS indicator_name,
               c.name AS category_name, per.label AS period_label, per.code AS period_code,

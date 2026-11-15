@@ -30,14 +30,15 @@ const DatasetPage = lazy(() => import("./pages/DatasetPage").then((module) => ({
 const AnalysisPage = lazy(() => import("./pages/DecisionPages").then((module) => ({ default: module.AnalysisPage })));
 const FinancePage = lazy(() => import("./pages/DecisionPages").then((module) => ({ default: module.FinancePage })));
 const PublicServicesPage = lazy(() => import("./pages/DecisionPages").then((module) => ({ default: module.PublicServicesPage })));
+const BerandaPage = lazy(() => import("./pages/BerandaPage").then((module) => ({ default: module.BerandaPage })));
 const OpdProfilePage = lazy(() => import("./pages/OpdProfilePage").then((module) => ({ default: module.OpdProfilePage })));
 const OpdMonitoringPage = lazy(() => import("./pages/OpdMonitoringPage").then((module) => ({ default: module.OpdMonitoringPage })));
 
 const pageMeta: Record<string, { title: string; subtitle: string; permission?: string }> = {
   "/admin": { title: "Dashboard Sistem", subtitle: "Kesehatan layanan dan pekerjaan administrasi yang perlu ditindaklanjuti.", permission: "system.configure" },
-  "/dashboard": { title: "Dashboard Pimpinan", subtitle: "Ringkasan data yang aman untuk pembacaan pimpinan.", permission: "executive_dashboard.view" },
+  "/dashboard": { title: "Beranda", subtitle: "Kondisi Kabupaten Kapuas, perubahan penting, dan tindak lanjut.", permission: "executive_dashboard.view" },
   "/executive": { title: "Ringkasan Pimpinan", subtitle: "Capaian terkurasi dari data yang telah disetujui dan dipublikasikan.", permission: "executive_dashboard.view" },
-  "/assistant": { title: "Asisten AI", subtitle: "Asisten pimpinan berbasis data SABABUKA yang telah dipublikasikan.", permission: "assistant.use" },
+  "/assistant": { title: "Tanya Sababuka", subtitle: "Tanyakan data, tren, dan tindak lanjut; jawaban dihitung dari data resmi.", permission: "assistant.use" },
   "/analysis": { title: "Analisis dan Peta", subtitle: "Baca tren, kesenjangan wilayah, konsistensi sumber, dan rekomendasi keputusan.", permission: "executive_dashboard.view" },
   "/finance": { title: "Keuangan Daerah", subtitle: "Analisis indikator pendapatan, belanja, fiskal, dan akuntabilitas keuangan.", permission: "executive_dashboard.view" },
   "/public-services": { title: "Layanan Publik", subtitle: "Analisis cakupan, mutu, kepuasan, SLA, dan pengaduan layanan.", permission: "executive_dashboard.view" },
@@ -110,7 +111,8 @@ function ProtectedApp() {
   else if (pathname === "/submissions") content = <SubmissionsPage />;
   else if (pathname === "/reviews") content = <SubmissionsPage review />;
   else if (pathname === "/guidance") content = <SubmissionsPage guidance />;
-  else if (pathname === "/dashboard" || pathname === "/executive") content = <ExecutivePage />;
+  else if (pathname === "/dashboard") content = <BerandaPage />;
+  else if (pathname === "/executive") content = <ExecutivePage />;
   else if (pathname === "/publications") content = <PublicationsPage />;
   else if (pathname === "/assistant") content = <AssistantPage />;
   else if (pathname === "/analysis") content = <AnalysisPage />;
