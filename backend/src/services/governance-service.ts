@@ -246,7 +246,7 @@ export class GovernanceService {
        FROM sababuka.categories c
        LEFT JOIN sababuka.policy_focuses pf ON pf.id = c.policy_focus_id
        LEFT JOIN sababuka.indicators i ON i.category_id = c.id AND i.archived_at IS NULL
-       WHERE c.archived_at IS NULL
+       WHERE c.archived_at IS NULL AND c.code NOT LIKE 'BANK_DATA%'
          AND ($1::text IS NULL OR c.code ILIKE '%' || $1 || '%' OR c.name ILIKE '%' || $1 || '%')
          AND ($2::uuid IS NULL OR c.policy_focus_id = $2)
        GROUP BY c.id, pf.name
@@ -448,7 +448,7 @@ export class GovernanceService {
          FROM sababuka.targets t JOIN sababuka.periods p ON p.id = t.period_id
          WHERE t.indicator_version_id = iv.id AND t.geography_id IS NULL AND t.dimension_values = '{}'::jsonb
        ) targets ON true
-       WHERE i.archived_at IS NULL
+       WHERE i.archived_at IS NULL AND i.origin_type <> 'bank_data'
          AND ($1::text IS NULL OR i.code ILIKE '%' || $1 || '%' OR i.kodref_ip ILIKE '%' || $1 || '%' OR i.name ILIKE '%' || $1 || '%')
          AND ($2::uuid IS NULL OR i.category_id = $2)
          AND ($3::uuid IS NULL OR c.policy_focus_id = $3)
