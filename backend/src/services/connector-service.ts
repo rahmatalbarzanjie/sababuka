@@ -537,6 +537,7 @@ export class ConnectorService {
       m.transform_json, m.source_priority, m.relation_type, m.status, m.dataset_version_id::text, m.created_at::text, m.updated_at::text
       FROM sababuka.indicator_source_mappings m JOIN sababuka.indicator_versions iv ON iv.id=m.indicator_version_id
       JOIN sababuka.indicators i ON i.id=iv.indicator_id JOIN sababuka.data_sources s ON s.id=m.source_id
+      WHERE i.origin_type <> 'bank_data' AND COALESCE(m.transform_json->>'bank_data','') <> 'true'
       ORDER BY m.updated_at DESC, m.created_at DESC, m.id DESC`);
     return { data: result.rows };
   }
