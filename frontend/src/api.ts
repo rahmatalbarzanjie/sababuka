@@ -1,4 +1,13 @@
 import type { ApiErrorBody } from "./types";
+import { plain } from "./text";
+
+/** Membersihkan tanda pisah panjang/sedang (em/en dash) pada semua teks respons API, termasuk data lama di database. */
+function plainDeep<T>(value: T): T {
+  if (typeof value === "string") return plain(value) as T;
+  if (Array.isArray(value)) return value.map(plainDeep) as T;
+  if (value && typeof value === "object") { for (const key of Object.keys(value)) (value as Record<string, unknown>)[key] = plainDeep((value as Record<string, unknown>)[key]); }
+  return value;
+}
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 const CSRF_KEY = "sababuka.csrf";
@@ -78,7 +87,7 @@ export async function api<T>(
     }
     const fields = invalidFieldNames(body?.error.details);
     if (fields.length && typeof window !== "undefined") window.dispatchEvent(new CustomEvent("sababuka:invalid-fields", { detail: fields }));
-    const baseMessage = body?.error.message ?? `Permintaan gagal (${response.status}).`;
+    const baseMessage = plain(body?.error.message) || `Permintaan gagal (${response.status}).`;
     throw new ApiClientError(
       response.status,
       body?.error.code ?? "HTTP_ERROR",
@@ -89,7 +98,7 @@ export async function api<T>(
   }
   if (options.mutation && typeof window !== "undefined") window.dispatchEvent(new CustomEvent("sababuka:notifications-changed"));
   if (response.status === 204) return undefined as T;
-  return response.json() as Promise<T>;
+  return plainDeep(await response.json() as T);
 }
 
 export function apiPath(path: string): string {
