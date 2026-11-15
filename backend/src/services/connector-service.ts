@@ -14,7 +14,7 @@ import { PublicationService } from "./publication-service.js";
 import { GovernanceService } from "./governance-service.js";
 
 interface SourceRow extends QueryResultRow { id: string; code: string; name: string; source_type: string; base_url: string | null; connection_config: Record<string, unknown>; credential_reference: string | null; last_checked_at: string | null }
-interface MappingRow extends QueryResultRow { id: string; indicator_version_id: string; indicator_code: string; indicator_name: string; indicator_status: string; source_id: string; source_code: string; source_type: string; external_dataset_id: string; external_resource_id: string | null; resource_url: string | null; geography_field: string | null; geography_code: string; year_field: string; value_field: string; unit_field: string | null; expected_unit: string | null; frequency: string; transform_json: Record<string, unknown>; source_priority: number; relation_type: string; status: string; dataset_version_id: string | null; created_at: string; updated_at: string }
+interface MappingRow extends QueryResultRow { observation_count?: number; last_imported_at?: string | null; id: string; indicator_version_id: string; indicator_code: string; indicator_name: string; indicator_status: string; source_id: string; source_code: string; source_type: string; external_dataset_id: string; external_resource_id: string | null; resource_url: string | null; geography_field: string | null; geography_code: string; year_field: string; value_field: string; unit_field: string | null; expected_unit: string | null; frequency: string; transform_json: Record<string, unknown>; source_priority: number; relation_type: string; status: string; dataset_version_id: string | null; created_at: string; updated_at: string }
 import { BPS_MAX_YEARS_PER_REQUEST, bpsYearWindows, buildBpsDataUrl, buildBpsVariableSearchUrl, findAmbiguousYears, findKapuasOption, parseBpsDataContent, redactBpsUrl, summarizeBpsVariables, type BpsDataFilter } from "./bps-adapter.js";
 
 type JsonObject = Record<string, unknown>;
@@ -534,7 +534,9 @@ export class ConnectorService {
     const result = await this.db.query<MappingRow>(`SELECT m.id::text, m.indicator_version_id::text, i.code AS indicator_code, i.name AS indicator_name, iv.status AS indicator_status,
       m.source_id::text, s.code AS source_code, s.source_type, m.external_dataset_id, m.external_resource_id, m.resource_url,
       m.geography_field, m.geography_code, m.year_field, m.value_field, m.unit_field, m.expected_unit, m.frequency,
-      m.transform_json, m.source_priority, m.relation_type, m.status, m.dataset_version_id::text, m.created_at::text, m.updated_at::text
+      m.transform_json, m.source_priority, m.relation_type, m.status, m.dataset_version_id::text, m.created_at::text, m.updated_at::text,
+      (SELECT count(*)::int FROM sababuka.observations o WHERE o.indicator_version_id = m.indicator_version_id) AS observation_count,
+      (SELECT max(r.updated_at)::text FROM sababuka.connector_runs r WHERE r.mapping_id = m.id AND r.status = 'imported') AS last_imported_at
       FROM sababuka.indicator_source_mappings m JOIN sababuka.indicator_versions iv ON iv.id=m.indicator_version_id
       JOIN sababuka.indicators i ON i.id=iv.indicator_id JOIN sababuka.data_sources s ON s.id=m.source_id
       WHERE i.origin_type <> 'bank_data' AND COALESCE(m.transform_json->>'bank_data','') <> 'true'
