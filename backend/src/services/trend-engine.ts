@@ -145,7 +145,9 @@ export function buildNarrative(context: InsightContext): { headline: string; det
   const opdText = opds.length ? opds.join(" dan ") : "OPD terkait";
   const unitText = unit ? ` ${unit}` : "";
   const moved = analysis.change_pct === null ? "" : ` (${formatPct(analysis.change_pct)} dari ${analysis.previous_year})`;
-  const verb = analysis.trend === "naik" ? "meningkat" : analysis.trend === "turun" ? "menurun" : analysis.trend === "fluktuatif" ? "berfluktuasi" : "relatif stabil";
+  const lastStep = analysis.change === null ? 0 : Math.sign(analysis.change);
+  const conflicting = (analysis.trend === "naik" && lastStep < 0) || (analysis.trend === "turun" && lastStep > 0);
+  const verb = conflicting ? "berfluktuasi" : analysis.trend === "naik" ? "meningkat" : analysis.trend === "turun" ? "menurun" : analysis.trend === "fluktuatif" ? "berfluktuasi" : "relatif stabil";
   const headline = `${name} ${verb}: ${idNumber(analysis.latest_value, 2)}${unitText} pada ${analysis.latest_year}${moved}.`;
   const parts: string[] = [];
   if (analysis.streak.length >= 2 && analysis.streak.direction) parts.push(`${analysis.streak.direction === "naik" ? "Naik" : "Turun"} ${analysis.streak.length} tahun berturut-turut.`);
