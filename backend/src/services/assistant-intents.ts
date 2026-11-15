@@ -52,8 +52,15 @@ export interface Visual {
   points?: Array<{ year: number; value: number }>;
   year?: number; items?: Array<{ name: string; value: number }>;
 }
-export interface AssistantReply { answer: string; visuals: Visual[]; suggestions: string[]; sources: Array<{ label: string; indicator: string; year: number; source: string }>; sufficiency: "sufficient" | "partial" | "insufficient" }
+export interface AssistantReply { facts: unknown; answer: string; visuals: Visual[]; suggestions: string[]; sources: Array<{ label: string; indicator: string; year: number; source: string }>; sufficiency: "sufficient" | "partial" | "insufficient" }
 
+const factOf = (insight: Insight) => ({
+  indikator: insight.name, kategori: insight.category, satuan: insight.unit, tahun_terbaru: insight.latest_year,
+  nilai_terbaru: num(insight.latest_value), perubahan_persen: insight.change_pct === null ? null : formatPct(insight.change_pct),
+  tren: insight.trend, penilaian: insight.assessment, ringkasan: insight.headline, rincian: insight.detail, saran: insight.recommendation,
+  opd: insight.opds, sumber: insight.source_label, riwayat: insight.series.map((point) => `${point.year}: ${num(point.value)}`),
+  kecamatan: insight.districts ? { tertinggi: insight.districts.highest.map((item) => `${item.name}: ${num(item.value)}`), terendah: insight.districts.lowest.map((item) => `${item.name}: ${num(item.value)}`) } : null,
+});
 const sourceOf = (insight: Insight) => ({ label: `${insight.name} · ${insight.latest_year}`, indicator: insight.name, year: insight.latest_year, source: insight.source_label });
 
 export function buildReply(question: string, insights: Insight[]): AssistantReply {
@@ -64,14 +71,14 @@ export function buildReply(question: string, insights: Insight[]): AssistantRepl
   if (!matches.length) {
     const concerning = insights.filter((item) => item.assessment === "memburuk" || item.analysis.anomaly?.is_anomaly).sort((a, b) => b.score - a.score).slice(0, 4);
     const improving = insights.filter((item) => item.assessment === "membaik").length;
-    if (!insights.length) return { answer: "Belum ada data terpublikasi yang cukup untuk dianalisis.", visuals: [], suggestions: [], sources: [], sufficiency: "insufficient" };
+    if (!insights.length) return { facts: null, answer: "Belum ada data terpublikasi yang cukup untuk dianalisis.", visuals: [], suggestions: [], sources: [], sufficiency: "insufficient" };
     if (!intent.overview) {
       const sample = [...insights].sort((a, b) => b.score - a.score).slice(0, 3).map((item) => item.name);
-      return { answer: `Saya belum menemukan indikator yang cocok dengan pertanyaan itu di ${total} indikator yang tersedia. Coba sebutkan nama indikatornya, misalnya: ${sample.join("; ")}.`, visuals: [], suggestions: sample.map((name) => `Bagaimana tren ${name}?`), sources: [], sufficiency: "insufficient" };
+      return { facts: null, answer: `Saya belum menemukan indikator yang cocok dengan pertanyaan itu di ${total} indikator yang tersedia. Coba sebutkan nama indikatornya, misalnya: ${sample.join("; ")}.`, visuals: [], suggestions: sample.map((name) => `Bagaimana tren ${name}?`), sources: [], sufficiency: "insufficient" };
     }
     const lines = concerning.map((item) => `• ${item.headline} ${item.opds.length ? `(${item.opds.join(", ")})` : ""}`);
     const answer = `Dari ${total} indikator yang dianalisis, ${improving} menunjukkan perbaikan dan ${insights.filter((item) => item.assessment === "memburuk").length} memburuk. ${concerning.length ? `Yang paling perlu perhatian:\n${lines.join("\n")}` : "Tidak ada indikator yang menunjukkan kemunduran tajam saat ini."}`;
-    return { answer, visuals: [], suggestions: concerning.slice(0, 3).map((item) => `Apa rekomendasi untuk ${item.name}?`), sources: concerning.map(sourceOf), sufficiency: "partial" };
+    return { facts: { mode: "ringkasan", total_indikator: total, membaik: improving, memburuk: insights.filter((item) => item.assessment === "memburuk").length, perlu_perhatian: concerning.map(factOf) }, answer, visuals: [], suggestions: concerning.slice(0, 3).map((item) => `Apa rekomendasi untuk ${item.name}?`), sources: concerning.map(sourceOf), sufficiency: "partial" };
   }
 
   const top = matches[0]!.insight;
@@ -97,5 +104,5 @@ export function buildReply(question: string, insights: Insight[]): AssistantRepl
     !intent.recommendation ? `Apa rekomendasi untuk ${top.name}?` : null,
     ...others.map((item) => `Bagaimana tren ${item.insight.name}?`),
   ].filter((value): value is string => Boolean(value)).slice(0, 3);
-  return { answer: parts.join(" "), visuals, suggestions, sources: [sourceOf(top), ...others.map((item) => sourceOf(item.insight))], sufficiency: top.analysis.years >= 4 ? "sufficient" : "partial" };
+  return { facts: { mode: "indikator", tahun_ditanyakan: intent.year, indikator: matches.map((item) => factOf(item.insight)) }, answer: parts.join(" "), visuals, suggestions, sources: [sourceOf(top), ...others.map((item) => sourceOf(item.insight))], sufficiency: top.analysis.years >= 4 ? "sufficient" : "partial" };
 }
