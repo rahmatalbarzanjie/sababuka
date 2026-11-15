@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { QueryResultRow } from "pg";
 import { requirePermission } from "../plugins/authentication.js";
+import { InsightService } from "../services/insight-service.js";
 
 const uuid = { type: "string", format: "uuid" } as const;
 
@@ -215,5 +216,15 @@ export async function executiveRoutes(app: FastifyInstance): Promise<void> {
       decision: "Menggabungkan tren, kesenjangan wilayah, target, dan konsistensi sumber menjadi arti kebijakan serta tindakan yang dapat ditindaklanjuti.",
       causality_guard: "Sistem tidak menyimpulkan sebab-akibat hanya dari korelasi. Jawaban 'mengapa' harus didukung dimensi, catatan OPD, atau sumber pendukung yang terverifikasi.",
     }, items: result.rows, series, reconciliation, recommendations };
+  });
+
+  app.get<{ Querystring: { limit?: number; source?: string; assessment?: string; q?: string; indicator_id?: string } }>("/executive/insights", {
+    schema: { querystring: { type: "object", additionalProperties: false, properties: {
+      limit: { type: "integer", minimum: 1, maximum: 100, default: 20 }, source: { type: "string", enum: ["rpjmd", "bps", "satudata", "opd"] },
+      assessment: { type: "string", enum: ["membaik", "memburuk", "netral"] }, q: { type: "string", maxLength: 120 }, indicator_id: uuid,
+    } } },
+  }, async (request) => {
+    requirePermission(request, "executive_dashboard.view");
+    return new InsightService(app.db).insights({ limit: request.query.limit ?? 20, source: request.query.source, assessment: request.query.assessment, q: request.query.q, indicatorId: request.query.indicator_id });
   });
 }
