@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { requireCsrf, requirePermission, requireSuperadmin } from "../plugins/authentication.js";
 import { requestAuditContext } from "../request-context.js";
+import { BankDataSyncService } from "../services/bank-data-sync-service.js";
 import { SeriesLinkService, type SeriesLinkInput } from "../services/series-link-service.js";
 import { ConnectorService, type IntegrationProfileInput, type MappingInput } from "../services/connector-service.js";
 
@@ -55,6 +56,9 @@ export async function connectorRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Querystring: { q: string; rows?: number; source?: "satudata" | "bps" } }>("/reference/datasets", { config: { rateLimit: { max: 20, timeWindow: "1 minute" } }, schema: { querystring: { type: "object", additionalProperties: false, required: ["q"], properties: { q: { type: "string", minLength: 2, maxLength: 120 }, rows: { type: "integer", minimum: 1, maximum: 10, default: 8 }, source: { type: "string", enum: ["satudata", "bps"], default: "satudata" } } } } }, async (request) => { requirePermission(request, "reference.search"); const q = request.query.q.trim(); const rows = request.query.rows ?? 8; return request.query.source === "bps" ? service(request).searchReferenceBps(q, rows) : service(request).searchReferenceDatasets(q, rows); });
   app.get<{ Querystring: { q?: string; page?: number } }>("/connectors/bps/variables", { schema: { querystring: { type: "object", additionalProperties: false, properties: { q: { type: "string", maxLength: 120 }, page: { type: "integer", minimum: 1, maximum: 200, default: 1 } } } } }, async (request) => { view(request); return service(request).searchBpsVariables(request.query.q ?? "", request.query.page ?? 1); });
   app.get<{ Params: { variable_id: string } }>("/connectors/bps/variables/:variable_id", { schema: { params: { type: "object", additionalProperties: false, required: ["variable_id"], properties: { variable_id: { type: "string", pattern: "^[0-9]{1,8}$" } } } } }, async (request) => { view(request); return service(request).getBpsVariable(request.params.variable_id); });
+  const bankSync = (request: FastifyRequest) => new BankDataSyncService(request.server.db, request.server.config, request.server.config.bankDataSyncHours);
+  app.get("/connectors/bank-data/sync", async (request) => { view(request); return bankSync(request).status(); });
+  app.post("/connectors/bank-data/sync", async (request) => { mutate(request); return bankSync(request).startNow(request.auth!.user.id); });
   const links = (request: FastifyRequest) => new SeriesLinkService(request.server.db);
   app.get("/connectors/series-links", async (request) => { view(request); return links(request).list(); });
   app.get<{ Querystring: { q: string } }>("/connectors/series-links/search", { schema: { querystring: { type: "object", additionalProperties: false, required: ["q"], properties: { q: { type: "string", maxLength: 120 } } } } }, async (request) => { view(request); return links(request).searchSeries(request.query.q); });
