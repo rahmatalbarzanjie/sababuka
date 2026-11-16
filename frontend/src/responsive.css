@@ -102,3 +102,15 @@ textarea:not(.chat-composer textarea) { min-height: 96px !important; }
 .submission-mobile-list header { flex-wrap: wrap; }
 .submission-mobile-list header > span { min-width: 0; flex: 1 1 140px; overflow-wrap: anywhere; }
 .submission-mobile-list .badge { max-width: 100%; white-space: normal; text-align: left; }
+
+/* Mode gelap: permukaan yang memakai latar terang tetap (hasil audit 16 Nov 2026) mengikuti token gelap agar teks terbaca. */
+html[data-theme="dark"] .publication-flow,
+html[data-theme="dark"] .pic-identity-card { background: var(--ui-surface-subtle); border-color: var(--ui-border); }
+html[data-theme="dark"] .publication-flow b { background: var(--ui-primary-soft); color: var(--ui-text); }
+html[data-theme="dark"] .publication-flow strong,
+html[data-theme="dark"] .pic-identity-card strong { color: var(--ui-text); }
+html[data-theme="dark"] .publication-flow > svg { color: var(--ui-muted); }
+html[data-theme="dark"] .assistant-suggestions button { background: var(--ui-surface-subtle); border-color: var(--ui-border); color: var(--ui-text); }
+html[data-theme="dark"] .assistant-suggestions button:hover,
+html[data-theme="dark"] .assistant-suggestions button:focus-visible { background: var(--ui-primary-soft); border-color: var(--ui-accent); }
+html[data-theme="dark"] .all-filters .chip.active { color: #0b1b2b; }

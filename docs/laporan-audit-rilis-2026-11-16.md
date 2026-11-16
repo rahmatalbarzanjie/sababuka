@@ -129,3 +129,30 @@ Sudah diperbaiki di branch, menunggu tinjauan dan penggabungan:
 | R-07 | URL APK, OpenAPI, dan README Android memakai `https://sababuka.com`. |
 
 Belum dikerjakan: T-01 (REVOKE oleh pemilik), T-02 (konfirmasi CI), S-03, S-04, S-06, S-07, S-08, R-01 sampai R-03, R-06, R-08, R-09, dan seluruh tahap 2.
+
+## 10. Hasil tahap 2 (uji dengan login Developer, 16 November 2026)
+
+Metode: login Developer di produksi, lalu "Bertindak sebagai" BAPPERIDA, Diskominfosantik, Pembina Statistik BPS, Pimpinan, dan OPD (Dinas Kesehatan dan BKAD). Hanya permintaan baca (GET) yang dikirim; tidak ada data yang diubah. Sesi diakhiri setelah pengujian.
+
+### Otorisasi dan sesi (API)
+
+- Matriks 40 endpoint x 7 konteks peran sesuai rancangan: Pimpinan hanya Dashboard Eksekutif dan publikasi terbit; Pembina Statistik tidak dapat membuka pengguna, audit, konektor, atau dashboard pimpinan; OPD tidak dapat membuka pengguna, peran, audit, konektor, atau sistem; menu Pengaturan hanya untuk Developer.
+- Uji lintas OPD (IDOR) dari OPD Dinas Kesehatan terhadap data OPD lain: capaian, bukti dukung, catatan pembinaan, profil OPD, dokumen profil, dan periode tersedia, semuanya ditolak 403. Data milik sendiri tetap dapat dibuka (kontrol 200).
+- Seluruh endpoint tanpa sesi ditolak 401. Login salah 401. Logout tanpa token CSRF 403. Peran pratinjau tidak valid ditolak 400.
+- IP pada audit login kini berisi alamat klien (bukan alamat Cloudflare), sehingga perbaikan S-01 bekerja di produksi.
+- Catatan: saat "Bertindak sebagai", daftar notifikasi adalah milik akun Developer, bukan milik peran yang dipratinjau. Ini perilaku rancangan, tetapi perlu diketahui agar tidak dikira kebocoran.
+
+### Antarmuka (193 pemuatan halaman, 6 peran, desktop/tablet/iPhone, mode terang dan gelap)
+
+- Tidak ada halaman yang meluap horizontal, tidak ada halaman tanpa satu `h1`, tidak ada tombol atau tautan tanpa nama, tidak ada gambar tanpa `alt`, tidak ada tanda pisah panjang, dan tidak ada halaman kosong.
+- Mode terang: tidak ada teks di bawah rasio kontras 4,5:1.
+- U-01 (diperbaiki): mode gelap memiliki empat permukaan berlatar terang tetap sehingga teks hampir tak terbaca (rasio 1,05 sampai 2,5): langkah alur Kurasi & Publikasi, kartu identitas PIC di Profil Data OPD, tombol saran Asisten, dan chip aktif pada dashboard. Setelah perbaikan, pemeriksaan ulang menunjukkan 0 temuan kontras pada halaman tersebut.
+- U-02: skrip analitik Cloudflare (`static.cloudflareinsights.com/beacon.min.js`) diblokir CSP dan menimbulkan galat konsol di setiap halaman. Matikan injeksi otomatis Web Analytics di Cloudflare, atau tambahkan host itu ke `script-src` dan `connect-src`.
+- U-03: filter pada Pemantauan OPD (`/admin/opd-monitoring`) memakai `select` tanpa label yang terbaca pembaca layar.
+- U-04: 16 dari 50 halaman mobile memiliki target sentuh 24 px (kotak centang pada daftar hak akses, menu, kategori, dan matriks indikator; kolom cari). Memenuhi batas minimum WCAG 2.2 AA (24 px), tetapi di bawah 44 px yang disarankan.
+- U-05: header keamanan ganda dari tiga lapis (nginx, aplikasi, Cloudflare), misalnya `X-Content-Type-Options` dan HSTS muncul dua kali. Tidak berbahaya, tetapi sebaiknya satu lapis saja.
+- U-06: satu permintaan `/me` menerima 502 saat deploy berlangsung (jeda beberapa detik ketika layanan dimulai ulang). Pengguna yang aktif saat deploy dapat terlempar ke halaman login. Pertimbangkan deploy di luar jam kerja atau mulai ulang bertahap.
+
+### Belum dicakup
+
+Uji fungsional yang mengubah data (kirim capaian, verifikasi, publikasi, impor) tidak dijalankan di produksi agar data nyata tidak terpengaruh; sebaiknya dilakukan di lingkungan uji. Navigasi papan ketik dan pembaca layar hanya diperiksa lewat atribut otomatis, bukan uji manual. Dari pemeriksaan ukuran huruf kolom isian di mobile, hasil otomatis mencampur kotak centang sehingga belum dapat disimpulkan; verifikasi manual di iPhone disarankan.
