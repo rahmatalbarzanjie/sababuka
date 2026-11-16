@@ -1,3 +1,4 @@
+import { describeError } from "./error-text.js";
 import { randomUUID } from "node:crypto";
 import type { Database } from "../database.js";
 import type { AppConfig } from "../config.js";
@@ -106,7 +107,7 @@ export class BankDataSyncService {
       if (summary.bps.failed + summary.satudata.failed > 0) status = "partial";
     } catch (error) {
       status = "failed";
-      summary.error = (error instanceof Error ? error.message : String(error)).slice(0, 300);
+      summary.error = describeError(error).slice(0, 300);
     } finally {
       await this.db.query(`UPDATE sababuka.bank_data_sync_runs SET status = $2, finished_at = now(), summary = $3::jsonb WHERE id = $1`, [runId, status, JSON.stringify(summary)]);
       running = false;
@@ -137,7 +138,7 @@ export class BankDataSyncService {
         await this.record("SATUDATA_KAPUAS", pkg.id, result.status === "failed" ? "failed" : changed ? "changed" : "unchanged", changed, pkg.modified, result.reason ?? null);
       } catch (error) {
         summary.satudata.failed += 1;
-        await this.record("SATUDATA_KAPUAS", pkg.id, "failed", false, null, error instanceof Error ? error.message : String(error));
+        await this.record("SATUDATA_KAPUAS", pkg.id, "failed", false, null, describeError(error));
       }
     }
   }
@@ -158,7 +159,7 @@ export class BankDataSyncService {
           await this.record("BPS_KAPUAS", item.id, result.status === "failed" ? "failed" : changed ? "changed" : "unchanged", changed, null, result.reason ?? null);
         } catch (error) {
           summary.bps.failed += 1;
-          await this.record("BPS_KAPUAS", item.id, "failed", false, null, error instanceof Error ? error.message : String(error));
+          await this.record("BPS_KAPUAS", item.id, "failed", false, null, describeError(error));
         }
       }
     }
