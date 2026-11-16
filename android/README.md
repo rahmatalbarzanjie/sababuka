@@ -1,6 +1,6 @@
 # Aplikasi Android SABABUKA
 
-Pembungkus WebView untuk https://dev.sababuka.com. Seluruh fitur tetap berjalan di situs web, jadi pembaruan
+Pembungkus WebView untuk https://sababuka.com. Seluruh fitur tetap berjalan di situs web, jadi pembaruan
 situs langsung berlaku tanpa memasang APK baru. Aplikasi menangani unggah berkas, unduhan, tombol kembali,
 tautan eksternal (dibuka di peramban), dan halaman saat tidak ada jaringan.
 

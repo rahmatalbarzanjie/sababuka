@@ -54,3 +54,19 @@ test("galat 4xx Fastify tanpa validation dilaporkan sebagai 400, bukan 500", asy
   assert.equal(response.json().error.request_id, response.headers["x-request-id"]);
   await app.close();
 });
+
+test("trustProxyHops membatasi alamat klien dari X-Forwarded-For", async () => {
+  const probe = async (hops: number) => {
+    const app = await buildApp({ config: { ...testConfig, trustProxyHops: hops }, db: fakeDb, logger: false });
+    app.addHook("onSend", async (request, reply, payload) => { reply.header("x-seen-ip", request.ip); return payload; });
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/v1/health",
+      remoteAddress: "127.0.0.1",
+      headers: { "x-forwarded-for": "6.6.6.6, 203.0.113.9, 172.70.1.1" },
+    });
+    return String(response.headers["x-seen-ip"]);
+  };
+  assert.equal(await probe(0), "127.0.0.1");
+  assert.equal(await probe(2), "203.0.113.9");
+});

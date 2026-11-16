@@ -2,7 +2,7 @@ plugins {
     id "com.android.application"
 }
 
-def appUrl = (project.findProperty("sababukaUrl") ?: "https://dev.sababuka.com").toString()
+def appUrl = (project.findProperty("sababukaUrl") ?: "https://sababuka.com").toString()
 def appHost = new URI(appUrl).host
 
 android {
