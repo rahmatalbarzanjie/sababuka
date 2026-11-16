@@ -3,6 +3,7 @@ import { ApiError } from "../errors.js";
 import type { AuthContext } from "../types/auth.js";
 import { recordAudit, type AuditContext } from "./audit-service.js";
 import { notifyOrganization, notifyRole } from "./notification-service.js";
+import { PublicationService } from "./publication-service.js";
 
 interface CountedRow extends QueryResultRow { total_count: string }
 type SubmissionAction = "submit" | "start-review" | "return" | "approve";
@@ -401,6 +402,9 @@ export class SubmissionService {
     } else if (action === "approve") {
       await notifyOrganization(this.db, detail.organization_id, { ...entity, type: "submission.approved", title: "Capaian disetujui",
         message: `Capaian ${detail.period_label} telah disetujui Bapperida.` }, auth.user.id);
+      // Capaian yang disetujui langsung terbit ke dashboard pimpinan; kegagalan penerbitan tidak membatalkan persetujuan.
+      try { await new PublicationService(this.db).publishApprovedBatch(auth, id, audit); }
+      catch (error) { await recordAudit(this.db, { ...audit, eventType: "submission.auto_publish_failed", entityType: "data_batch", entityId: id, organizationId: detail.organization_id as string, metadata: { reason: error instanceof Error ? error.message.slice(0, 200) : "Gagal" } }); }
     }
     return this.get(auth, id);
   }
