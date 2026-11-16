@@ -952,6 +952,7 @@ export class ConnectorService {
       }
     }
     let firstBatch: string | null = null;
+    let insertedRows = 0;
     const skipped: Array<{ year: number; geography_code: string }> = [];
     for (const year of [...new Set(staging.rows.map((item) => Number(item.year)))]) {
       const period = await this.db.query<QueryResultRow & Record<string, unknown>>(`SELECT id::text FROM sababuka.periods WHERE code=$1`, [String(year)]);
@@ -967,6 +968,7 @@ export class ConnectorService {
         if (same.rows.length) skipped.push({ year, geography_code: String(item.geography_code) }); else values.push(item);
       }
       if (!values.length) continue;
+      insertedRows += values.length;
       const existing = await this.db.query<QueryResultRow & Record<string, unknown>>(`SELECT id::text FROM sababuka.data_batches WHERE source_metadata->>'connector_run_id'=$1 AND reporting_period_id=$2`, [runId, period.rows[0]!.id]);
       let batchId = existing.rows[0]?.id as string | undefined;
       if (!batchId) {
@@ -980,8 +982,9 @@ export class ConnectorService {
       }
       await this.db.query(`UPDATE sababuka.data_batches SET row_count=(SELECT count(*) FROM sababuka.observations WHERE batch_id=$1), updated_at=now() WHERE id=$1`, [batchId]);
     }
-    await this.db.query(`UPDATE sababuka.connector_runs SET status='imported', dry_run=false, approved_by=$2, approved_at=now(), imported_batch_id=$3, updated_at=now() WHERE id=$1`, [runId, auth.user.id, firstBatch]);
+    await this.db.query(`UPDATE sababuka.connector_runs SET status='imported', dry_run=false, approved_by=$2, approved_at=now(), imported_batch_id=$3, preview_json = COALESCE(preview_json, '{}'::jsonb) || $4::jsonb, updated_at=now() WHERE id=$1`, [runId, auth.user.id, firstBatch, JSON.stringify({ imported_rows: insertedRows, skipped_rows: skipped.length })]);
     await recordAudit(this.db, { ...audit, eventType: "connector.import_approved", entityType: "connector_run", entityId: runId, afterData: { imported_batch_id: firstBatch, status: "imported", skipped_existing: skipped }, metadata: { mapping_id: row.mapping_id } });
+    await this.publishIndicatorObservations(auth, String(row.indicator_version_id), audit);
     return this.getRun(runId);
   }
 
