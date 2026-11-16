@@ -1,28 +1,18 @@
-import { AlertTriangle, Database, Search, ArrowDownRight, ArrowUpRight, Building2, CheckCircle2, Minus, TrendingUp } from "lucide-react";
+import { AlertTriangle, Database, Search, ArrowDownRight, ArrowUpRight, Building2, CheckCircle2, MessageCircle, Minus, TrendingUp } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "../api";
 import { Badge, EmptyState, ErrorState, PageLoading, useAsync } from "../components";
-import { DistrictMap, normalizeName, useKapuasGeography, type DistrictValue } from "../components/DistrictMap";
+import { AppLink } from "../components/AppLink";
+import { DistrictMap, normalizeName, useKapuasGeography } from "../components/DistrictMap";
+import { Legend } from "../components/Legend";
+import { askAbout, askPath, indicatorPath, isVerified, num, pct, sector, statusOf, toneOf, type Assessment, type Insight } from "../insight";
+import { navigate } from "../router";
 import { Sparkline, TrendChart } from "../components/InsightVisuals";
 import { plain } from "../text";
 
-type Assessment = "membaik" | "memburuk" | "netral";
-interface Insight {
-  indicator_id: string; name: string; category: string; unit: string; latest_year: number; latest_value: number;
-  change_pct: number | null; trend: "naik" | "turun" | "stabil" | "fluktuatif"; assessment: Assessment;
-  limited?: boolean; score: number; headline: string; detail: string; recommendation: string; opds: string[]; source_label: string; source_kind: string;
-  series: Array<{ year: number; value: number }>;
-  analysis: { anomaly: { is_anomaly: boolean } | null; change_pct: number | null; previous_year: number | null; cagr_pct: number | null; years: number; first_year: number; streak: { direction: "naik" | "turun" | null; length: number } };
-  district_latest: { year: number; items: DistrictValue[] } | null;
-  links: Array<{ relation: "primary" | "supporting" | "comparison"; notes: string | null; indicator_id: string; name: string; unit: string; latest_year: number; latest_value: number; change_pct: number | null; trend: "naik" | "turun" | "stabil" | "fluktuatif"; source_label: string }>;
-}
 const relationLabel = { primary: "Utama", supporting: "Pendukung", comparison: "Pembanding" } as const;
 interface InsightsResponse { generated_at: string; analyzed: number; context: { series: number; linked: number }; summary: { membaik: number; memburuk: number; naik: number; turun: number; anomali: number }; insights: Insight[] }
 
-const pct = (value: number | null) => value === null ? "-" : `${value > 0 ? "+" : ""}${value.toLocaleString("id-ID", { maximumFractionDigits: 1 })}%`;
-const num = (value: number) => value.toLocaleString("id-ID", { maximumFractionDigits: 2 });
-const sector = (category: string) => plain(category.replace(/^Bank Data · /u, ""));
-const toneOf = (assessment: Assessment) => assessment === "membaik" ? "good" : assessment === "memburuk" ? "bad" : "neutral";
 const dateLabel = (iso: string) => new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 
 const signed = (value: number | null, digits = 1) => value === null ? "-" : `${value > 0 ? "+" : ""}${value.toLocaleString("id-ID", { maximumFractionDigits: digits })}%`;
@@ -36,11 +26,10 @@ function Spotlight({ item, rank }: { item: Insight; rank: number }) {
   const Icon = item.trend === "naik" ? ArrowUpRight : item.trend === "turun" ? ArrowDownRight : Minus;
   const a = item.analysis;
   const streak = a.streak.direction && a.streak.length >= 2 ? `${a.streak.length} tahun` : null;
-  const extra = plain(item.detail).split(/(?<=\.)\s+/u).filter((line) => line && !/^(Naik|Turun) \d+ tahun berturut-turut\./u.test(line) && !/^Laju rata-rata/u.test(line) && !/^Belum ada pola khusus/u.test(line));
   return <article className={`spotlight ${tone}`}>
     <header>
       <span className="spotlight-rank" aria-hidden>{rank}</span>
-      <div><small>{sector(item.category)}</small><h3>{plain(item.name)}</h3></div>
+      <div><small>{sector(item.category)}</small><h3><AppLink to={indicatorPath(item.indicator_id)}>{plain(item.name)}</AppLink></h3></div>
       <span className="spotlight-badges">{a.anomaly?.is_anomaly && <Badge tone="warning">Perubahan tidak biasa</Badge>}<Badge tone={tone === "good" ? "success" : tone === "bad" ? "warning" : "neutral"}><Icon aria-hidden />{pct(item.change_pct)}</Badge></span>
     </header>
     <div className="spotlight-grid">
@@ -52,12 +41,16 @@ function Spotlight({ item, rank }: { item: Insight; rank: number }) {
           <Stat label={`Laju per tahun${a.first_year ? ` sejak ${a.first_year}` : ""}`} value={a.years >= 4 ? signed(a.cagr_pct) : "-"} />
           <Stat label={a.streak.direction === "turun" ? "Turun beruntun" : a.streak.direction === "naik" ? "Naik beruntun" : "Rentetan"} value={streak ?? "Tidak ada"} />
         </div>
-        {extra.length > 0 && <p className="muted">{extra.join(" ")}</p>}
       </div>
     </div>
-    <p className="spotlight-action"><b>Tindak lanjut.</b> {plain(item.recommendation)}</p>
+    <dl className="brief-list spotlight-brief">
+      <div><dt>Analisis</dt><dd>{plain(item.detail)}</dd></div>
+      <div><dt>Tindak lanjut dan rekomendasi</dt><dd>{plain(item.recommendation)}</dd></div>
+      <div><dt>OPD terkait</dt><dd>{item.opds.length ? item.opds.join(", ") : "OPD penanggung jawab belum dipetakan."}</dd></div>
+    </dl>
+    <div className="spotlight-actions"><AppLink to={indicatorPath(item.indicator_id)} className="button secondary">Lihat tabel dan grafik</AppLink><button type="button" className="button secondary" onClick={() => navigate(askPath(askAbout(item)))}><MessageCircle aria-hidden />Tanya Sababuka</button></div>
     {item.links.length > 0 && <div className="spotlight-links"><b>Data pendukung dan pembanding (Bank Data, belum diverifikasi)</b><ul>{item.links.map((link) => <li key={`${link.relation}:${link.indicator_id}`}><Badge tone="neutral">{relationLabel[link.relation]}</Badge><span>{plain(link.name)}</span><strong>{num(link.latest_value)} {plain(link.unit)}</strong><small>{link.latest_year} · {pct(link.change_pct)}</small></li>)}</ul></div>}
-    <footer>{item.opds.length > 0 && <span><Building2 aria-hidden />{item.opds.join(", ")}</span>}<small>Sumber: {plain(item.source_label)}</small></footer>
+    <footer>{item.opds.length > 0 && <span><Building2 aria-hidden />{item.opds.join(", ")}</span>}<small>Sumber: {plain(item.source_label)}{isVerified(item.source_kind) ? "" : " (Bank Data, belum diverifikasi)"}</small></footer>
   </article>;
 }
 
@@ -100,8 +93,6 @@ function SectorHealth({ insights }: { insights: Insight[] }) {
 }
 
 type StatusFilter = "semua" | Assessment;
-const statusText: Record<Assessment, string> = { membaik: "Membaik", memburuk: "Memburuk", netral: "Belum dinilai" };
-const statusOf = (item: Insight) => item.limited ? "Data belum cukup" : statusText[item.assessment];
 
 /** Seluruh indikator kinerja dalam satu tabel agar pimpinan melihat gambaran lengkap, bukan hanya yang perlu perhatian. */
 function AllIndicators({ insights }: { insights: Insight[] }) {
@@ -127,7 +118,7 @@ function AllIndicators({ insights }: { insights: Insight[] }) {
     </div>
     {rows.length === 0 ? <EmptyState title="Tidak ada indikator">Ubah filter atau kata kunci pencarian.</EmptyState> : <div className="table-scroll"><table className="all-table"><thead><tr><th>Indikator</th><th>Nilai terbaru</th><th>Tren</th><th>Perubahan</th><th>Status</th><th>OPD</th></tr></thead><tbody>
       {rows.map((item) => { const tone = toneOf(item.assessment); return <tr key={item.indicator_id}>
-        <td><strong>{plain(item.name)}</strong><small>{sector(item.category)} · Sumber: {plain(item.source_label)}</small></td>
+        <td><strong><AppLink to={indicatorPath(item.indicator_id)}>{plain(item.name)}</AppLink></strong><small>{sector(item.category)} · Sumber: {plain(item.source_label)}</small></td>
         <td className="num"><strong>{num(item.latest_value)}</strong><small>{plain(item.unit)} · {item.latest_year}</small></td>
         <td>{item.series.length >= 2 ? <Sparkline points={item.series} tone={tone} /> : <small>Baru {item.series.length} tahun</small>}</td>
         <td className={`num ${tone}`}>{pct(item.change_pct)}</td>
@@ -202,7 +193,7 @@ export function BerandaPage() {
       <section className="exec-main" aria-labelledby="sorotan">
         <header className="section-head"><h2 id="sorotan"><AlertTriangle aria-hidden />Sorotan utama</h2><p>Indikator yang memburuk atau berubah tidak wajar, diurutkan menurut tingkat prioritas.</p></header>
         {spotlight.length ? <div className="spotlight-list">{spotlight.map((item, index) => <Spotlight key={item.indicator_id} item={item} rank={index + 1} />)}</div> : <EmptyState title="Tidak ada sorotan">Tidak ada indikator yang memburuk atau berubah tidak wajar.</EmptyState>}
-        {rest.length > 0 && <div className="panel-card compact-list"><h3>Perlu dipantau juga</h3><ul>{rest.map((item) => <li key={item.indicator_id}><Sparkline points={item.series} tone={toneOf(item.assessment)} /><span><strong>{plain(item.name)}</strong><small>{sector(item.category)} · {item.opds.join(", ") || "OPD belum dipetakan"}</small></span><b className={toneOf(item.assessment)}>{pct(item.change_pct)}</b></li>)}</ul></div>}
+        {rest.length > 0 && <div className="panel-card compact-list"><h3>Perlu dipantau juga</h3><ul>{rest.map((item) => <li key={item.indicator_id}><Sparkline points={item.series} tone={toneOf(item.assessment)} /><span><strong><AppLink to={indicatorPath(item.indicator_id)}>{plain(item.name)}</AppLink></strong><small>{sector(item.category)} · {item.opds.join(", ") || "OPD belum dipetakan"}</small></span><b className={toneOf(item.assessment)}>{pct(item.change_pct)}</b></li>)}</ul></div>}
       </section>
       <aside className="exec-side" aria-label="Ringkasan pendukung">
         <section className="panel-card" aria-labelledby="perubahan"><header className="card-head"><div><h2 id="perubahan"><TrendingUp aria-hidden />Perubahan terbesar</h2><p>Dibanding periode sebelumnya.</p></div></header><ChangeBoard items={movers} /></section>
@@ -217,7 +208,9 @@ export function BerandaPage() {
     <section className="panel-card" aria-labelledby="konteks"><header className="card-head"><div><h2 id="konteks"><Database aria-hidden />Konteks dari Bank Data</h2><p>{context.series.toLocaleString("id-ID")} seri BPS Kapuas dalam Angka dan Satu Data tersedia sebagai pembanding, {context.linked} indikator RPJMD sudah ditautkan. Seri ini tidak menilai kinerja dan dibaca lengkap lewat Tanya Sababuka.</p></div><Badge tone="neutral">Bank Data · belum diverifikasi</Badge></header>{contextMovers.length > 0 ? <ChangeBoard items={contextMovers} /> : <EmptyState title="Belum ada seri Bank Data">Seri akan tampil setelah sinkron Bank Data berjalan.</EmptyState>}</section>
 
     {better.length > 0 && <section className="panel-card" aria-labelledby="membaik"><header className="card-head"><div><h2 id="membaik"><CheckCircle2 aria-hidden />Perkembangan baik</h2><p>Capaian yang perlu dipertahankan dan dapat direplikasi.</p></div></header>
-      <ul className="good-grid">{better.map((item) => <li key={item.indicator_id}><Sparkline points={item.series} tone="good" /><span><strong>{plain(item.name)}</strong><small>{sector(item.category)}</small></span><b className="good">{pct(item.change_pct)}</b></li>)}</ul></section>}
+      <ul className="good-grid">{better.map((item) => <li key={item.indicator_id}><Sparkline points={item.series} tone="good" /><span><strong><AppLink to={indicatorPath(item.indicator_id)}>{plain(item.name)}</AppLink></strong><small>{sector(item.category)}</small></span><b className="good">{pct(item.change_pct)}</b></li>)}</ul></section>}
+
+    <Legend />
 
     <p className="exec-footnote">Dihitung otomatis dari data tersimpan per {dateLabel(generated_at)}. Penilaian kinerja hanya dari indikator RPJMD dan usulan OPD yang diverifikasi. Data BPS Kabupaten Kapuas dan Satu Data Kapuas berstatus belum diverifikasi OPD dan BAPPERIDA, dipakai sebagai konteks dan pembanding. Tren menunjukkan arah, bukan sebab.</p>
   </div>;

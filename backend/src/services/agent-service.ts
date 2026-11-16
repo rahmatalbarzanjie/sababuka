@@ -65,7 +65,7 @@ export class AgentService {
         const insight = byId(text("indikator_id"));
         if (!insight) return { result: { galat: "Indikator tidak ditemukan." } };
         return {
-          focus: insight, visual: { kind: "trend", title: insight.name, unit: insight.unit, points: insight.series },
+          focus: insight, visual: { kind: "trend", title: insight.name, unit: insight.unit, indicator_id: insight.indicator_id, points: insight.series },
           result: { ...brief(insight), riwayat: insight.series.map((point) => ({ tahun: point.year, nilai: num(point.value) })), laju_rata_rata_per_tahun: pct(insight.analysis.cagr_pct), rangkaian: insight.analysis.streak.direction ? `${insight.analysis.streak.direction} ${insight.analysis.streak.length} tahun berturut-turut` : null, anomali: insight.analysis.anomaly?.is_anomaly ?? false, ringkasan: insight.headline, rincian: insight.detail, saran: insight.recommendation, arah_baik_diperkirakan: insight.direction_inferred },
         };
       }
@@ -75,7 +75,7 @@ export class AgentService {
         if (!insight.district_latest) return { result: { galat: "Indikator ini tidak punya data per kecamatan.", ...brief(insight) } };
         const items = insight.district_latest.items.slice().sort((a, b) => b.value - a.value);
         return {
-          focus: insight, visual: { kind: "districts", title: `${insight.name} per kecamatan (${insight.district_latest.year})`, unit: insight.unit, year: insight.district_latest.year, items: items.map((item) => ({ name: item.name, value: item.value })) },
+          focus: insight, visual: { kind: "districts", title: `${insight.name} per kecamatan (${insight.district_latest.year})`, indicator_id: insight.indicator_id, unit: insight.unit, year: insight.district_latest.year, items: items.map((item) => ({ name: item.name, value: item.value })) },
           result: { indikator: insight.name, satuan: insight.unit, tahun: insight.district_latest.year, kecamatan: items.map((item) => ({ nama: item.name, nilai: num(item.value), perubahan: item.previous ? pct(((item.value - item.previous) / Math.abs(item.previous)) * 100) : null })), kesenjangan_tertinggi_terhadap_terendah: insight.districts?.spread_ratio ? `${insight.districts.spread_ratio}x` : null, opd: insight.opds },
         };
       }
@@ -141,7 +141,7 @@ export class AgentService {
         continue;
       }
       if (bad.length) return null;
-      return { answer, visuals, toolsUsed, model: llm.modelName(), sources: focus.slice(0, 4).map((item) => ({ label: `${item.name} · ${item.latest_year}`, indicator: item.name, year: item.latest_year, source: item.source_label })) };
+      return { answer, visuals, toolsUsed, model: llm.modelName(), sources: focus.slice(0, 4).map((item) => ({ label: `${item.name} · ${item.latest_year}`, indicator: item.name, year: item.latest_year, source: item.source_label, indicator_id: item.indicator_id, source_url: item.source_url })) };
     }
     return null;
   }

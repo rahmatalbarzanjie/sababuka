@@ -30,6 +30,7 @@ const DatasetPage = lazy(() => import("./pages/DatasetPage").then((module) => ({
 const AnalysisPage = lazy(() => import("./pages/DecisionPages").then((module) => ({ default: module.AnalysisPage })));
 const FinancePage = lazy(() => import("./pages/DecisionPages").then((module) => ({ default: module.FinancePage })));
 const PublicServicesPage = lazy(() => import("./pages/DecisionPages").then((module) => ({ default: module.PublicServicesPage })));
+const IndicatorDetailPage = lazy(() => import("./pages/IndicatorDetailPage").then((module) => ({ default: module.IndicatorDetailPage })));
 const BerandaPage = lazy(() => import("./pages/BerandaPage").then((module) => ({ default: module.BerandaPage })));
 const OpdProfilePage = lazy(() => import("./pages/OpdProfilePage").then((module) => ({ default: module.OpdProfilePage })));
 const OpdMonitoringPage = lazy(() => import("./pages/OpdMonitoringPage").then((module) => ({ default: module.OpdMonitoringPage })));
@@ -37,6 +38,7 @@ const OpdMonitoringPage = lazy(() => import("./pages/OpdMonitoringPage").then((m
 const pageMeta: Record<string, { title: string; subtitle: string; permission?: string }> = {
   "/admin": { title: "Dashboard Sistem", subtitle: "Kesehatan layanan dan pekerjaan administrasi yang perlu ditindaklanjuti.", permission: "system.configure" },
   "/dashboard": { title: "Dashboard Eksekutif", subtitle: "Kondisi, tren, dan sebaran wilayah Kabupaten Kapuas untuk pengambilan keputusan.", permission: "executive_dashboard.view" },
+  "/dashboard/indikator": { title: "Detail Indikator", subtitle: "Grafik, tabulasi data, analisis, tindak lanjut, dan sumber satu indikator.", permission: "executive_dashboard.view" },
   "/executive": { title: "Ringkasan Pimpinan", subtitle: "Capaian terkurasi dari data yang telah disetujui dan dipublikasikan.", permission: "executive_dashboard.view" },
   "/assistant": { title: "Tanya Sababuka", subtitle: "Tanyakan data, tren, dan tindak lanjut; jawaban dihitung dari data resmi.", permission: "assistant.use" },
   "/analysis": { title: "Analisis dan Peta", subtitle: "Baca tren, kesenjangan wilayah, konsistensi sumber, dan rekomendasi keputusan.", permission: "executive_dashboard.view" },
@@ -90,7 +92,8 @@ function ProtectedApp() {
   if (pathname === "/security/setup") return user ? <PasswordSetupPage /> : <LoginPage />;
   if (loading) return <LoadingScreen />;
   if (!user || pathname === "/login") return <LoginPage />;
-  const baseMeta = pageMeta[pathname] ?? { title: "Modul SABABUKA", subtitle: "Modul sedang disiapkan." };
+  const detailMatch = new RegExp("^/dashboard/indikator/([0-9a-fA-F-]{36})$", "u").exec(pathname);
+  const baseMeta = pageMeta[detailMatch ? "/dashboard/indikator" : pathname] ?? { title: "Modul SABABUKA", subtitle: "Modul sedang disiapkan." };
   const meta = pathname === "/publications" && user.roles.some((role) => role.code === "pimpinan")
     ? { ...baseMeta, title: "Rilis Data", subtitle: "Rilis resmi yang aktif dan masih layak ditampilkan untuk pimpinan." }
     : baseMeta;
@@ -111,6 +114,7 @@ function ProtectedApp() {
   else if (pathname === "/submissions") content = <SubmissionsPage />;
   else if (pathname === "/reviews") content = <SubmissionsPage review />;
   else if (pathname === "/guidance") content = <SubmissionsPage guidance />;
+  else if (detailMatch) content = <IndicatorDetailPage id={detailMatch[1]!} />;
   else if (pathname === "/dashboard") content = <BerandaPage />;
   else if (pathname === "/executive") content = <ExecutivePage />;
   else if (pathname === "/publications") content = <PublicationsPage />;

@@ -7,13 +7,13 @@ export interface InsightQuery { limit: number; source?: string | undefined; asse
 
 interface ObservationRow extends QueryResultRow {
   indicator_id: string; code: string; name: string; origin_type: string; category_name: string; direction: Direction;
-  unit_symbol: string | null; unit_name: string | null; source_name: string | null; geo_level: string | null; geo_name: string | null; year: number; value: string;
+  unit_symbol: string | null; unit_name: string | null; source_name: string | null; source_url: string | null; geo_level: string | null; geo_name: string | null; year: number; value: string;
 }
 
 export interface LinkedSeries { relation: "primary" | "supporting" | "comparison"; notes: string | null; indicator_id: string; name: string; unit: string; latest_year: number; latest_value: number; change_pct: number | null; trend: SeriesAnalysis["trend"]; source_label: string }
 
 export interface Insight {
-  layer: "kinerja" | "konteks"; links: LinkedSeries[]; limited: boolean;
+  layer: "kinerja" | "konteks"; links: LinkedSeries[]; limited: boolean; source_url: string | null;
   indicator_id: string; code: string; name: string; category: string; source_kind: "rpjmd" | "bps" | "satudata" | "opd";
   unit: string; latest_year: number; latest_value: number; change_pct: number | null; trend: SeriesAnalysis["trend"];
   assessment: SeriesAnalysis["assessment"]; score: number; headline: string; detail: string; recommendation: string;
@@ -44,7 +44,7 @@ export class InsightService {
   async insights(query: InsightQuery) {
     const rows = await this.db.query<ObservationRow>(
       `SELECT i.id::text AS indicator_id, i.code, i.name, i.origin_type, c.name AS category_name, iv.direction,
-              u.symbol AS unit_symbol, u.name AS unit_name, o.source_name, g.level AS geo_level, g.name AS geo_name,
+              u.symbol AS unit_symbol, u.name AS unit_name, o.source_name, o.source_url, g.level AS geo_level, g.name AS geo_name,
               p.code::int AS year, o.numeric_value::text AS value
        FROM sababuka.observations o
        JOIN sababuka.data_batches b ON b.id = o.batch_id AND b.status IN ('approved', 'published')
@@ -128,7 +128,7 @@ export class InsightService {
         ? { headline: "Data belum cukup untuk tren", detail: `Baru ada ${analysis.years} tahun data (terbaru ${analysis.latest_year}). Tren dan penilaian memerlukan minimal 3 tahun data.`, recommendation: "Lengkapi data tahun-tahun sebelumnya agar tren dapat dinilai." }
         : buildNarrative({ name: plainDash(first.name), unit, analysis, districts, opds, direction });
       insights.push({
-        layer: first.origin_type === "bank_data" ? "konteks" : "kinerja", links: [], limited,
+        layer: first.origin_type === "bank_data" ? "konteks" : "kinerja", links: [], limited, source_url: [...items].reverse().find((entry) => entry.source_url?.toLowerCase().startsWith("http"))?.source_url ?? null,
         indicator_id: indicatorId, code: first.code, name: plainDash(first.name), category: plainDash(first.category_name), source_kind: sourceKind(first.origin_type, first.code),
         unit, latest_year: analysis.latest_year, latest_value: analysis.latest_value, change_pct: analysis.change_pct, trend: analysis.trend,
         assessment: analysis.assessment, score: analysis.score, ...narrative, opds, direction_inferred: !first.direction && direction !== null, source_label: plainDash(items.find((entry) => entry.source_name)?.source_name ?? "") || (sourceKind(first.origin_type, first.code) === "rpjmd" ? "RPJMD Kabupaten Kapuas" : "Sumber resmi"),

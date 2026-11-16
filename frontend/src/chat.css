@@ -20,3 +20,11 @@
   .chat-message.assistant > div { padding: 14px 16px; }
   .rich-text { font-size: 14.5px; }
 }
+
+.chat-visual { margin: 0; display: grid; gap: 6px; }
+.visual-table summary, .citation-list summary { cursor: pointer; font-size: 13px; }
+.visual-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.visual-table th, .visual-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--ui-rule); }
+.visual-table td:last-child, .visual-table th:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.visual-link, .citation-links a { font-size: 13px; font-weight: 600; }
+.citation-links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 4px; }
