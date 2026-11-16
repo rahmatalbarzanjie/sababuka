@@ -5,6 +5,13 @@ export function Legend() {
   return <section className="legend" aria-labelledby="legenda">
     <h3 id="legenda">Legenda</h3>
     <div className="legend-grid">
+      <div><b>Capaian target RPJMD</b>
+        <ul>
+          <li><Badge tone="success">Tercapai</Badge><span>Realisasi terbit terbaru memenuhi target tahun yang sama.</span></li>
+          <li><Badge tone="warning">Belum tercapai</Badge><span>Realisasi belum memenuhi target. Perlu rencana percepatan OPD.</span></li>
+          <li><Badge tone="neutral">Belum ada data</Badge><span>Realisasi belum diisi atau belum terbit.</span></li>
+          <li><span className="legend-swatch bar" aria-hidden /><span>Selisih = realisasi dikurangi target. Arah baik ditentukan arah indikator.</span></li>
+        </ul></div>
       <div><b>Status indikator</b>
         <ul>
           <li><Badge tone="success">Membaik</Badge><span>Bergerak ke arah yang diinginkan menurut arah indikator.</span></li>

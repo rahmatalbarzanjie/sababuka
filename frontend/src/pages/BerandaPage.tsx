@@ -2,6 +2,7 @@ import { AlertTriangle, Database, Search, ArrowDownRight, ArrowUpRight, Building
 import { useMemo, useState } from "react";
 import { api } from "../api";
 import { Badge, EmptyState, ErrorState, PageLoading, useAsync } from "../components";
+import { AchievementSection, type AchievementResponse } from "../components/AchievementSection";
 import { AppLink } from "../components/AppLink";
 import { DistrictMap, normalizeName, useKapuasGeography } from "../components/DistrictMap";
 import { Legend } from "../components/Legend";
@@ -159,10 +160,16 @@ function DistrictPanel({ insights }: { insights: Insight[] }) {
 }
 
 export function BerandaPage() {
-  const data = useAsync(async () => { const [kinerja, konteks] = await Promise.all([api<InsightsResponse>("/executive/insights?layer=kinerja&limit=100"), api<InsightsResponse>("/executive/insights?layer=konteks&limit=100")]); return { ...kinerja, context: konteks.context, konteks: konteks.insights }; }, []);
+  const data = useAsync(async () => {
+    const [kinerja, konteks, capaian] = await Promise.all([api<InsightsResponse>("/executive/insights?layer=kinerja&limit=100"), api<InsightsResponse>("/executive/insights?layer=konteks&limit=100"), api<AchievementResponse>("/executive/achievement")]);
+    return { ...kinerja, context: konteks.context, konteks: konteks.insights, capaian };
+  }, []);
   if (data.loading) return <PageLoading />;
   if (data.error || !data.data) return <ErrorState title="Dashboard belum dapat dimuat" onRetry={data.reload}>{data.error}</ErrorState>;
-  const { summary, insights, analyzed, generated_at, context, konteks } = data.data;
+  const { summary, insights, analyzed, generated_at, context, konteks, capaian } = data.data;
+  const cap = capaian.summary;
+  const capAssessed = cap.tercapai + cap.belum_tercapai;
+  const capOther = Math.max(0, cap.total - capAssessed);
   const contextMovers = konteks.filter((item) => item.change_pct !== null).sort((a, b) => Math.abs(b.change_pct ?? 0) - Math.abs(a.change_pct ?? 0)).slice(0, 6);
   const assessed = summary.membaik + summary.memburuk;
   const netral = Math.max(0, analyzed - assessed);
@@ -180,14 +187,16 @@ export function BerandaPage() {
   return <div className="exec">
     <section className="exec-brief" aria-labelledby="ikhtisar">
       <div>
-        <h2 id="ikhtisar">{summary.memburuk > summary.membaik ? "Lebih banyak indikator memburuk daripada membaik" : summary.memburuk === 0 ? "Tidak ada indikator yang memburuk" : `${summary.memburuk} indikator memburuk perlu ditindaklanjuti`}</h2>
-        <p>Dari <strong>{analyzed.toLocaleString("id-ID")}</strong> indikator yang dipantau (data hingga {latestYear || "-"}), <strong>{summary.membaik}</strong> membaik, <strong>{summary.memburuk}</strong> memburuk, dan <strong>{summary.anomali}</strong> berubah tidak biasa.{focusNames ? ` Sorotan utama: ${focusNames}.` : ""} Setiap sorotan dilengkapi OPD penanggung jawab dan tindak lanjut.</p>
+        <h2 id="ikhtisar">{cap.belum_tercapai === 0 && capAssessed > 0 ? "Seluruh indikator yang dinilai sudah mencapai target" : cap.belum_tercapai > 0 ? `${cap.belum_tercapai} dari ${capAssessed} indikator belum mencapai target RPJMD` : "Belum ada indikator yang dapat dinilai terhadap target"}</h2>
+        <p>Dari <strong>{cap.total.toLocaleString("id-ID")}</strong> indikator bertarget, <strong>{cap.tercapai}</strong> sudah tercapai, <strong>{cap.belum_tercapai}</strong> belum tercapai, dan <strong>{capOther}</strong> belum dapat dinilai ({cap.belum_ada_data} belum ada realisasi terbit). Dari sisi tren (data hingga {latestYear || "-"}): <strong>{summary.membaik}</strong> membaik, <strong>{summary.memburuk}</strong> memburuk, <strong>{summary.anomali}</strong> berubah tidak biasa.</p>
       </div>
-      <div className="exec-composition" role="img" aria-label={`${summary.membaik} membaik, ${netral} tanpa penilaian, ${summary.memburuk} memburuk`}>
-        <span className="composition-bar"><i className="good" style={{ flexGrow: Math.max(summary.membaik, 0.001) }} /><i className="neutral" style={{ flexGrow: Math.max(netral, 0.001) }} /><i className="bad" style={{ flexGrow: Math.max(summary.memburuk, 0.001) }} /></span>
-        <span className="composition-legend"><span><i className="good" />Membaik <b>{summary.membaik}</b></span><span><i className="neutral" />Tanpa penilaian <b>{netral}</b></span><span><i className="bad" />Memburuk <b>{summary.memburuk}</b></span></span>
+      <div className="exec-composition" role="img" aria-label={`${cap.tercapai} tercapai, ${capOther} belum dapat dinilai, ${cap.belum_tercapai} belum tercapai`}>
+        <span className="composition-bar"><i className="good" style={{ flexGrow: Math.max(cap.tercapai, 0.001) }} /><i className="neutral" style={{ flexGrow: Math.max(capOther, 0.001) }} /><i className="bad" style={{ flexGrow: Math.max(cap.belum_tercapai, 0.001) }} /></span>
+        <span className="composition-legend"><span><i className="good" />Tercapai <b>{cap.tercapai}</b></span><span><i className="neutral" />Belum dapat dinilai <b>{capOther}</b></span><span><i className="bad" />Belum tercapai <b>{cap.belum_tercapai}</b></span></span>
       </div>
     </section>
+
+    <AchievementSection data={capaian} />
 
     <div className="exec-columns">
       <section className="exec-main" aria-labelledby="sorotan">
