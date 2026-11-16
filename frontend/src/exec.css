@@ -136,3 +136,8 @@ b.good { color: var(--exec-good); } b.bad { color: var(--exec-bad); } b.neutral 
 .spotlight-links li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 10px; align-items: center; }
 .spotlight-links small { color: var(--muted); }
 @media (max-width: 720px) { .spotlight-links li { grid-template-columns: auto minmax(0, 1fr); } .spotlight-links li strong, .spotlight-links li small { grid-column: 2; } }
+
+.connection-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.connection-details { margin-top: 4px; }
+.connection-details summary { cursor: pointer; font-size: 13px; font-weight: 600; }
+.connection-details small { display: block; margin-top: 4px; }

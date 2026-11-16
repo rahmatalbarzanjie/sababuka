@@ -234,7 +234,17 @@ function PipelineStep({ icon, label, detail, help }: { icon: ReactNode; label: s
 }
 
 function ConnectionProfileCard({ profile }: { profile: ConnectionProfile }) {
-  return <div className="connection-profile"><strong>{profile.reachable ? "Terjangkau" : "Tidak terjangkau"}</strong><small>{profile.platform ?? profile.error ?? "Tidak ada identitas platform."} · {profile.response_ms ?? "-"} ms · {formatDate(profile.checked_at)}</small>{profile.reachable && <><small>{profile.dataset_count ?? 0} dataset · {profile.resource_count ?? 0} resource terstruktur (CSV/JSON/XLS/XLSX/XML/API)</small><small>{profile.candidate_summary.annual_series_count ?? 0} kandidat tren tahunan · {profile.candidate_summary.structured_series_count ?? 0} dapat dibaca sebagai tabel · Publisher: {profile.publishers.join(", ") || "-"}</small></>}<small>Kandidat indikator termasuk verifikasi OPD: {profile.candidate_summary.candidate_count} · sudah mapping {profile.candidate_summary.mapped_count} · belum {profile.candidate_summary.unmapped_count} · ambigu {profile.candidate_summary.ambiguous_count}</small>{profile.candidate_summary.series_candidates?.slice(0, 3).map((candidate) => <small key={candidate.dataset_name}>Tren · {candidate.title} · {candidate.formats.join("/") || "format belum dikenali"}</small>)}{profile.candidate_summary.candidates.slice(0, 3).map((candidate) => <small key={`${candidate.type}-${candidate.code}-${candidate.source_title}`}>{candidate.status} · {candidate.name} · skor {candidate.score} · {candidate.reason}</small>)}</div>;
+  const summary = profile.candidate_summary;
+  return <div className="connection-profile">
+    <div className="connection-head"><Badge tone={profile.reachable ? "success" : "danger"}>{profile.reachable ? "Terhubung" : "Tidak terhubung"}</Badge><small>{profile.response_ms ?? "-"} ms · {formatDate(profile.checked_at)}</small></div>
+    {profile.reachable ? <small>{profile.platform ?? "Platform tidak dikenali"} · {(profile.dataset_count ?? 0).toLocaleString("id-ID")} dataset · {(profile.resource_count ?? 0).toLocaleString("id-ID")} resource terstruktur</small> : <small>{profile.error ?? "Sumber tidak dapat dijangkau."}</small>}
+    <details className="connection-details"><summary>Rincian pemeriksaan</summary>
+      <small>{summary.annual_series_count ?? 0} kandidat tren tahunan · {summary.structured_series_count ?? 0} dapat dibaca sebagai tabel</small>
+      <small>Kandidat indikator: {summary.candidate_count} (sudah mapping {summary.mapped_count}, belum {summary.unmapped_count}, ambigu {summary.ambiguous_count})</small>
+      {profile.publishers.length > 0 && <small>Publisher: {profile.publishers.slice(0, 5).join(", ")}{profile.publishers.length > 5 ? ` dan ${profile.publishers.length - 5} lainnya` : ""}</small>}
+      {summary.candidates.slice(0, 3).map((candidate) => <small key={`${candidate.type}-${candidate.code}-${candidate.source_title}`}>{candidate.status} · {candidate.name} · skor {candidate.score}</small>)}
+    </details>
+  </div>;
 }
 
 const connectorKindLabel = (kind: IntegrationForm["connector_kind"]) => ({ api_json: "API JSON", ckan: "Portal CKAN", bps: "BPS (publikasi/API)", csv_url: "CSV melalui URL", file_upload: "Unggah file berkala", database_view: "Database/View", html_scrape: "Website/scraping", manual: "Input manual" }[kind]);
