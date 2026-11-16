@@ -64,17 +64,9 @@ button.metric-card:hover { box-shadow: var(--vt-lift-strong); transform: transla
 .task-card:active,
 button.metric-card:active { transform: translateY(0) scale(.99); }
 
-/* Kartu metrik: ikon berwarna, angka berwarna sesuai makna, garis aksen di atas. */
+/* Kartu metrik: ikon berwarna, angka berwarna sesuai makna. */
 .metric-grid { overflow: hidden; }
 .metric-card { position: relative; }
-.metric-card::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 3px;
-  background: var(--vt-accent, var(--vt-blue));
-  opacity: .9;
-}
 .metric-card:nth-child(4n + 1) { --vt-accent: var(--vt-blue); }
 .metric-card:nth-child(4n + 2) { --vt-accent: var(--vt-teal); }
 .metric-card:nth-child(4n + 3) { --vt-accent: var(--vt-amber); }
@@ -110,26 +102,15 @@ button.metric-card:active { transform: translateY(0) scale(.99); }
 
 /* Banner kesehatan sistem: status berdenyut halus. */
 .system-health-banner { border-color: var(--vt-teal); }
-.system-health-banner.attention { border-left-color: var(--vt-amber); }
 .system-health-banner > span:first-child svg { animation: vt-pulse 2.6s ease-in-out infinite; }
 .system-health-banner.attention > span:first-child svg { color: var(--vt-amber); }
 
-/* Menu samping: bilah aksen pada menu aktif, ikon bergeser halus. */
+/* Menu samping: latar tipis pada menu aktif, ikon bergeser halus. */
 .nav-link { position: relative; }
 .nav-link svg { transition: transform 180ms var(--vt-ease), color 140ms ease; }
 .nav-link:hover svg { transform: scale(1.1); color: var(--vt-blue); }
 .nav-link.active {
   background: linear-gradient(90deg, color-mix(in srgb, var(--vt-blue) 16%, transparent), color-mix(in srgb, var(--vt-blue) 5%, transparent));
-}
-.nav-link.active::before {
-  content: "";
-  position: absolute;
-  left: -2px;
-  top: 8px;
-  bottom: 8px;
-  width: 4px;
-  border-radius: 999px;
-  background: linear-gradient(180deg, var(--vt-blue), var(--vt-teal));
 }
 
 /* Tombol utama: gradien biru navy, bayangan, efek tekan. */

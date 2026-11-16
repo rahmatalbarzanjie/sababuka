@@ -15,10 +15,8 @@ info:
 servers:
   - url: http://127.0.0.1:3001/api/v1
     description: Local development (aktif saat ini)
-  - url: https://dev.sababuka.com/api/v1
-    description: Development (belum diaktifkan)
   - url: https://sababuka.com/api/v1
-    description: Production (setelah disetujui)
+    description: Produksi
 tags:
   - name: System
     description: Kesehatan layanan dan konfigurasi sistem.

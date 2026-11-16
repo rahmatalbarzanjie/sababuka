@@ -15,4 +15,5 @@ export const testConfig: AppConfig = {
   evidenceStoragePath: "./tmp/test-evidence",
   evidenceMaxBytes: 10_485_760,
   bankDataSyncHours: 0,
+  trustProxyHops: 0,
 };

@@ -30,10 +30,13 @@ export interface BuildAppOptions {
 }
 
 export async function buildApp(options: BuildAppOptions): Promise<FastifyInstance> {
+  const hops = options.config.trustProxyHops;
+  // Percayai hanya jumlah proxy yang ditentukan (nginx dan Cloudflare); sisanya diabaikan agar X-Forwarded-For tidak dapat dipalsukan.
+  const trustProxy = hops > 0 ? (_address: string, hop: number) => hop < hops : false;
   const app = Fastify({
     logger: options.logger === false ? false : { level: options.config.logLevel },
     genReqId: () => randomUUID(),
-    trustProxy: true,
+    trustProxy,
     bodyLimit: 1_048_576,
   });
 
