@@ -1,4 +1,4 @@
-import { AlertTriangle, Database, ArrowDownRight, ArrowUpRight, Building2, CheckCircle2, Minus, TrendingUp } from "lucide-react";
+import { AlertTriangle, Database, Search, ArrowDownRight, ArrowUpRight, Building2, CheckCircle2, Minus, TrendingUp } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "../api";
 import { Badge, EmptyState, ErrorState, PageLoading, useAsync } from "../components";
@@ -99,6 +99,44 @@ function SectorHealth({ insights }: { insights: Insight[] }) {
   })}</ul>;
 }
 
+type StatusFilter = "semua" | Assessment;
+const statusText: Record<Assessment, string> = { membaik: "Membaik", memburuk: "Memburuk", netral: "Belum dinilai" };
+
+/** Seluruh indikator kinerja dalam satu tabel agar pimpinan melihat gambaran lengkap, bukan hanya yang perlu perhatian. */
+function AllIndicators({ insights }: { insights: Insight[] }) {
+  const [status, setStatus] = useState<StatusFilter>("semua");
+  const [sectorFilter, setSectorFilter] = useState("");
+  const [query, setQuery] = useState("");
+  const sectors = useMemo(() => [...new Set(insights.map((item) => sector(item.category)))].sort((a, b) => a.localeCompare(b, "id")), [insights]);
+  const counts = useMemo(() => ({ semua: insights.length, membaik: insights.filter((i) => i.assessment === "membaik").length, memburuk: insights.filter((i) => i.assessment === "memburuk").length, netral: insights.filter((i) => i.assessment === "netral").length }), [insights]);
+  const rows = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    const order: Record<Assessment, number> = { memburuk: 0, netral: 1, membaik: 2 };
+    return insights
+      .filter((item) => (status === "semua" || item.assessment === status) && (!sectorFilter || sector(item.category) === sectorFilter) && (!needle || plain(item.name).toLowerCase().includes(needle)))
+      .sort((a, b) => order[a.assessment] - order[b.assessment] || sector(a.category).localeCompare(sector(b.category), "id") || plain(a.name).localeCompare(plain(b.name), "id"));
+  }, [insights, status, sectorFilter, query]);
+  const filters: Array<[StatusFilter, string]> = [["semua", "Semua"], ["memburuk", "Memburuk"], ["netral", "Belum dinilai"], ["membaik", "Membaik"]];
+  return <section className="panel-card all-indicators" aria-labelledby="semua-indikator">
+    <header className="card-head"><div><h2 id="semua-indikator">Semua indikator kinerja</h2><p>{insights.length.toLocaleString("id-ID")} indikator RPJMD dan usulan OPD yang sudah terbit, dengan nilai terbaru, tren, dan OPD penanggung jawab. "Belum dinilai" berarti arah baik-buruknya belum ditetapkan, bukan berarti tanpa data.</p></div></header>
+    <div className="all-filters">
+      <div className="chip-row" role="group" aria-label="Filter status">{filters.map(([value, label]) => <button key={value} type="button" className={status === value ? "chip active" : "chip"} aria-pressed={status === value} onClick={() => setStatus(value)}>{label} <b>{counts[value]}</b></button>)}</div>
+      <label className="select-inline"><span className="sr-only">Filter sektor</span><select value={sectorFilter} onChange={(event) => setSectorFilter(event.target.value)}><option value="">Semua sektor</option>{sectors.map((name) => <option key={name} value={name}>{name}</option>)}</select></label>
+      <label className="search-field"><Search aria-hidden /><span className="sr-only">Cari indikator</span><input type="search" value={query} placeholder="Cari indikator" onChange={(event) => setQuery(event.target.value)} /></label>
+    </div>
+    {rows.length === 0 ? <EmptyState title="Tidak ada indikator">Ubah filter atau kata kunci pencarian.</EmptyState> : <div className="table-scroll"><table className="all-table"><thead><tr><th>Indikator</th><th>Nilai terbaru</th><th>Tren</th><th>Perubahan</th><th>Status</th><th>OPD</th></tr></thead><tbody>
+      {rows.map((item) => { const tone = toneOf(item.assessment); return <tr key={item.indicator_id}>
+        <td><strong>{plain(item.name)}</strong><small>{sector(item.category)} · Sumber: {plain(item.source_label)}</small></td>
+        <td className="num"><strong>{num(item.latest_value)}</strong><small>{plain(item.unit)} · {item.latest_year}</small></td>
+        <td><Sparkline points={item.series} tone={tone} /></td>
+        <td className={`num ${tone}`}>{pct(item.change_pct)}</td>
+        <td><Badge tone={tone === "good" ? "success" : tone === "bad" ? "warning" : "neutral"}>{statusText[item.assessment]}</Badge>{item.analysis.anomaly?.is_anomaly && <Badge tone="warning">Tidak biasa</Badge>}</td>
+        <td>{item.opds.length ? item.opds.join(", ") : "-"}</td>
+      </tr>; })}
+    </tbody></table></div>}
+  </section>;
+}
+
 function DistrictPanel({ insights }: { insights: Insight[] }) {
   const geography = useKapuasGeography();
   const options = useMemo(() => insights.filter((item) => item.district_latest && item.district_latest.items.length >= 8).sort((a, b) => b.score - a.score), [insights]);
@@ -170,6 +208,8 @@ export function BerandaPage() {
         <section className="panel-card" aria-labelledby="sektor"><header className="card-head"><div><h2 id="sektor">Kondisi per sektor</h2><p>Sektor dengan indikator memburuk terbanyak di atas.</p></div></header><SectorHealth insights={insights} /></section>
       </aside>
     </div>
+
+    <AllIndicators insights={insights} />
 
     <DistrictPanel insights={[...insights, ...konteks]} />
 
