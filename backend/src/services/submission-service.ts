@@ -96,7 +96,7 @@ export class SubmissionService {
               b.approved_at::text, b.created_at::text, b.updated_at::text,
               (SELECT count(DISTINCT iv.id)::int
                FROM sababuka.indicator_versions iv
-               JOIN sababuka.indicators i ON i.id=iv.indicator_id
+               JOIN sababuka.indicators i ON i.id=iv.indicator_id AND i.origin_type<>'bank_data'
                WHERE iv.status='active' AND iv.effective_from<=p.ends_on
                  AND (iv.effective_until IS NULL OR iv.effective_until>=p.starts_on)
                  AND (iv.frequency=p.period_type OR (iv.frequency IN ('event','custom') AND p.period_type='custom'))
@@ -134,7 +134,7 @@ export class SubmissionService {
          ON iv.status='active' AND iv.effective_from<=p.ends_on
         AND (iv.effective_until IS NULL OR iv.effective_until>=p.starts_on)
         AND (iv.frequency=p.period_type OR (iv.frequency IN ('event','custom') AND p.period_type='custom'))
-       JOIN sababuka.indicators i ON i.id=iv.indicator_id AND i.is_active=true
+       JOIN sababuka.indicators i ON i.id=iv.indicator_id AND i.is_active=true AND i.origin_type<>'bank_data'
        LEFT JOIN sababuka.data_batches b
          ON b.organization_id=$1 AND b.reporting_period_id=p.id
         AND b.submission_method='manual' AND b.status<>'cancelled'
@@ -157,7 +157,7 @@ export class SubmissionService {
          ON iv.status='active' AND iv.effective_from<=p.ends_on
         AND (iv.effective_until IS NULL OR iv.effective_until>=p.starts_on)
         AND (iv.frequency=p.period_type OR (iv.frequency IN ('event','custom') AND p.period_type='custom'))
-       JOIN sababuka.indicators i ON i.id=iv.indicator_id AND i.is_active=true
+       JOIN sababuka.indicators i ON i.id=iv.indicator_id AND i.is_active=true AND i.origin_type<>'bank_data'
        WHERE p.id=$2 AND (i.owner_organization_id=$1 OR EXISTS (
          SELECT 1 FROM sababuka.indicator_organizations io
          WHERE io.indicator_version_id=iv.id AND io.organization_id=$1
@@ -228,7 +228,7 @@ export class SubmissionService {
          AND obs.indicator_version_id = iv.id AND obs.period_id = b.reporting_period_id
          AND obs.geography_id IS NULL AND obs.dimension_values = '{}'::jsonb
        WHERE obs.id IS NOT NULL
-          OR (iv.status = 'active' AND i.is_active=true
+          OR (iv.status = 'active' AND i.is_active=true AND i.origin_type<>'bank_data'
               AND (iv.frequency=p.period_type OR (iv.frequency IN ('event','custom') AND p.period_type='custom'))
               AND iv.effective_from<=p.ends_on AND (iv.effective_until IS NULL OR iv.effective_until>=p.starts_on)
               AND (i.owner_organization_id = b.organization_id OR EXISTS (
