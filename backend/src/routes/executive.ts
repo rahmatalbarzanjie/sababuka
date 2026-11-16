@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { QueryResultRow } from "pg";
 import { requirePermission } from "../plugins/authentication.js";
+import { AchievementService } from "../services/achievement-service.js";
 import { InsightService } from "../services/insight-service.js";
 
 const uuid = { type: "string", format: "uuid" } as const;
@@ -216,6 +217,11 @@ export async function executiveRoutes(app: FastifyInstance): Promise<void> {
       decision: "Menggabungkan tren, kesenjangan wilayah, target, dan konsistensi sumber menjadi arti kebijakan serta tindakan yang dapat ditindaklanjuti.",
       causality_guard: "Sistem tidak menyimpulkan sebab-akibat hanya dari korelasi. Jawaban 'mengapa' harus didukung dimensi, catatan OPD, atau sumber pendukung yang terverifikasi.",
     }, items: result.rows, series, reconciliation, recommendations };
+  });
+
+  app.get("/executive/achievement", async (request) => {
+    requirePermission(request, "executive_dashboard.view");
+    return new AchievementService(app.db).list();
   });
 
   app.get<{ Querystring: { limit?: number; source?: string; assessment?: string; q?: string; indicator_id?: string; layer?: "kinerja" | "konteks" } }>("/executive/insights", {

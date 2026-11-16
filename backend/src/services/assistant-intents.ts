@@ -50,10 +50,11 @@ const num = (value: number, digits = 2) => new Intl.NumberFormat("id-ID", { maxi
 export interface Visual {
   kind: "trend" | "districts";
   title: string; unit: string;
+  indicator_id?: string;
   points?: Array<{ year: number; value: number }>;
   year?: number; items?: Array<{ name: string; value: number }>;
 }
-export interface AssistantReply { facts: unknown; answer: string; visuals: Visual[]; suggestions: string[]; sources: Array<{ label: string; indicator: string; year: number; source: string }>; sufficiency: "sufficient" | "partial" | "insufficient" }
+export interface AssistantReply { facts: unknown; answer: string; visuals: Visual[]; suggestions: string[]; sources: Array<{ label: string; indicator: string; year: number; source: string; indicator_id: string; source_url: string | null }>; sufficiency: "sufficient" | "partial" | "insufficient" }
 
 const factOf = (insight: Insight) => ({
   indikator: insight.name, kategori: insight.category, satuan: insight.unit, tahun_terbaru: insight.latest_year,
@@ -62,7 +63,7 @@ const factOf = (insight: Insight) => ({
   opd: insight.opds, sumber: insight.source_label, riwayat: insight.series.map((point) => `${point.year}: ${num(point.value)}`),
   kecamatan: insight.districts ? { tertinggi: insight.districts.highest.map((item) => `${item.name}: ${num(item.value)}`), terendah: insight.districts.lowest.map((item) => `${item.name}: ${num(item.value)}`) } : null,
 });
-const sourceOf = (insight: Insight) => ({ label: `${insight.name} · ${insight.latest_year}`, indicator: insight.name, year: insight.latest_year, source: insight.source_label });
+const sourceOf = (insight: Insight) => ({ label: `${insight.name} · ${insight.latest_year}`, indicator: insight.name, year: insight.latest_year, source: insight.source_label, indicator_id: insight.indicator_id, source_url: insight.source_url });
 
 export interface OpdScore { name: string; total: number; membaik: number; memburuk: number; assessable: number; score: number | null }
 
@@ -121,7 +122,7 @@ export function buildReply(question: string, insights: Insight[]): AssistantRepl
 
   const top = matches[0]!.insight;
   const parts: string[] = [];
-  const visuals: Visual[] = [{ kind: "trend", title: top.name, unit: top.unit, points: top.series }];
+  const visuals: Visual[] = [{ kind: "trend", title: top.name, unit: top.unit, indicator_id: top.indicator_id, points: top.series }];
   if (intent.year) {
     const at = top.series.find((point) => point.year === intent.year);
     const before = top.series.find((point) => point.year === intent.year! - 1);
@@ -133,7 +134,7 @@ export function buildReply(question: string, insights: Insight[]): AssistantRepl
   if (intent.district && top.districts) {
     const d = top.districts;
     parts.push(`Per kecamatan (${top.latest_year}): tertinggi ${d.highest.map((item) => `${item.name} (${num(item.value)})`).join(", ")}; terendah ${d.lowest.map((item) => `${item.name} (${num(item.value)})`).join(", ")}.`);
-    visuals.push({ kind: "districts", title: `${top.name} per kecamatan`, unit: top.unit, year: top.latest_year, items: [...d.highest, ...d.lowest.slice().reverse()].filter((item, index, all) => all.findIndex((other) => other.name === item.name) === index).map((item) => ({ name: item.name, value: item.value })) });
+    visuals.push({ kind: "districts", title: `${top.name} per kecamatan`, indicator_id: top.indicator_id, unit: top.unit, year: top.latest_year, items: [...d.highest, ...d.lowest.slice().reverse()].filter((item, index, all) => all.findIndex((other) => other.name === item.name) === index).map((item) => ({ name: item.name, value: item.value })) });
   } else if (intent.district && !top.districts) parts.push("Data per kecamatan untuk indikator ini belum tersedia.");
   if (intent.recommendation || top.assessment === "memburuk" || top.analysis.anomaly?.is_anomaly) parts.push(`Tindak lanjut: ${top.recommendation}`);
   const others = matches.slice(1);
