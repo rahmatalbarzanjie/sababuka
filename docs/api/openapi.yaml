@@ -1105,6 +1105,17 @@ paths:
       responses:
         "200": {description: Daftar kandidat capaian}
         "403": {$ref: "#/components/responses/Forbidden"}
+  /publications/auto-publish:
+    post:
+      tags: [Publications]
+      operationId: autoPublishApprovedSubmissions
+      summary: Menerbitkan semua form capaian OPD yang sudah disetujui
+      description: Satu publikasi aktif per form; form tanpa capaian baru dilewati dan kegagalan satu form tidak menghentikan yang lain. Membutuhkan `publication.activate`.
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
   /publications/{publication_id}/activate:
     post:
       tags: [Publications]

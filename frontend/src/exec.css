@@ -158,3 +158,6 @@ b.good { color: var(--exec-good); } b.bad { color: var(--exec-bad); } b.neutral 
 .all-table td.good { color: var(--ui-good, #1a7f4b); }
 .all-table td.bad { color: var(--ui-bad, #b4501a); }
 .all-table td .badge + .badge { margin-left: 4px; }
+
+.auto-publish-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 12px 14px; margin-bottom: 12px; border: 1px solid var(--ui-rule); border-radius: 12px; background: var(--ui-surface-soft, transparent); }
+.auto-publish-bar p { margin: 0; flex: 1 1 320px; color: var(--ui-muted); font-size: 13px; }

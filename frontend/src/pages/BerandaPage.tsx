@@ -10,7 +10,7 @@ type Assessment = "membaik" | "memburuk" | "netral";
 interface Insight {
   indicator_id: string; name: string; category: string; unit: string; latest_year: number; latest_value: number;
   change_pct: number | null; trend: "naik" | "turun" | "stabil" | "fluktuatif"; assessment: Assessment;
-  score: number; headline: string; detail: string; recommendation: string; opds: string[]; source_label: string; source_kind: string;
+  limited?: boolean; score: number; headline: string; detail: string; recommendation: string; opds: string[]; source_label: string; source_kind: string;
   series: Array<{ year: number; value: number }>;
   analysis: { anomaly: { is_anomaly: boolean } | null; change_pct: number | null; previous_year: number | null; cagr_pct: number | null; years: number; first_year: number; streak: { direction: "naik" | "turun" | null; length: number } };
   district_latest: { year: number; items: DistrictValue[] } | null;
@@ -101,6 +101,7 @@ function SectorHealth({ insights }: { insights: Insight[] }) {
 
 type StatusFilter = "semua" | Assessment;
 const statusText: Record<Assessment, string> = { membaik: "Membaik", memburuk: "Memburuk", netral: "Belum dinilai" };
+const statusOf = (item: Insight) => item.limited ? "Data belum cukup" : statusText[item.assessment];
 
 /** Seluruh indikator kinerja dalam satu tabel agar pimpinan melihat gambaran lengkap, bukan hanya yang perlu perhatian. */
 function AllIndicators({ insights }: { insights: Insight[] }) {
@@ -118,7 +119,7 @@ function AllIndicators({ insights }: { insights: Insight[] }) {
   }, [insights, status, sectorFilter, query]);
   const filters: Array<[StatusFilter, string]> = [["semua", "Semua"], ["memburuk", "Memburuk"], ["netral", "Belum dinilai"], ["membaik", "Membaik"]];
   return <section className="panel-card all-indicators" aria-labelledby="semua-indikator">
-    <header className="card-head"><div><h2 id="semua-indikator">Semua indikator kinerja</h2><p>{insights.length.toLocaleString("id-ID")} indikator RPJMD dan usulan OPD yang sudah terbit, dengan nilai terbaru, tren, dan OPD penanggung jawab. "Belum dinilai" berarti arah baik-buruknya belum ditetapkan, bukan berarti tanpa data.</p></div></header>
+    <header className="card-head"><div><h2 id="semua-indikator">Semua indikator kinerja</h2><p>{insights.length.toLocaleString("id-ID")} indikator RPJMD dan usulan OPD yang sudah terbit, dengan nilai terbaru, tren, dan OPD penanggung jawab. "Belum dinilai" berarti arah baik-buruknya belum ditetapkan. "Data belum cukup" berarti baru ada kurang dari 3 tahun data, sehingga tren belum dapat dinilai.</p></div></header>
     <div className="all-filters">
       <div className="chip-row" role="group" aria-label="Filter status">{filters.map(([value, label]) => <button key={value} type="button" className={status === value ? "chip active" : "chip"} aria-pressed={status === value} onClick={() => setStatus(value)}>{label} <b>{counts[value]}</b></button>)}</div>
       <label className="select-inline"><span className="sr-only">Filter sektor</span><select value={sectorFilter} onChange={(event) => setSectorFilter(event.target.value)}><option value="">Semua sektor</option>{sectors.map((name) => <option key={name} value={name}>{name}</option>)}</select></label>
@@ -128,9 +129,9 @@ function AllIndicators({ insights }: { insights: Insight[] }) {
       {rows.map((item) => { const tone = toneOf(item.assessment); return <tr key={item.indicator_id}>
         <td><strong>{plain(item.name)}</strong><small>{sector(item.category)} · Sumber: {plain(item.source_label)}</small></td>
         <td className="num"><strong>{num(item.latest_value)}</strong><small>{plain(item.unit)} · {item.latest_year}</small></td>
-        <td><Sparkline points={item.series} tone={tone} /></td>
+        <td>{item.series.length >= 2 ? <Sparkline points={item.series} tone={tone} /> : <small>Baru {item.series.length} tahun</small>}</td>
         <td className={`num ${tone}`}>{pct(item.change_pct)}</td>
-        <td><Badge tone={tone === "good" ? "success" : tone === "bad" ? "warning" : "neutral"}>{statusText[item.assessment]}</Badge>{item.analysis.anomaly?.is_anomaly && <Badge tone="warning">Tidak biasa</Badge>}</td>
+        <td><Badge tone={tone === "good" ? "success" : tone === "bad" ? "warning" : "neutral"}>{statusOf(item)}</Badge>{item.analysis.anomaly?.is_anomaly && <Badge tone="warning">Tidak biasa</Badge>}</td>
         <td>{item.opds.length ? item.opds.join(", ") : "-"}</td>
       </tr>; })}
     </tbody></table></div>}

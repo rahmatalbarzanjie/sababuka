@@ -869,6 +869,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/publications/auto-publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Menerbitkan semua form capaian OPD yang sudah disetujui
+         * @description Satu publikasi aktif per form; form tanpa capaian baru dilewati dan kegagalan satu form tidak menghentikan yang lain. Membutuhkan `publication.activate`.
+         */
+        post: operations["autoPublishApprovedSubmissions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/publications/{publication_id}/activate": {
         parameters: {
             query?: never;
@@ -3609,6 +3629,22 @@ export interface operations {
                 };
                 content?: never;
             };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    autoPublishApprovedSubmissions: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
             403: components["responses"]["Forbidden"];
         };
     };

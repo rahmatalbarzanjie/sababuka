@@ -214,6 +214,55 @@ export class PublicationService {
     return this.get(auth, id);
   }
 
+  /** Terbitkan capaian valid satu form OPD yang sudah disetujui BAPPERIDA ke publikasi aktif (satu publikasi per form, versi baru bila isinya berubah). */
+  async publishApprovedBatch(auth: AuthContext, batchId: string, audit: AuditContext): Promise<string | null> {
+    const info = await this.db.query<{ id: string; organization_code: string; period_label: string | null }>(
+      `SELECT b.id::text, o.code AS organization_code, p.label AS period_label
+       FROM sababuka.data_batches b
+       JOIN sababuka.organizations o ON o.id = b.organization_id
+       JOIN sababuka.dataset_versions dv ON dv.id = b.dataset_version_id
+       JOIN sababuka.datasets d ON d.id = dv.dataset_id AND d.code = 'SABABUKA.CAPAIAN_MANUAL'
+       LEFT JOIN sababuka.periods p ON p.id = b.reporting_period_id
+       WHERE b.id = $1 AND b.status = 'approved'`, [batchId]);
+    const batch = info.rows[0];
+    if (!batch) return null;
+    const observations = await this.db.query<{ id: string }>(
+      `SELECT obs.id::text FROM sababuka.observations obs
+       JOIN sababuka.indicator_versions iv ON iv.id = obs.indicator_version_id AND iv.status = 'active'
+       JOIN sababuka.indicators i ON i.id = iv.indicator_id AND i.is_active = true
+       JOIN sababuka.categories c ON c.id = i.category_id AND c.is_active = true AND c.review_status = 'approved'
+       WHERE obs.batch_id = $1 AND obs.quality_status IN ('valid','warning')
+         AND NOT EXISTS (SELECT 1 FROM sababuka.observation_publication_blocks nb WHERE nb.observation_id = obs.id)
+       ORDER BY obs.period_id, obs.created_at`, [batchId]);
+    if (!observations.rows.length) return null;
+    const key = `REALISASI_${batchId.replace(/-/gu, "").toUpperCase()}`;
+    const current = await this.db.query<{ id: string; items: string }>(
+      `SELECT p.id::text, count(pi.id)::text AS items FROM sababuka.publications p LEFT JOIN sababuka.publication_items pi ON pi.publication_id = p.id
+       WHERE p.publication_key = $1 AND p.status = 'active' GROUP BY p.id LIMIT 1`, [key]);
+    if (current.rows[0] && Number(current.rows[0].items) === observations.rows.length) return current.rows[0].id;
+    const previous = await this.db.query<{ n: number }>(`SELECT COALESCE(max(version_number),0)::int AS n FROM sababuka.publications WHERE publication_key = $1`, [key]);
+    const label = batch.period_label ? ` ${batch.period_label}` : "";
+    const draft = await this.create(auth, { publication_key: key, publication_number: `${key}-${String((previous.rows[0]?.n ?? 0) + 1).padStart(3, "0")}`, title: `Realisasi ${batch.organization_code}${label}`.slice(0, 250), description: "Capaian OPD yang telah disetujui BAPPERIDA.", change_notes: "Terbit otomatis setelah persetujuan BAPPERIDA." }, audit) as unknown as { id: string };
+    for (let index = 0; index < observations.rows.length; index += 500) await this.addItems(auth, draft.id, observations.rows.slice(index, index + 500).map((row) => row.id), audit);
+    await this.activate(auth, draft.id, "Terbit otomatis setelah persetujuan BAPPERIDA.", audit);
+    return draft.id;
+  }
+
+  /** Menerbitkan semua form yang sudah disetujui tetapi belum terbit penuh. Satu form gagal tidak menghentikan yang lain. */
+  async publishAllApprovedBatches(auth: AuthContext, audit: AuditContext) {
+    const batches = await this.db.query<{ id: string }>(
+      `SELECT b.id::text FROM sababuka.data_batches b
+       JOIN sababuka.dataset_versions dv ON dv.id = b.dataset_version_id
+       JOIN sababuka.datasets d ON d.id = dv.dataset_id AND d.code = 'SABABUKA.CAPAIAN_MANUAL'
+       WHERE b.status = 'approved' ORDER BY b.approved_at`);
+    let published = 0; let skipped = 0; const failed: Array<{ batch_id: string; reason: string }> = [];
+    for (const batch of batches.rows) {
+      try { (await this.publishApprovedBatch(auth, batch.id, audit)) ? published += 1 : skipped += 1; }
+      catch (error) { failed.push({ batch_id: batch.id, reason: error instanceof Error ? error.message.slice(0, 160) : "Gagal" }); }
+    }
+    return { batches: batches.rows.length, published, skipped, failed };
+  }
+
   async activate(auth: AuthContext, id: string, notes: string | null, audit: AuditContext) {
     const client = await this.db.connect();
     try {

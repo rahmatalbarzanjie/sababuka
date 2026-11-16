@@ -13,7 +13,7 @@ interface ObservationRow extends QueryResultRow {
 export interface LinkedSeries { relation: "primary" | "supporting" | "comparison"; notes: string | null; indicator_id: string; name: string; unit: string; latest_year: number; latest_value: number; change_pct: number | null; trend: SeriesAnalysis["trend"]; source_label: string }
 
 export interface Insight {
-  layer: "kinerja" | "konteks"; links: LinkedSeries[];
+  layer: "kinerja" | "konteks"; links: LinkedSeries[]; limited: boolean;
   indicator_id: string; code: string; name: string; category: string; source_kind: "rpjmd" | "bps" | "satudata" | "opd";
   unit: string; latest_year: number; latest_value: number; change_pct: number | null; trend: SeriesAnalysis["trend"];
   assessment: SeriesAnalysis["assessment"]; score: number; headline: string; detail: string; recommendation: string;
@@ -102,8 +102,16 @@ export class InsightService {
         basis = "total_kecamatan";
       }
       const direction = first.direction ?? inferDirection(first.name);
-      const analysis = analyzeSeries(points, direction);
-      if (!analysis || analysis.years < 3) continue;
+      const measured = analyzeSeries(points, direction);
+      // Seri konteks (Bank Data) tetap ketat; indikator kinerja dengan data kurang dari 3 tahun tetap ditampilkan tanpa penilaian.
+      const limited = !measured || measured.years < 3;
+      if (limited && first.origin_type === "bank_data") continue;
+      const ordered = [...points].sort((a, b) => a.year - b.year);
+      const lastPoint = ordered[ordered.length - 1];
+      if (!lastPoint) continue;
+      const analysis: NonNullable<typeof measured> = limited
+        ? { ...(measured ?? { years: ordered.length, first_year: ordered[0]!.year, latest_year: lastPoint.year, latest_value: lastPoint.value, previous_year: null, previous_value: null, change: null, change_pct: null, cagr_pct: null, slope_per_year: 0, slope_pct_of_mean: 0, trend: "stabil" as const, streak: { direction: null, length: 0 }, anomaly: null }), assessment: "netral", score: 0, anomaly: null }
+        : measured!;
 
       const latestYears = [...new Set([...districtSeries.values()].flatMap((series) => [...series.keys()]))].sort((a, b) => b - a);
       const districtYear = latestYears[0];
@@ -116,9 +124,11 @@ export class InsightService {
         return { name: name.replace(/^Kecamatan\s+/u, ""), value: series.get(districtYear)!, previous: earlier === undefined ? null : series.get(earlier)! };
       }) };
       const opds = (opdMap.get(indicatorId) ?? []).sort((a, b) => Number(b.primary) - Number(a.primary)).slice(0, 2).map((entry) => entry.label);
-      const narrative = buildNarrative({ name: plainDash(first.name), unit, analysis, districts, opds, direction });
+      const narrative = limited
+        ? { headline: "Data belum cukup untuk tren", detail: `Baru ada ${analysis.years} tahun data (terbaru ${analysis.latest_year}). Tren dan penilaian memerlukan minimal 3 tahun data.`, recommendation: "Lengkapi data tahun-tahun sebelumnya agar tren dapat dinilai." }
+        : buildNarrative({ name: plainDash(first.name), unit, analysis, districts, opds, direction });
       insights.push({
-        layer: first.origin_type === "bank_data" ? "konteks" : "kinerja", links: [],
+        layer: first.origin_type === "bank_data" ? "konteks" : "kinerja", links: [], limited,
         indicator_id: indicatorId, code: first.code, name: plainDash(first.name), category: plainDash(first.category_name), source_kind: sourceKind(first.origin_type, first.code),
         unit, latest_year: analysis.latest_year, latest_value: analysis.latest_value, change_pct: analysis.change_pct, trend: analysis.trend,
         assessment: analysis.assessment, score: analysis.score, ...narrative, opds, direction_inferred: !first.direction && direction !== null, source_label: plainDash(items.find((entry) => entry.source_name)?.source_name ?? "") || (sourceKind(first.origin_type, first.code) === "rpjmd" ? "RPJMD Kabupaten Kapuas" : "Sumber resmi"),
