@@ -141,3 +141,5 @@ b.good { color: var(--exec-good); } b.bad { color: var(--exec-bad); } b.neutral 
 .connection-details { margin-top: 4px; }
 .connection-details summary { cursor: pointer; font-size: 13px; font-weight: 600; }
 .connection-details small { display: block; margin-top: 4px; }
+
+.table-static-summary { gap: 4px; }
