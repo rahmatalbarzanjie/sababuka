@@ -3,7 +3,9 @@ import { loadConfig } from "./config.js";
 import { createDatabase } from "./database.js";
 import { ConnectorService } from "./services/connector-service.js";
 import { BankDataSyncService } from "./services/bank-data-sync-service.js";
+import { installExtraCaCertificates } from "./security/extra-ca.js";
 
+installExtraCaCertificates();
 const config = loadConfig();
 const db = createDatabase(config.databaseUrl);
 const app = await buildApp({ config, db });

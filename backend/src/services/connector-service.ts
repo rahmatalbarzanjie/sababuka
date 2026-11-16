@@ -1,3 +1,4 @@
+import { describeError } from "./error-text.js";
 import { createHash, randomUUID } from "node:crypto";
 import ExcelJS from "exceljs";
 import type { Database, QueryResultRow } from "../database.js";
@@ -1103,7 +1104,7 @@ export class ConnectorService {
     try { return await this.importSatuDataPackageInner(auth, packageId, audit, refresh); }
     catch (error) {
       if (error instanceof ApiError) throw error;
-      return { package_id: packageId, status: "failed", reason: `Galat: ${(error instanceof Error ? error.message : String(error)).slice(0, 240)}` };
+      return { package_id: packageId, status: "failed", reason: `Galat: ${describeError(error).slice(0, 240)}` };
     }
   }
 
@@ -1229,7 +1230,7 @@ export class ConnectorService {
     try { return await this.importBankVariableInner(auth, variableId, audit, refresh); }
     catch (error) {
       if (error instanceof ApiError) throw error;
-      const detail = error instanceof Error ? error.message : String(error);
+      const detail = describeError(error);
       return { variable_id: variableId, status: "failed", reason: `Galat database/kode: ${detail.slice(0, 240)}` };
     }
   }
