@@ -182,6 +182,7 @@ test("impor melewati nilai yang sudah tercatat identik dan tidak membuat batch k
       if (sql.includes("FROM sababuka.geographies")) return result<R>([{ id: "g1" }] as unknown as R[]);
       if (sql.includes("FROM sababuka.periods")) return result<R>([{ id: "p1" }] as unknown as R[]);
       if (sql.includes("FROM sababuka.observations WHERE indicator_version_id")) return result<R>([{ "?column?": 1 }] as unknown as R[]);
+      if (sql.includes("iv.status='active'")) return result<R>([] as unknown as R[]);
       return result<R>([{ id: "r1" }] as unknown as R[]);
     },
     connect: async () => { throw new Error("connect tidak digunakan"); },
