@@ -12,6 +12,7 @@ import { parseKecamatanTable } from "./satudata-table.js";
 import { resolveUnit } from "./unit-inference.js";
 import { PublicationService } from "./publication-service.js";
 import { GovernanceService } from "./governance-service.js";
+import { plainDash } from "./plain-text.js";
 
 interface SourceRow extends QueryResultRow { id: string; code: string; name: string; source_type: string; base_url: string | null; connection_config: Record<string, unknown>; credential_reference: string | null; last_checked_at: string | null }
 interface MappingRow extends QueryResultRow { observation_count?: number; last_imported_at?: string | null; id: string; indicator_version_id: string; indicator_code: string; indicator_name: string; indicator_status: string; source_id: string; source_code: string; source_type: string; external_dataset_id: string; external_resource_id: string | null; resource_url: string | null; geography_field: string | null; geography_code: string; year_field: string; value_field: string; unit_field: string | null; expected_unit: string | null; frequency: string; transform_json: Record<string, unknown>; source_priority: number; relation_type: string; status: string; dataset_version_id: string | null; created_at: string; updated_at: string }
@@ -376,6 +377,59 @@ export class ConnectorService {
   async listBpsChecks(limit = 10) {
     const result = await this.db.query<QueryResultRow & Record<string, unknown>>(`SELECT c.checked_at::text, c.reachable, c.response_ms, c.error_text, c.dataset_count FROM sababuka.connector_check_history c JOIN sababuka.data_sources s ON s.id=c.source_id WHERE s.code='BPS_KAPUAS' ORDER BY c.checked_at DESC, c.id DESC LIMIT $1`, [Math.min(Math.max(limit, 1), 50)]);
     return { data: result.rows };
+  }
+
+  /** Uji hanya-baca model WebAPI BPS untuk Kapuas dan Kalimantan Tengah. Kunci tidak pernah dikembalikan atau dicatat. */
+  async probeBpsModels(auth: AuthContext, audit: AuditContext) {
+    const source = await this.source("BPS_KAPUAS");
+    const secret = await this.resolveBpsSecret();
+    if (!secret) throw new ApiError(409, "CONNECTOR_WAITING_KEY", "API key BPS belum dikonfigurasi.");
+    const root = bpsApiBase(source.base_url).replace(/\/$/u, "");
+    const key = `/key/${encodeURIComponent(secret.value)}`;
+    const kab = this.bpsDomain(source);
+    const probes: Array<{ model: string; domain: string; path: string }> = [
+      { model: "domain", domain: "6200", path: `/list/model/domain/type/kab/prov/6200` },
+      { model: "subject", domain: kab, path: `/list/model/subject/domain/${kab}` },
+      { model: "var", domain: kab, path: `/list/model/var/domain/${kab}/page/1` },
+      { model: "var", domain: "6200", path: `/list/model/var/domain/6200/page/1` },
+      { model: "statictable", domain: kab, path: `/list/model/statictable/domain/${kab}` },
+      { model: "publication", domain: kab, path: `/list/model/publication/lang/ind/domain/${kab}` },
+      { model: "pressrelease", domain: kab, path: `/list/model/pressrelease/lang/ind/domain/${kab}` },
+      { model: "indicators", domain: kab, path: `/list/model/indicators/domain/${kab}` },
+      { model: "strategicindicators", domain: kab, path: `/list/model/strategicindicators/domain/${kab}` },
+      { model: "infographic", domain: kab, path: `/list/model/infographic/domain/${kab}` },
+    ];
+    const results: Array<Record<string, unknown>> = [];
+    for (const probe of probes) {
+      const started = Date.now();
+      const base = { model: probe.model, domain: probe.domain };
+      try {
+        const response = await fetch(`${root}${probe.path}${key}`, { signal: AbortSignal.timeout(30_000) });
+        const raw = await response.text();
+        let payload: JsonObject | null = null;
+        try { payload = JSON.parse(raw) as JsonObject; } catch { payload = null; }
+        const data = payload?.data;
+        const rows = Array.isArray(data) ? (Array.isArray(data[1]) ? data[1] : data) : [];
+        const meta = Array.isArray(data) && data[0] && typeof data[0] === "object" ? data[0] as JsonObject : null;
+        const sample = rows.slice(0, 3).map((row) => {
+          const item = (row && typeof row === "object" ? row : {}) as JsonObject;
+          return plainDash(asText(item.title ?? item.name ?? item.domain_name ?? item.sub_name ?? item.var ?? item.judul ?? item.label ?? "")).slice(0, 90);
+        }).filter(Boolean);
+        const message = payload ? asText(payload.message ?? payload.status) : "";
+        results.push({
+          ...base, http_status: response.status, ok: response.ok && asText(payload?.status).toLowerCase() !== "error",
+          available: asText(payload?.["data-availability"]) || null,
+          total: Number(meta?.total ?? rows.length) || 0, sample,
+          message: message.replaceAll(secret.value, "***").slice(0, 160) || (payload ? null : "Respons bukan JSON"),
+          response_ms: Date.now() - started,
+        });
+      } catch {
+        results.push({ ...base, http_status: null, ok: false, available: null, total: 0, sample: [], message: "WebAPI BPS tidak dapat dijangkau", response_ms: Date.now() - started });
+      }
+      await new Promise((resolve) => setTimeout(resolve, 700));
+    }
+    await recordAudit(this.db, { ...audit, eventType: "connector.bps_models_probed", entityType: "data_source", entityId: source.id, afterData: { probed: results.length, ok: results.filter((item) => item.ok).length }, metadata: { source_code: source.code } });
+    return { data: results };
   }
 
   async clearBpsSecret(auth: AuthContext, audit: AuditContext) {
