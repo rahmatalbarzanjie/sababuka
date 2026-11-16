@@ -143,3 +143,18 @@ b.good { color: var(--exec-good); } b.bad { color: var(--exec-bad); } b.neutral 
 .connection-details small { display: block; margin-top: 4px; }
 
 .table-static-summary { gap: 4px; }
+
+.all-filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+.all-filters .chip-row { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 320px; }
+.all-filters .chip { display: inline-flex; gap: 6px; align-items: center; min-height: 36px; padding: 0 12px; border: 1px solid var(--ui-rule); border-radius: 999px; background: transparent; color: var(--ui-text); font: inherit; cursor: pointer; }
+.all-filters .chip.active { background: var(--ui-accent, #123a66); border-color: transparent; color: #fff; }
+.all-filters .chip b { font-variant-numeric: tabular-nums; }
+.all-filters .search-field { flex: 0 1 240px; }
+.all-table { width: 100%; border-collapse: collapse; }
+.all-table th { text-align: left; font-size: 12px; color: var(--ui-muted); padding: 8px 10px; border-bottom: 1px solid var(--ui-rule); white-space: nowrap; }
+.all-table td { padding: 10px; border-bottom: 1px solid var(--ui-rule); vertical-align: middle; }
+.all-table td small { display: block; color: var(--ui-muted); font-size: 12px; margin-top: 2px; }
+.all-table td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.all-table td.good { color: var(--ui-good, #1a7f4b); }
+.all-table td.bad { color: var(--ui-bad, #b4501a); }
+.all-table td .badge + .badge { margin-left: 4px; }
