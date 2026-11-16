@@ -1204,6 +1204,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/connectors/bps/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Uji hanya-baca model WebAPI BPS (Developer)
+         * @description Memakai kunci BPS tersimpan tanpa menampilkannya. Hanya Superadmin dengan `connector_secret.view`.
+         */
+        post: operations["probeBpsModels"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/connectors/bps/secret": {
         parameters: {
             query?: never;
@@ -3997,6 +4017,22 @@ export interface operations {
             path: {
                 source_code: "SATUDATA_KAPUAS" | "BPS_KAPUAS";
             };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    probeBpsModels: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;

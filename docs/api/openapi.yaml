@@ -1446,6 +1446,17 @@ paths:
       responses:
         "200": {$ref: "#/components/responses/ConnectorObject"}
         "403": {$ref: "#/components/responses/Forbidden"}
+  /connectors/bps/probe:
+    post:
+      tags: [Connectors]
+      operationId: probeBpsModels
+      summary: Uji hanya-baca model WebAPI BPS (Developer)
+      description: Memakai kunci BPS tersimpan tanpa menampilkannya. Hanya Superadmin dengan `connector_secret.view`.
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
   /connectors/bps/secret:
     get:
       tags: [Connectors]
