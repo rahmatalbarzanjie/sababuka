@@ -3,6 +3,7 @@ import type { QueryResultRow } from "pg";
 import { requirePermission } from "../plugins/authentication.js";
 import { AchievementService } from "../services/achievement-service.js";
 import { BankDataCatalogService } from "../services/bank-data-catalog-service.js";
+import { DistrictSummaryService } from "../services/district-summary-service.js";
 import { InsightService } from "../services/insight-service.js";
 
 const uuid = { type: "string", format: "uuid" } as const;
@@ -223,6 +224,20 @@ export async function executiveRoutes(app: FastifyInstance): Promise<void> {
   app.get("/executive/achievement", async (request) => {
     requirePermission(request, "executive_dashboard.view");
     return new AchievementService(app.db).list();
+  });
+
+  app.get("/executive/districts", async (request) => {
+    requirePermission(request, "executive_dashboard.view");
+    return new DistrictSummaryService(app.db).list();
+  });
+
+  app.get<{ Params: { name: string } }>("/executive/districts/:name", {
+    schema: { params: { type: "object", additionalProperties: false, required: ["name"], properties: { name: { type: "string", minLength: 2, maxLength: 80 } } } },
+  }, async (request, reply) => {
+    requirePermission(request, "executive_dashboard.view");
+    const detail = await new DistrictSummaryService(app.db).detail(request.params.name);
+    if (!detail) return reply.code(404).send({ error: { code: "NOT_FOUND", message: "Kecamatan tidak ditemukan atau belum memiliki data terbit." } });
+    return detail;
   });
 
   app.get("/executive/bank-data", async (request) => {

@@ -5,6 +5,7 @@ import { Badge, EmptyState, ErrorState, PageLoading, useAsync } from "../compone
 import { AchievementSection, type AchievementResponse } from "../components/AchievementSection";
 import { AppLink } from "../components/AppLink";
 import { DistrictMap, normalizeName, useKapuasGeography } from "../components/DistrictMap";
+import { DistrictSummaryPanel } from "../components/DistrictSummaryPanel";
 import { Legend } from "../components/Legend";
 import { askAbout, askPath, indicatorPath, isVerified, num, pct, sector, statusOf, toneOf, type Assessment, type Insight } from "../insight";
 import { navigate } from "../router";
@@ -136,13 +137,13 @@ function DistrictPanel({ insights }: { insights: Insight[] }) {
   const [chosen, setChosen] = useState<string>("");
   const [district, setDistrict] = useState<string | null>(null);
   const current = options.find((item) => item.indicator_id === chosen) ?? options[0];
-  if (!current || !current.district_latest) return null;
+  if (!current || !current.district_latest) return <EmptyState title="Belum ada indikator dengan data per kecamatan">Peta per indikator akan tampil otomatis begitu ada indikator yang memiliki nilai di minimal 8 kecamatan.</EmptyState>;
   const ranked = [...current.district_latest.items].sort((a, b) => b.value - a.value);
   const top = ranked[0]; const bottom = ranked[ranked.length - 1];
   const detail = district ? ranked.find((item) => normalizeName(item.name) === normalizeName(district)) : null;
   const maxValue = top?.value || 1;
-  return <section className="panel-card district-panel" aria-labelledby="sebaran">
-    <header className="card-head"><div><h2 id="sebaran">Sebaran per kecamatan</h2><p>Nilai terbaru ({current.district_latest.year}) menurut kecamatan. Warna lebih tua berarti nilai lebih tinggi.</p></div>
+  return <div className="district-embedded">
+    <header className="card-head"><div><h3 id="sebaran">Sebaran satu indikator</h3><p>Nilai terbaru ({current.district_latest.year}) menurut kecamatan. Warna lebih tua berarti nilai lebih tinggi.</p></div>
       <label className="select-inline"><span className="sr-only">Pilih indikator</span><select value={current.indicator_id} onChange={(event) => { setChosen(event.target.value); setDistrict(null); }}>{options.map((item) => <option key={item.indicator_id} value={item.indicator_id}>{plain(item.name)}</option>)}</select></label>
     </header>
     <div className="district-layout">
@@ -156,6 +157,15 @@ function DistrictPanel({ insights }: { insights: Insight[] }) {
           </button></li>)}</ol>
       </div>
     </div>
+  </div>;
+}
+
+function DistrictSection({ insights }: { insights: Insight[] }) {
+  const [tab, setTab] = useState<"ringkasan" | "indikator">("ringkasan");
+  return <section className="panel-card district-panel" aria-labelledby="peta-kecamatan">
+    <header className="card-head"><div><h2 id="peta-kecamatan">Peta kecamatan</h2><p>Klik kecamatan untuk melihat status seluruh indikatornya, atau pilih satu indikator untuk melihat sebarannya.</p></div>
+      <div className="chip-row" role="group" aria-label="Tampilan peta"><button type="button" className={`chip${tab === "ringkasan" ? " active" : ""}`} aria-pressed={tab === "ringkasan"} onClick={() => setTab("ringkasan")}>Ringkasan kecamatan</button><button type="button" className={`chip${tab === "indikator" ? " active" : ""}`} aria-pressed={tab === "indikator"} onClick={() => setTab("indikator")}>Per indikator</button></div></header>
+    {tab === "ringkasan" ? <DistrictSummaryPanel /> : <DistrictPanel insights={insights} />}
   </section>;
 }
 
@@ -195,6 +205,8 @@ export function BerandaPage() {
 
     <AchievementSection data={capaian} />
 
+    <DistrictSection insights={[...insights, ...konteks]} />
+
     <div className="exec-columns">
       <section className="exec-main" aria-labelledby="sorotan">
         <header className="section-head"><h2 id="sorotan"><AlertTriangle aria-hidden />Sorotan utama</h2><p>Indikator yang memburuk atau berubah tidak wajar, diurutkan menurut tingkat prioritas.</p></header>
@@ -208,8 +220,6 @@ export function BerandaPage() {
     </div>
 
     <AllIndicators insights={insights} />
-
-    <DistrictPanel insights={[...insights, ...konteks]} />
 
     <section className="panel-card" aria-labelledby="konteks"><header className="card-head"><div><h2 id="konteks"><Database aria-hidden />Konteks dari Bank Data</h2><p>{context.series.toLocaleString("id-ID")} seri BPS Kapuas dalam Angka dan Satu Data tersedia sebagai pembanding, {context.linked} indikator RPJMD sudah ditautkan. Seri ini tidak menilai kinerja dan dibaca lengkap lewat Tanya Sababuka.</p></div><span className="spotlight-badges"><Badge tone="neutral">Bank Data · belum diverifikasi</Badge><AppLink to="/dashboard/bank-data" className="button secondary">Telusuri seluruh Bank Data</AppLink></span></header>{contextMovers.length > 0 ? <ChangeBoard items={contextMovers} /> : <EmptyState title="Belum ada seri Bank Data">Seri akan tampil setelah sinkron Bank Data berjalan.</EmptyState>}</section>
 

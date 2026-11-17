@@ -39,7 +39,7 @@ const pageMeta: Record<string, { title: string; subtitle: string; permission?: s
   "/dashboard/bank-data": { title: "Bank Data Kapuas", subtitle: "Seluruh seri BPS dan Satu Data yang tersimpan, dapat dicari, ditelusuri, dan diunduh.", permission: "executive_dashboard.view" },
   "/dashboard/indikator": { title: "Detail Indikator", subtitle: "Grafik, tabulasi data, analisis, tindak lanjut, dan sumber satu indikator.", permission: "executive_dashboard.view" },
   "/assistant": { title: "Tanya Sababuka", subtitle: "Tanyakan data, tren, dan tindak lanjut; jawaban dihitung dari data resmi.", permission: "assistant.use" },
-  "/analysis": { title: "Analisis dan Peta", subtitle: "Baca tren, kesenjangan wilayah, konsistensi sumber, dan rekomendasi keputusan.", permission: "executive_dashboard.view" },
+  "/analysis": { title: "Analisis Indikator", subtitle: "Baca tren, konsistensi sumber, dan rekomendasi keputusan per indikator. Peta kecamatan ada di Dashboard Eksekutif.", permission: "executive_dashboard.view" },
   "/notifications": { title: "Notifikasi", subtitle: "Pembaruan kategori, indikator, verifikasi OPD, pengiriman, dan publikasi." },
   "/audit": { title: "Audit Aktivitas", subtitle: "Jejak perubahan permanen sesuai lingkup organisasi.", permission: "audit.view" },
   "/operations": { title: "Beranda Tugas", subtitle: "Lihat pekerjaan yang perlu diselesaikan sesuai peran dan kewenangan Anda.", permission: "submission.view" },

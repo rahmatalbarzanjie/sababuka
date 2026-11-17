@@ -225,3 +225,24 @@ b.good { color: var(--exec-good); } b.bad { color: var(--exec-bad); } b.neutral 
 .bank-search input { flex: 1; min-width: 0; }
 .bank-check { display: flex; align-items: center; gap: 6px; font-size: 13px; }
 .bank-pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 12px; font-size: 13px; }
+
+/* Peta kecamatan: ringkasan status seluruh indikator per kecamatan */
+.district-embedded { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.district-embedded h3 { margin: 0; font-size: 15px; }
+.district-note { margin: 0 0 12px; font-size: 13.5px; line-height: 1.55; max-width: 90ch; }
+.card-head .chip-row, .district-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.card-head .chip-row .chip, .district-chips .chip { display: inline-flex; gap: 6px; align-items: center; min-height: 36px; padding: 0 12px; border: 1px solid var(--ui-rule); border-radius: 999px; background: transparent; color: var(--ui-text); font: inherit; cursor: pointer; }
+.card-head .chip-row .chip.active, .district-chips .chip.active { background: var(--ui-accent, #123a66); border-color: transparent; color: #fff; }
+html[data-theme="dark"] .card-head .chip-row .chip.active, html[data-theme="dark"] .district-chips .chip.active { color: #0b1b2b; }
+.district-chips .chip b { font-variant-numeric: tabular-nums; }
+.district-detail { display: flex; flex-direction: column; gap: 14px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--ui-rule); min-width: 0; }
+.district-detail > header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.district-detail h3 { margin: 0 0 2px; font-size: 18px; }
+.district-detail h4 { margin: 0 0 6px; font-size: 14px; }
+.district-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.district-highlights { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.district-highlights section { background: var(--ui-surface); border: 1px solid var(--ui-rule); border-radius: var(--ui-radius-control); padding: 12px 14px; min-width: 0; }
+.district-highlights ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.district-highlights li { display: flex; flex-direction: column; gap: 1px; min-width: 0; overflow-wrap: anywhere; }
+.district-highlights small, .district-detail td small { display: block; color: var(--ui-muted); font-size: 12.5px; }
+.district-search { max-width: 360px; }
