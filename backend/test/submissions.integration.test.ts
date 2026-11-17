@@ -24,7 +24,7 @@ test("form capaian OPD mendukung isi, submit, return, dan approve", { skip: !dat
     };
     const bapperidaHeaders = await loginAs("bapperida@sababuka.com");
     const opdHeaders = await loginAs("opd.dkpp@sababuka.com");
-    const pimpinanHeaders = await loginAs("pimpinan@sababuka.com");
+    const pimpinanHeaders = await loginAs("bupati@sababuka.com");
 
     const indicators = await app.inject({ method: "GET", url: "/api/v1/indicators?q=IKP", headers: { cookie } });
     assert.equal(indicators.statusCode, 200, indicators.body);

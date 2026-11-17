@@ -17,6 +17,7 @@
     "test:integration": "tsx --test test/*.integration.test.ts",
     "test:e2e": "playwright test",
     "db:migrate": "tsx src/scripts/migrate.ts",
+    "test:seed-users": "tsx src/scripts/seed-integration-users.ts",
     "admin:create": "tsx src/scripts/create-superadmin.ts",
     "accounts:sync-google-form": "tsx src/scripts/sync-google-form-registrants.ts",
     "data:sync-bps-rpjmd": "tsx src/scripts/sync-bps-rpjmd-observations.ts",

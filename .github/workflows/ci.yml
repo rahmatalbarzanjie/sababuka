@@ -84,8 +84,8 @@ jobs:
       - name: Create isolated integration accounts
         working-directory: backend
         env:
-          DEMO_PASSWORD: github-actions-integration-password
-        run: pnpm dev:seed-users
+          INTEGRATION_ADMIN_PASSWORD: github-actions-integration-password
+        run: pnpm test:seed-users
       - name: Run backend integration tests
         working-directory: backend
         env:
