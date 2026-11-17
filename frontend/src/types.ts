@@ -244,6 +244,8 @@ export interface SubmissionObservation {
   notes: string | null;
   quality_status: string | null;
   frequency: string;
+  /** true bila BAPPERIDA membuka indikator ini untuk dilengkapi OPD. */
+  reopened?: boolean;
 }
 
 export interface Submission {
@@ -265,6 +267,8 @@ export interface Submission {
   review_notes: string | null;
   created_at: string;
   updated_at: string;
+  /** true selama ada indikator yang dibuka satu per satu; OPD hanya mengisi indikator itu. */
+  partial_reopen?: boolean;
   observations: SubmissionObservation[];
 }
 

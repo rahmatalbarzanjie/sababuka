@@ -2506,6 +2506,12 @@ components:
       additionalProperties: false
       properties:
         notes: {type: [string, "null"], maxLength: 4000}
+        indicator_version_ids:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items: {type: string, format: uuid}
+          description: Hanya untuk aksi `reopen`. Membuka indikator kosong satu per satu tanpa menarik publikasi yang berlaku; OPD hanya dapat mengisi indikator tersebut sampai capaian disetujui ulang.
     PublicationStatus:
       type: string
       enum: [draft, active, replaced, withdrawn]

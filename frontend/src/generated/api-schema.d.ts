@@ -1956,6 +1956,8 @@ export interface components {
         };
         TransitionInput: {
             notes?: string | null;
+            /** @description Hanya untuk aksi `reopen`. Membuka indikator kosong satu per satu tanpa menarik publikasi yang berlaku; OPD hanya dapat mengisi indikator tersebut sampai capaian disetujui ulang. */
+            indicator_version_ids?: string[];
         };
         /** @enum {string} */
         PublicationStatus: "draft" | "active" | "replaced" | "withdrawn";
