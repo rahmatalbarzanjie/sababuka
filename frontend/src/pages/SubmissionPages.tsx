@@ -21,6 +21,8 @@ function formatIndicatorValue(value: string | number | null | undefined, dataTyp
 interface AvailablePeriod extends Period { indicator_count: number; submission_id: string | null; submission_status: Submission["status"] | null }
 const frequencyLabel = (value: string) => ({ annual: "Tahunan", semester: "Semesteran", quarter: "Triwulanan", monthly: "Bulanan", weekly: "Mingguan", custom: "Insidental" }[value] ?? value);
 
+const DEFAULT_OPEN_REASON = "Indikator belum diisi, dibuka agar OPD dapat melengkapinya.";
+
 export function SubmissionsPage({ review = false, guidance = false }: { review?: boolean; guidance?: boolean }) {
   const { user } = useAuth();
   const [page, setPage] = useState(1);
@@ -116,6 +118,8 @@ function SubmissionDetailModal({ id, review, guidance, statusViewpoint, permissi
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [reviewNotes, setReviewNotes] = useState("");
   const [reopenOpen, setReopenOpen] = useState(false);
+  const [openingId, setOpeningId] = useState<string | null>(null);
+  const [openReason, setOpenReason] = useState("");
   const [guidanceType, setGuidanceType] = useState<StatisticalGuidanceNote["guidance_type"]>("methodology");
   const [guidanceIndicatorId, setGuidanceIndicatorId] = useState("");
   const [guidanceText, setGuidanceText] = useState("");
@@ -123,6 +127,7 @@ function SubmissionDetailModal({ id, review, guidance, statusViewpoint, permissi
   const [affected, setAffected] = useState<Set<string>>(new Set());
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
+  const itemEditable = (item: SubmissionObservation) => editable && (!detail.data?.partial_reopen || item.reopened === true);
   const currentValue = (item: SubmissionObservation) => values[item.indicator_version_id] ?? String(item.numeric_value ?? item.text_value ?? "");
   const ownsSubmission = detail.data ? writableOrganizationIds.includes(detail.data.organization_id) : false;
   const editable = detail.data ? !review && !guidance && ownsSubmission && ["draft", "returned"].includes(detail.data.status) && permissions.includes("submission.update") : false;
@@ -158,7 +163,7 @@ function SubmissionDetailModal({ id, review, guidance, statusViewpoint, permissi
     if (!detail.data) return;
     setBusy(true); setError("");
     try {
-      const filled = detail.data.observations.filter((item) => currentValue(item).trim());
+      const filled = detail.data.observations.filter((item) => itemEditable(item) && currentValue(item).trim());
       await Promise.all(filled.map(persist));
       setSavedAt(formatTanggal(new Date(), "waktu")); detail.reload(); onChanged();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Sebagian perubahan belum dapat disimpan."); }
@@ -185,6 +190,15 @@ function SubmissionDetailModal({ id, review, guidance, statusViewpoint, permissi
     catch (cause) { setError(cause instanceof Error ? cause.message : "Status gagal diubah."); }
     finally { setBusy(false); }
   };
+  const reopenIndicators = async (ids: string[], reason: string) => {
+    setBusy(true); setError("");
+    try { await api(`/submissions/${id}/actions/reopen`, { method: "POST", mutation: true, body: jsonBody({ notes: reason, indicator_version_ids: ids }) }); setOpeningId(null); detail.reload(); onChanged(); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Indikator gagal dibuka."); }
+    finally { setBusy(false); }
+  };
+  const canReopenItem = (item: SubmissionObservation) => review && permissions.includes("submission.return") && !item.observation_id && !item.reopened
+    && (detail.data?.status === "approved" || (detail.data?.status === "returned" && detail.data.partial_reopen === true));
+  const emptyIds = detail.data?.observations.filter(canReopenItem).map((item) => item.indicator_version_id) ?? [];
   const action = (detail.data?.status === "draft" || detail.data?.status === "returned") && ownsSubmission
     ? (permissions.includes("submission.submit") ? "submit" : null)
     : review && detail.data?.status === "submitted" && permissions.includes("submission.review") ? "start-review"
@@ -196,13 +210,17 @@ function SubmissionDetailModal({ id, review, guidance, statusViewpoint, permissi
       {error && <Notice tone="error">{error}</Notice>}
       <div className="detail-grid"><div><span>OPD</span><strong>{detail.data.organization_name}</strong></div><div><span>Periode</span><strong>{detail.data.period_label} · {frequencyLabel(detail.data.period_type)}</strong></div><div><span>Status capaian</span><strong>{capaianStatusLabel(detail.data.status, statusViewpoint)}</strong></div><div><span>Kelengkapan</span><strong>{detail.data.row_count}/{detail.data.observations.length} indikator</strong></div></div>
       {detail.data.status === "returned" && <Notice tone="warning">Catatan peninjau: {detail.data.review_notes ?? "Silakan periksa kembali data dan bukti dukung."}</Notice>}
+      {detail.data.status === "returned" && detail.data.partial_reopen && <Notice tone="info">Hanya indikator bertanda "Dibuka untuk OPD" yang dapat diisi. Data lain yang sudah terbit tetap tampil di dashboard sampai versi baru disetujui.</Notice>}
       {!detail.data.observations.length ? <EmptyState title="Belum ada indikator pada pelaporan ini">Hubungi BAPPERIDA jika indikator yang menjadi tanggung jawab OPD belum muncul.</EmptyState>
         : <><div className="realization-progress"><div><strong>{detail.data.observations.filter((item) => currentValue(item).trim()).length} dari {detail.data.observations.length} indikator terisi</strong><small>{savedAt ? `Perubahan terakhir disimpan pukul ${savedAt}` : "Isi nilai kemudian simpan semua perubahan. Indikator yang belum diisi boleh dikirim dan tampil sebagai belum ada data di dashboard."}</small></div>{editable && <button className="button primary" disabled={busy || !detail.data.observations.some((item) => currentValue(item).trim())} onClick={() => void saveAll()}><Save />Simpan semua perubahan</button>}</div><div className="realization-list">{detail.data.observations.map((item) => <section key={item.indicator_version_id} className="realization-card">
-          <header><div><strong>{item.indicator_name}</strong><small>{item.indicator_code} - target {formatIndicatorValue(item.target_numeric_value ?? item.target_text_value, item.data_type, item.unit_symbol)}</small></div>{item.observation_id && <Badge tone="success">Sudah diisi</Badge>}</header>
-          {editable ? <div className="form-grid"><label className="field"><span>Realisasi <small>({item.unit_symbol || "sesuai definisi"})</small></span><input type={["text", "boolean"].includes(item.data_type) ? "text" : "number"} step="any" value={currentValue(item)} onChange={(event) => setValues((current) => ({ ...current, [item.indicator_version_id]: event.target.value }))} /></label><label className="field"><span>Catatan realisasi <small>(opsional)</small></span><input value={notes[item.indicator_version_id] ?? item.notes ?? ""} onChange={(event) => setNotes((current) => ({ ...current, [item.indicator_version_id]: event.target.value }))} placeholder="Jelaskan sumber, metode, atau penyebab deviasi" /></label></div>
+          <header><div><strong>{item.indicator_name}</strong><small>{item.indicator_code} - target {formatIndicatorValue(item.target_numeric_value ?? item.target_text_value, item.data_type, item.unit_symbol)}</small></div>{item.observation_id ? <Badge tone="success">Sudah diisi</Badge> : item.reopened ? <Badge tone="warning">Dibuka untuk OPD</Badge> : null}</header>
+          {itemEditable(item) ? <div className="form-grid"><label className="field"><span>Realisasi <small>({item.unit_symbol || "sesuai definisi"})</small></span><input type={["text", "boolean"].includes(item.data_type) ? "text" : "number"} step="any" value={currentValue(item)} onChange={(event) => setValues((current) => ({ ...current, [item.indicator_version_id]: event.target.value }))} /></label><label className="field"><span>Catatan realisasi <small>(opsional)</small></span><input value={notes[item.indicator_version_id] ?? item.notes ?? ""} onChange={(event) => setNotes((current) => ({ ...current, [item.indicator_version_id]: event.target.value }))} placeholder="Jelaskan sumber, metode, atau penyebab deviasi" /></label></div>
             : <div className="realization-readonly"><div><span>Realisasi</span><strong>{formatIndicatorValue(item.numeric_value ?? item.text_value, item.data_type, item.unit_symbol)}</strong></div><div><span>Catatan</span><strong>{item.notes?.trim() || "-"}</strong></div></div>}
-          {editable && <div className="realization-actions"><button className="button secondary compact" disabled={busy || !currentValue(item)} onClick={() => save(item)}><Save />Simpan indikator</button><label className="button secondary compact upload-button"><Upload />Bukti dukung<input type="file" accept=".pdf,.jpg,.jpeg,.png,.xlsx" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file, item.indicator_version_id); event.target.value = ""; }} /></label></div>}
-          {editable && numericDeviation(item, currentValue(item)) && <Notice tone="warning">Nilai berbeda lebih dari 50% terhadap target. Periksa kembali satuan dan angka, lalu jelaskan penyebabnya pada catatan jika memang benar.</Notice>}
+          {canReopenItem(item) && (openingId === item.indicator_version_id
+            ? <div className="reopen-item"><label className="field"><span>Alasan membuka indikator ini (minimal 10 karakter)</span><textarea rows={2} value={openReason} onChange={(event) => setOpenReason(event.target.value)} /></label><div className="realization-actions"><button className="button secondary compact" disabled={busy} onClick={() => setOpeningId(null)}>Batal</button><button className="button primary compact" disabled={busy || openReason.trim().length < 10} onClick={() => void reopenIndicators([item.indicator_version_id], openReason.trim())}><Undo2 />Buka untuk OPD</button></div></div>
+            : <div className="realization-actions"><button className="button secondary compact" disabled={busy} onClick={() => { setOpeningId(item.indicator_version_id); setOpenReason(DEFAULT_OPEN_REASON); }}><Undo2 />Buka kembali indikator ini</button></div>)}
+          {itemEditable(item) && <div className="realization-actions"><button className="button secondary compact" disabled={busy || !currentValue(item)} onClick={() => save(item)}><Save />Simpan indikator</button><label className="button secondary compact upload-button"><Upload />Bukti dukung<input type="file" accept=".pdf,.jpg,.jpeg,.png,.xlsx" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file, item.indicator_version_id); event.target.value = ""; }} /></label></div>}
+          {itemEditable(item) && numericDeviation(item, currentValue(item)) && <Notice tone="warning">Nilai berbeda lebih dari 50% terhadap target. Periksa kembali satuan dan angka, lalu jelaskan penyebabnya pada catatan jika memang benar.</Notice>}
         </section>)}</div></>}
       <section className="evidence-panel"><h3><FileCheck2 />Dokumen pendukung internal</h3><p>Lampirkan sumber perhitungan, rekap, atau dokumen pengesahan bila tersedia. PDF, JPG, PNG, atau XLSX; maksimum 10 MB. Dokumen hanya dapat dilihat instansi terkait serta petugas pemeriksaan dan pembinaan yang berwenang.</p>
         {evidence.loading ? <Spinner /> : !evidence.data?.data.length ? <small>Belum ada bukti dukung.</small> : <div className="evidence-list">{evidence.data.data.map((item) => <div key={item.id}><span><strong>{item.original_filename}</strong><small>{item.indicator_code ?? "Umum"} - {(Number(item.byte_size) / 1024).toLocaleString("id-ID", { maximumFractionDigits: 1 })} KB</small></span><span><a className="icon-button" aria-label="Unduh bukti" href={apiPath(`/submissions/${id}/evidence/${item.id}/download`)}><Download /></a>{editable && <button className="icon-button danger-text" aria-label="Hapus bukti" onClick={() => removeEvidence(item.id)}><Trash2 /></button>}</span></div>)}</div>}
@@ -212,7 +230,8 @@ function SubmissionDetailModal({ id, review, guidance, statusViewpoint, permissi
         {guidance && permissions.includes("statistical_guidance.comment") && <div className="guidance-form"><div className="form-grid"><label className="field"><span>Jenis pembinaan</span><select data-field="guidance_type" value={guidanceType} onChange={(event) => setGuidanceType(event.target.value as StatisticalGuidanceNote["guidance_type"])}><option value="standard">Standar data</option><option value="metadata">Metadata</option><option value="methodology">Metodologi</option><option value="consistency">Konsistensi</option></select></label><label className="field"><span>Indikator <small>(opsional)</small></span><select data-field="indicator_version_id" value={guidanceIndicatorId} onChange={(event) => setGuidanceIndicatorId(event.target.value)}><option value="">Seluruh pelaporan</option>{detail.data.observations.map((item) => <option key={item.indicator_version_id} value={item.indicator_version_id}>{item.indicator_name}</option>)}</select></label></div><label className="field"><span>Rekomendasi perbaikan</span><textarea rows={4} data-field="notes" value={guidanceText} onChange={(event) => setGuidanceText(event.target.value)} placeholder="Jelaskan standar atau metode yang perlu diperbaiki. Jangan mengubah nilai atas nama produsen data." /></label><button className="button primary" disabled={busy || guidanceText.trim().length < 3} onClick={() => void addGuidance()}><BookCheck />Simpan rekomendasi</button></div>}
       </section>
       {review && detail.data.status === "approved" && permissions.includes("submission.return") && <section className="review-decision-panel reopen-panel">
-        <header><span><Undo2 /></span><div><h3>Koreksi capaian yang sudah disetujui</h3><p>Buka kembali bila ada nilai yang perlu dikoreksi. Publikasinya ditarik dari dashboard Bupati sampai OPD mengirim ulang dan BAPPERIDA menyetujui lagi. Nilai lama tetap tercatat di jejak audit.</p></div></header>
+        <header><span><Undo2 /></span><div><h3>Koreksi capaian yang sudah disetujui</h3><p>Untuk melengkapi indikator yang belum diisi, gunakan tombol "Buka kembali indikator ini" pada tiap indikator kosong: data yang sudah terbit tetap tampil di dashboard Bupati. Untuk mengoreksi nilai yang sudah terbit, buka kembali seluruh capaian di bawah: publikasinya ditarik dari dashboard sampai OPD mengirim ulang dan BAPPERIDA menyetujui lagi. Nilai lama tetap tercatat di jejak audit.</p></div></header>
+        {emptyIds.length > 0 && <footer><button className="button secondary" disabled={busy} onClick={() => void reopenIndicators(emptyIds, DEFAULT_OPEN_REASON)}><Undo2 />Buka semua indikator yang kosong ({emptyIds.length})</button></footer>}
         {!reopenOpen ? <footer><button className="button secondary" onClick={() => setReopenOpen(true)}><Undo2 />Buka kembali untuk revisi</button></footer> : <>
           <label className="field"><span>Alasan membuka kembali (wajib, minimal 10 karakter)</span><textarea rows={3} data-field="reopen-notes" value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} placeholder="Contoh: nilai 2024 keliru input, perlu dikoreksi sesuai laporan dinas." /></label>
           <footer><button className="button secondary" disabled={busy} onClick={() => { setReopenOpen(false); setReviewNotes(""); }}>Batal</button><button className="button primary" disabled={busy || reviewNotes.trim().length < 10} onClick={() => void act("reopen", reviewNotes.trim()).then(() => { setReopenOpen(false); setReviewNotes(""); })}><Undo2 />Tarik dan buka kembali</button></footer></>}

@@ -238,7 +238,51 @@ export class SubmissionService {
                   AND io.responsibility IN ('primary_producer', 'supporter'))))
        ORDER BY i.name`, [id],
     );
-    return { ...batch, observations: observations.rows } as SubmissionDetail;
+    const opened = await this.db.query<{ indicator_version_id: string }>(
+      `SELECT indicator_version_id::text FROM sababuka.submission_open_indicators WHERE batch_id = $1 AND closed_at IS NULL`, [id]);
+    const openSet = new Set(opened.rows.map((row) => row.indicator_version_id));
+    return { ...batch, partial_reopen: openSet.size > 0,
+      observations: observations.rows.map((row) => ({ ...row, reopened: openSet.has(row.indicator_version_id as string) })) } as unknown as SubmissionDetail;
+  }
+
+  /** Membuka indikator yang belum diisi pada capaian yang sudah disetujui, tanpa menarik publikasi yang berlaku. */
+  async reopenIndicators(auth: AuthContext, id: string, indicatorVersionIds: string[], notes: string | null, audit: AuditContext) {
+    const detail = await this.get(auth, id);
+    const reason = notes?.trim() ?? "";
+    if (reason.length < 10) throw new ApiError(400, "VALIDATION_ERROR", "Alasan membuka kembali wajib diisi, minimal 10 karakter.");
+    const status = detail.status as string;
+    if (status !== "approved" && !(status === "returned" && detail.partial_reopen)) {
+      throw new ApiError(409, "CONFLICT", "Indikator hanya dapat dibuka satu per satu dari capaian yang sudah disetujui.");
+    }
+    const rows = detail.observations as Record<string, unknown>[];
+    const ids = [...new Set(indicatorVersionIds)];
+    for (const indicatorVersionId of ids) {
+      const item = rows.find((row) => row.indicator_version_id === indicatorVersionId);
+      if (!item) throw new ApiError(404, "NOT_FOUND", "Indikator tidak ada pada capaian ini.");
+      if (item.observation_id) throw new ApiError(409, "CONFLICT", "Indikator yang sudah berisi nilai terbit tidak dibuka satu per satu; buka kembali seluruh capaian.");
+      if (item.reopened) throw new ApiError(409, "CONFLICT", "Indikator ini sudah dibuka untuk OPD.");
+    }
+    if (!ids.length) throw new ApiError(400, "VALIDATION_ERROR", "Pilih minimal satu indikator.");
+    for (const indicatorVersionId of ids) {
+      await this.db.query(
+        `INSERT INTO sababuka.submission_open_indicators (batch_id, indicator_version_id, reason, opened_by) VALUES ($1, $2, $3, $4)`,
+        [id, indicatorVersionId, reason, auth.user.id]);
+    }
+    if (status === "approved") {
+      await this.db.query(`UPDATE sababuka.data_batches SET status = 'returned', updated_at = now() WHERE id = $1 AND status = 'approved'`, [id]);
+      await this.db.query(
+        `INSERT INTO sababuka.workflow_actions
+           (entity_type, entity_id, batch_id, action, from_status, to_status, actor_id, actor_role_code, organization_id, notes, request_id)
+         VALUES ('data_batch', $1, $1, 'reopen', 'approved', 'returned', $2, $3, $4, $5, $6)`,
+        [id, auth.user.id, actorRole(auth), detail.organization_id, reason, audit.requestId]);
+    }
+    await recordAudit(this.db, { ...audit, eventType: "submission.indicators_reopened", entityType: "data_batch", entityId: id,
+      organizationId: detail.organization_id as string, beforeData: { status }, afterData: { status: "returned" },
+      metadata: { notes: reason, indicator_version_ids: ids } });
+    const names = ids.map((indicatorVersionId) => rows.find((row) => row.indicator_version_id === indicatorVersionId)?.indicator_name).join(", ");
+    await notifyOrganization(this.db, detail.organization_id, { entityType: "data_batch", entityId: id, type: "submission.reopened",
+      title: "Indikator dibuka untuk dilengkapi", message: `Capaian ${detail.period_label}: ${names}. Catatan: ${reason}` }, auth.user.id);
+    return this.get(auth, id);
   }
 
   async saveObservation(auth: AuthContext, batchId: string, indicatorVersionId: string, input: ObservationInput, audit: AuditContext) {
@@ -249,6 +293,9 @@ export class SubmissionService {
     }
     const assigned = (detail.observations as Record<string, unknown>[]).find((item) => item.indicator_version_id === indicatorVersionId);
     if (!assigned) throw new ApiError(403, "SCOPE_DENIED", "Indikator aktif tidak ditugaskan kepada OPD ini.");
+    if (detail.partial_reopen && !assigned.reopened) {
+      throw new ApiError(409, "CONFLICT", "Hanya indikator yang dibuka BAPPERIDA yang dapat diisi pada pelaporan ini.");
+    }
     const dataType = assigned.data_type as string;
     const numeric = dataType !== "text" && dataType !== "boolean";
     if (numeric && (typeof input.value !== "number" || !Number.isFinite(input.value))) {
@@ -420,6 +467,7 @@ export class SubmissionService {
       await notifyOrganization(this.db, detail.organization_id, { ...entity, type: "submission.returned", title: "Capaian perlu diperbaiki",
         message: `Capaian ${detail.period_label} dikembalikan. Catatan: ${notes}` }, auth.user.id);
     } else if (action === "approve") {
+      await this.db.query(`UPDATE sababuka.submission_open_indicators SET closed_at = now() WHERE batch_id = $1 AND closed_at IS NULL`, [id]);
       await notifyOrganization(this.db, detail.organization_id, { ...entity, type: "submission.approved", title: "Capaian disetujui",
         message: `Capaian ${detail.period_label} telah disetujui Bapperida.` }, auth.user.id);
       // Capaian yang disetujui langsung terbit ke dashboard Bupati; kegagalan penerbitan tidak membatalkan persetujuan.
