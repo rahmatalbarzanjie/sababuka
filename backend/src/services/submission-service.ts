@@ -6,7 +6,7 @@ import { notifyOrganization, notifyRole } from "./notification-service.js";
 import { PublicationService } from "./publication-service.js";
 
 interface CountedRow extends QueryResultRow { total_count: string }
-type SubmissionAction = "submit" | "start-review" | "return" | "approve";
+type SubmissionAction = "submit" | "start-review" | "return" | "approve" | "reopen";
 
 export interface SubmissionQuery {
   page: number;
@@ -198,7 +198,7 @@ export class SubmissionService {
               b.submission_method, b.status, b.row_count, b.submitted_at::text,
               b.approved_at::text, b.created_at::text, b.updated_at::text,
               (SELECT wa.notes FROM sababuka.workflow_actions wa
-               WHERE wa.batch_id = b.id AND wa.action = 'return'
+               WHERE wa.batch_id = b.id AND wa.action IN ('return', 'reopen')
                ORDER BY wa.created_at DESC LIMIT 1) AS review_notes
        FROM sababuka.data_batches b
        JOIN sababuka.organizations o ON o.id = b.organization_id
@@ -369,10 +369,25 @@ export class SubmissionService {
       "start-review": { from: ["submitted"], to: "under_review" },
       return: { from: ["under_review"], to: "returned" },
       approve: { from: ["under_review"], to: "approved" },
+      // Buka kembali untuk revisi (keputusan pemilik, 17 Nov 2026): capaian terbit dikoreksi OPD tanpa menghapus jejak.
+      reopen: { from: ["approved"], to: "returned" },
     };
     const transition = transitions[action];
     if (!transition.from.includes(from)) throw new ApiError(409, "CONFLICT", `Aksi ${action} tidak berlaku dari status ${from}.`);
     if (action === "return" && !notes?.trim()) throw new ApiError(400, "VALIDATION_ERROR", "Catatan koreksi wajib diisi saat mengembalikan data.");
+    if (action === "reopen" && (notes?.trim().length ?? 0) < 10) throw new ApiError(400, "VALIDATION_ERROR", "Alasan membuka kembali wajib diisi, minimal 10 karakter.");
+    let reopenSnapshot: unknown = null;
+    if (action === "reopen") {
+      // Nilai terbit tidak boleh berubah selama publikasinya aktif: tarik dulu, simpan nilai lama di audit, baru buka untuk OPD.
+      const snapshot = await this.db.query(
+        `SELECT indicator_version_id::text, period_id::text, numeric_value, text_value FROM sababuka.observations WHERE batch_id = $1`, [id]);
+      reopenSnapshot = snapshot.rows;
+      const active = await this.db.query<{ id: string }>(
+        `SELECT id::text FROM sababuka.publications WHERE publication_key = $1 AND status = 'active'`,
+        [`REALISASI_${id.replace(/-/gu, "").toUpperCase()}`]);
+      const publications = new PublicationService(this.db);
+      for (const row of active.rows) await publications.withdraw(auth, row.id, `Dibuka kembali untuk revisi: ${notes!.trim()}`, audit);
+    }
     // Pengiriman sebagian diizinkan (keputusan pemilik, 17 Nov 2026): indikator yang belum diisi tidak masuk publikasi
     // dan tetap terlihat sebagai "belum ada data" di dashboard.
     if (action === "submit" && Number(detail.row_count) < 1) {
@@ -393,11 +408,14 @@ export class SubmissionService {
     );
     await recordAudit(this.db, { ...audit, eventType: `submission.${action}`, entityType: "data_batch",
       entityId: id, organizationId: detail.organization_id as string,
-      beforeData: { status: from }, afterData: { status: transition.to }, metadata: { notes } });
+      beforeData: { status: from, ...(reopenSnapshot ? { observations: reopenSnapshot } : {}) }, afterData: { status: transition.to }, metadata: { notes } });
     const entity = { entityType: "data_batch", entityId: id };
     if (action === "submit") {
       await notifyRole(this.db, "bapperida", { ...entity, type: "submission.submitted", title: "Pengiriman capaian baru",
         message: `${detail.organization_name} mengirim capaian ${detail.period_label} untuk ditinjau.` }, auth.user.id);
+    } else if (action === "reopen") {
+      await notifyOrganization(this.db, detail.organization_id, { ...entity, type: "submission.reopened", title: "Capaian dibuka kembali untuk revisi",
+        message: `Capaian ${detail.period_label} dibuka kembali oleh Bapperida. Catatan: ${notes}` }, auth.user.id);
     } else if (action === "return") {
       await notifyOrganization(this.db, detail.organization_id, { ...entity, type: "submission.returned", title: "Capaian perlu diperbaiki",
         message: `Capaian ${detail.period_label} dikembalikan. Catatan: ${notes}` }, auth.user.id);

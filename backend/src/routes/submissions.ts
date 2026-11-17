@@ -145,16 +145,16 @@ export async function submissionRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
-  app.post<{ Params: { submission_id: string; action: "submit" | "start-review" | "return" | "approve" }; Body?: { notes?: string | null } }>(
+  app.post<{ Params: { submission_id: string; action: "submit" | "start-review" | "return" | "approve" | "reopen" }; Body?: { notes?: string | null } }>(
     "/submissions/:submission_id/actions/:action",
     { schema: {
       params: { type: "object", additionalProperties: false, required: ["submission_id", "action"], properties: {
-        submission_id: uuid, action: { type: "string", enum: ["submit", "start-review", "return", "approve"] },
+        submission_id: uuid, action: { type: "string", enum: ["submit", "start-review", "return", "approve", "reopen"] },
       } },
       body: { type: "object", additionalProperties: false, properties: { notes: { type: ["string", "null"], maxLength: 4000 } } },
     } },
     async (request) => {
-      const permissions = { submit: "submission.submit", "start-review": "submission.review", return: "submission.return", approve: "submission.approve" } as const;
+      const permissions = { submit: "submission.submit", "start-review": "submission.review", return: "submission.return", approve: "submission.approve", reopen: "submission.return" } as const;
       mutate(request, permissions[request.params.action]);
       return service(request).transition(request.auth!, request.params.submission_id, request.params.action,
         request.body?.notes ?? null, requestAuditContext(request));

@@ -150,6 +150,11 @@ b.good { color: var(--exec-good); } b.bad { color: var(--exec-bad); } b.neutral 
 .all-filters .chip.active { background: var(--ui-accent, #123a66); border-color: transparent; color: #fff; }
 .all-filters .chip b { font-variant-numeric: tabular-nums; }
 .all-filters .search-field { flex: 0 1 240px; }
+.card-head .select-inline { flex: 1 1 240px; min-width: 0; max-width: 460px; }
+.card-head .select-inline select { width: 100%; min-width: 0; }
+.all-filters .select-inline { flex: 0 1 auto; min-width: 0; max-width: 100%; }
+.all-filters .select-inline select { width: 100%; min-width: 0; }
+@media (max-width: 820px) { .all-filters .select-inline, .all-filters .search-field { flex: 1 1 100%; } }
 .all-table { width: 100%; border-collapse: collapse; }
 .all-table th { text-align: left; font-size: 12px; color: var(--ui-muted); padding: 8px 10px; border-bottom: 1px solid var(--ui-rule); white-space: nowrap; }
 .all-table td { padding: 10px; border-bottom: 1px solid var(--ui-rule); vertical-align: middle; }

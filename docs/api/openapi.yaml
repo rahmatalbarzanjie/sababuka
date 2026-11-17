@@ -989,7 +989,7 @@ paths:
       operationId: transitionSubmission
       summary: Menjalankan transisi workflow pengiriman
       description: |
-        Form input manual mendukung `submit`, `start-review`, `return`, dan `approve`.
+        Form input manual mendukung `submit`, `start-review`, `return`, `approve`, dan `reopen`. `reopen` (BAPPERIDA, izin `submission.return`) hanya berlaku dari status `approved`: publikasi aktif ditarik, status kembali ke `returned`, catatan alasan wajib (min. 10 karakter), nilai lama disimpan di audit.
         Jalur upload berkas akan memakai `validate` dan `confirm` pada tahap berikutnya.
       parameters:
         - $ref: "#/components/parameters/SubmissionId"
@@ -998,7 +998,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [submit, start-review, return, approve]
+            enum: [submit, start-review, return, approve, reopen]
         - $ref: "#/components/parameters/CsrfToken"
       requestBody:
         content:
