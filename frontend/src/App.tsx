@@ -28,8 +28,6 @@ const ConsolidationPage = lazy(() => import("./pages/ConsolidationPage").then((m
 const ConnectorsPage = lazy(() => import("./pages/ConnectorsPage").then((module) => ({ default: module.ConnectorsPage })));
 const DatasetPage = lazy(() => import("./pages/DatasetPage").then((module) => ({ default: module.DatasetPage })));
 const AnalysisPage = lazy(() => import("./pages/DecisionPages").then((module) => ({ default: module.AnalysisPage })));
-const FinancePage = lazy(() => import("./pages/DecisionPages").then((module) => ({ default: module.FinancePage })));
-const PublicServicesPage = lazy(() => import("./pages/DecisionPages").then((module) => ({ default: module.PublicServicesPage })));
 const BankDataPage = lazy(() => import("./pages/BankDataPage").then((module) => ({ default: module.BankDataPage })));
 const IndicatorDetailPage = lazy(() => import("./pages/IndicatorDetailPage").then((module) => ({ default: module.IndicatorDetailPage })));
 const BerandaPage = lazy(() => import("./pages/BerandaPage").then((module) => ({ default: module.BerandaPage })));
@@ -44,8 +42,6 @@ const pageMeta: Record<string, { title: string; subtitle: string; permission?: s
   "/executive": { title: "Ringkasan Pimpinan", subtitle: "Capaian terkurasi dari data yang telah disetujui dan dipublikasikan.", permission: "executive_dashboard.view" },
   "/assistant": { title: "Tanya Sababuka", subtitle: "Tanyakan data, tren, dan tindak lanjut; jawaban dihitung dari data resmi.", permission: "assistant.use" },
   "/analysis": { title: "Analisis dan Peta", subtitle: "Baca tren, kesenjangan wilayah, konsistensi sumber, dan rekomendasi keputusan.", permission: "executive_dashboard.view" },
-  "/finance": { title: "Keuangan Daerah", subtitle: "Analisis indikator pendapatan, belanja, fiskal, dan akuntabilitas keuangan.", permission: "executive_dashboard.view" },
-  "/public-services": { title: "Layanan Publik", subtitle: "Analisis cakupan, mutu, kepuasan, SLA, dan pengaduan layanan.", permission: "executive_dashboard.view" },
   "/notifications": { title: "Notifikasi", subtitle: "Pembaruan kategori, indikator, verifikasi OPD, pengiriman, dan publikasi." },
   "/audit": { title: "Audit Aktivitas", subtitle: "Jejak perubahan permanen sesuai lingkup organisasi.", permission: "audit.view" },
   "/operations": { title: "Beranda Tugas", subtitle: "Lihat pekerjaan yang perlu diselesaikan sesuai peran dan kewenangan Anda.", permission: "submission.view" },
@@ -123,8 +119,6 @@ function ProtectedApp() {
   else if (pathname === "/publications") content = <PublicationsPage />;
   else if (pathname === "/assistant") content = <AssistantPage />;
   else if (pathname === "/analysis") content = <AnalysisPage />;
-  else if (pathname === "/finance") content = <FinancePage />;
-  else if (pathname === "/public-services") content = <PublicServicesPage />;
   else if (pathname === "/notifications") content = <NotificationsPage />;
   else if (pathname === "/audit") content = <AuditPage />;
   else if (pathname === "/operations") content = <OperationsPage />;

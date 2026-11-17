@@ -1,5 +1,5 @@
-import { ArrowDownRight, ArrowUpRight, BadgeCheck, Banknote, GitCompareArrows, Lightbulb, Map as MapIcon, Scale, ShieldAlert, TrendingUp, UsersRound } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ArrowDownRight, ArrowUpRight, GitCompareArrows, Lightbulb, Map as MapIcon, Scale, TrendingUp, UsersRound } from "lucide-react";
+import { useState } from "react";
 import { api } from "../api";
 import { Badge, EmptyState, ErrorState, Notice, PageLoading, useAsync } from "../components";
 
@@ -90,25 +90,3 @@ export function AnalysisPage() {
     <Methodology data={analysis} />
   </div>;
 }
-
-const domainRules = {
-  finance: { title: "Keuangan Daerah", subtitle: "Pendapatan, belanja, fiskal, dan akuntabilitas keuangan dari sumber resmi.", icon: Banknote, keywords: ["keuangan", "pendapatan", "belanja", "apbd", "pad", "fiskal", "bpk", "aset"] },
-  services: { title: "Layanan Publik", subtitle: "Cakupan, mutu, kepuasan, standar layanan, dan pengaduan tanpa data individu warga.", icon: UsersRound, keywords: ["pelayanan", "layanan", "kepuasan", "spm", "pengaduan", "perizinan", "administrasi"] },
-} as const;
-
-function DomainPage({ domain }: { domain: keyof typeof domainRules }) {
-  const result = useAnalysis(); const rule = domainRules[domain];
-  const matches = (value: string) => rule.keywords.some((keyword) => value.toLowerCase().includes(keyword));
-  const data = result.data?.analysis;
-  const items = useMemo(() => data?.items.filter((item) => matches(`${item.indicator_name} ${item.category_name} ${item.policy_focus_name ?? ""}`)) ?? [], [data, domain]);
-  if (result.loading) return <PageLoading label={`Memuat ${rule.title.toLowerCase()}`} />;
-  if (result.error || !data) return <ErrorState title={`${rule.title} belum dapat dimuat`} onRetry={result.reload}>{result.error?.message ?? "Periksa koneksi lalu coba lagi."}</ErrorState>;
-  const Icon = rule.icon; const latest = Array.from(new Map(items.sort((a, b) => b.period_end.localeCompare(a.period_end)).map((item) => [item.indicator_id, item])).values());
-  return <div className="decision-page"><section className="panel domain-hero"><span><Icon /></span><div><span className="eyebrow">MODUL ANALISIS TEMATIK</span><h2>{rule.title}</h2><p>{rule.subtitle}</p></div></section><Notice tone="warning">Modul ini tidak memakai angka contoh. Kartu hanya muncul setelah capaian terkait disetujui dan diterbitkan. Sumber, periode, OPD, dan status rekonsiliasi tetap dapat ditelusuri.</Notice>
-    <section className="metric-grid"><article className="metric-card"><span className="metric-icon blue"><BadgeCheck /></span><span><small>Indikator tersedia</small><strong>{new Set(items.map((item) => item.indicator_id)).size}</strong></span></article><article className="metric-card"><span className="metric-icon teal"><TrendingUp /></span><span><small>Periode data</small><strong>{new Set(items.map((item) => item.period_label)).size}</strong></span></article><article className="metric-card"><span className="metric-icon violet"><UsersRound /></span><span><small>OPD sumber</small><strong>{new Set(items.map((item) => item.organization_name)).size}</strong></span></article><article className="metric-card"><span className="metric-icon amber"><ShieldAlert /></span><span><small>Perlu rekonsiliasi</small><strong>{data.reconciliation.filter((item) => items.some((entry) => entry.indicator_id === item.indicator_id)).length}</strong></span></article></section>
-    <section className="panel table-panel"><header className="panel-heading"><div><span className="eyebrow">CAPAIAN TERBARU</span><h2>{rule.title}</h2><p>{domain === "finance" ? "Basis pencatatan, cut-off, dan hak akses harus mengikuti BPKAD/Bapenda serta sistem keuangan resmi." : "Definisi selesai, SLA, metode survei kepuasan, dan cakupan layanan harus mengikuti OPD pengampu."}</p></div><Icon /></header>{!latest.length ? <EmptyState title={`Data ${rule.title.toLowerCase()} belum dipublikasikan`}>Indikator RPJMD yang relevan sudah dapat dipetakan, tetapi dashboard tidak akan menampilkan nilai sebelum sumber resminya masuk dan melewati verifikasi.</EmptyState> : <div className="table-scroll"><table><thead><tr><th>Indikator</th><th>Periode</th><th>Nilai</th><th>OPD</th><th>Sumber</th></tr></thead><tbody>{latest.map((item) => <tr key={item.observation_id}><td><strong>{item.indicator_name}</strong><small>{item.category_name}</small></td><td>{item.period_label}</td><td>{formatValue(item.numeric_value === null ? item.text_value : Number(item.numeric_value), item.unit_symbol ?? item.unit)}</td><td>{item.organization_name}</td><td>{item.source_url ? <a href={item.source_url} target="_blank" rel="noreferrer">{item.source_name}</a> : item.source_name}</td></tr>)}</tbody></table></div>}</section>
-  </div>;
-}
-
-export function FinancePage() { return <DomainPage domain="finance" />; }
-export function PublicServicesPage() { return <DomainPage domain="services" />; }
