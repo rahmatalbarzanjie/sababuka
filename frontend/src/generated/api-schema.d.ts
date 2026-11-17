@@ -795,7 +795,7 @@ export interface paths {
         put?: never;
         /**
          * Menjalankan transisi workflow pengiriman
-         * @description Form input manual mendukung `submit`, `start-review`, `return`, dan `approve`.
+         * @description Form input manual mendukung `submit`, `start-review`, `return`, `approve`, dan `reopen`. `reopen` (BAPPERIDA, izin `submission.return`) hanya berlaku dari status `approved`: publikasi aktif ditarik, status kembali ke `returned`, catatan alasan wajib (min. 10 karakter), nilai lama disimpan di audit.
          *     Jalur upload berkas akan memakai `validate` dan `confirm` pada tahap berikutnya.
          */
         post: operations["transitionSubmission"];
@@ -814,7 +814,7 @@ export interface paths {
         };
         /**
          * Daftar publikasi
-         * @description Membutuhkan `publication.view`; role Pimpinan hanya menerima publikasi aktif.
+         * @description Membutuhkan `publication.view`; role Bupati hanya menerima publikasi aktif.
          */
         get: operations["listPublications"];
         put?: never;
@@ -3488,7 +3488,7 @@ export interface operations {
             };
             path: {
                 submission_id: components["parameters"]["SubmissionId"];
-                action: "submit" | "start-review" | "return" | "approve";
+                action: "submit" | "start-review" | "return" | "approve" | "reopen";
             };
             cookie?: never;
         };
