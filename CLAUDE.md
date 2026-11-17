@@ -4,7 +4,7 @@ Panduan ini berlaku untuk seluruh repository dan sengaja diselaraskan dengan `AG
 
 ## Konteks proyek
 
-**SABABUKA BERSINAR** adalah sistem full-stack Kabupaten Kapuas untuk indikator RPJMD, pelaporan OPD, verifikasi BAPPERIDA, pembinaan statistik, publikasi, dan dashboard pimpinan.
+**SABABUKA BERSINAR** adalah sistem full-stack Kabupaten Kapuas untuk indikator RPJMD, pelaporan OPD, verifikasi BAPPERIDA, pembinaan statistik, publikasi, dan dashboard Bupati.
 
 - Frontend: React 19 + TypeScript + Vite di `frontend/`.
 - Backend: Fastify + TypeScript di `backend/`.
@@ -56,10 +56,10 @@ Pengembangan lokal memakai backend port 3001 dan frontend port 5173.
 - Gunakan migration baru untuk perubahan skema; backup dan verifikasi database sebelum/selesai penerapan.
 - OPD mengusulkan dan mengisi indikator secara manual, bukan auto-generate atau semiotomatis.
 - Pengecualian Bank Data (permintaan pemilik, 14 Nov 2026): Developer dapat mengimpor massal variabel BPS dan tabel Satu Data menjadi indikator `origin_type = bank_data` yang langsung aktif dan terbit tanpa verifikasi OPD/BAPPERIDA. Semuanya wajib berlabel "Bank Data · belum diverifikasi" dan direvisi OPD/BAPPERIDA bila ada selisih. Tahun konektor 1990-2035 (tidak dikunci pada periode jabatan).
-- Pertahankan RBAC, pemisahan kewenangan, provenance, audit trail, serta aturan bahwa dashboard pimpinan hanya membaca data terpublikasi.
+- Pertahankan RBAC, pemisahan kewenangan, provenance, audit trail, serta aturan bahwa dashboard Bupati hanya membaca data terpublikasi.
 - Autentikasi hanya email/username dan kata sandi. MFA (TOTP/recovery code) sengaja dihapus atas keputusan pemilik (10 Nov 2026, migration 057); jangan menambahkannya kembali tanpa permintaan pemilik.
 - Fitur Keuangan Daerah dan Layanan Publik dihapus atas keputusan pemilik (17 Nov 2026, migration 074); jangan menambahkannya kembali tanpa permintaan pemilik.
-- Developer (superadmin) dapat "Bertindak sebagai" BAPPERIDA, Diskominfosantik, BPS, Pimpinan, atau OPD tertentu dengan wewenang penuh (permintaan pemilik, 12 Nov 2026; sebelumnya mode pratinjau hanya baca). Aksi tercatat atas nama akun Developer asli dengan `metadata.acting_as` di audit. Aturan pemisahan petugas (pengaju/reviewer/verifikator yang sama) tidak berlaku bagi Developer (keputusan pemilik, 12 Nov 2026); tetap berlaku bagi pengguna lain.
+- Developer (superadmin) dapat "Bertindak sebagai" BAPPERIDA, Diskominfosantik, BPS, Bupati, atau OPD tertentu dengan wewenang penuh (permintaan pemilik, 12 Nov 2026; sebelumnya mode pratinjau hanya baca). Aksi tercatat atas nama akun Developer asli dengan `metadata.acting_as` di audit. Aturan pemisahan petugas (pengaju/reviewer/verifikator yang sama) tidak berlaku bagi Developer (keputusan pemilik, 12 Nov 2026); tetap berlaku bagi pengguna lain.
 - Nilai beda antarsumber tidak pernah dipilih otomatis: ditandai konflik, ditetapkan BAPPERIDA/OPD pemilik (menu Konsolidasi Sumber); nilai identik dari sumber berbeda tetap dua baris bersumber (lihat `docs/external-connectors.md`).
 - Jangan commit secret, dump database, ekspor privat, cache lokal, atau build output.
 - Uji perubahan UI pada desktop, tablet, dan mobile.

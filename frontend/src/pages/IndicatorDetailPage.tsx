@@ -84,7 +84,7 @@ export function IndicatorDetailPage({ id }: { id: string }) {
       <header className="card-head"><div><h2 id="sumber">Sumber data</h2></div></header>
       <dl className="brief-list">
         <div><dt>Sumber</dt><dd>{plain(item.source_label) || "-"} ({kindLabel[item.source_kind] ?? item.source_kind})</dd></div>
-        <div><dt>Status</dt><dd>{verified ? "Terverifikasi: disetujui BAPPERIDA dan terbit ke dashboard pimpinan." : "Bank Data: belum diverifikasi OPD dan BAPPERIDA, dipakai sebagai konteks dan pembanding."}</dd></div>
+        <div><dt>Status</dt><dd>{verified ? "Terverifikasi: disetujui BAPPERIDA dan terbit ke dashboard Bupati." : "Bank Data: belum diverifikasi OPD dan BAPPERIDA, dipakai sebagai konteks dan pembanding."}</dd></div>
         <div><dt>Data hingga</dt><dd>{item.latest_year}</dd></div>
         <div><dt>Tautan sumber</dt><dd>{item.source_url ? <a href={item.source_url} target="_blank" rel="noopener noreferrer">Buka sumber asli <ExternalLink aria-hidden /></a> : "Tautan sumber asli belum tercatat."}</dd></div>
       </dl>

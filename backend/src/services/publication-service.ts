@@ -294,7 +294,7 @@ export class PublicationService {
       await recordAudit(client, { ...audit, eventType: "publication.activated", entityType: "publication", entityId: id, beforeData: { status: "draft" }, afterData: { status: "active" }, metadata: { notes } });
       await client.query("COMMIT");
       await notifyRole(this.db, "pimpinan", { type: "publication.activated", title: "Publikasi baru tersedia",
-        message: `${publication.title} telah aktif pada dashboard pimpinan.`, entityType: "publication", entityId: id }, auth.user.id);
+        message: `${publication.title} telah aktif pada dashboard Bupati.`, entityType: "publication", entityId: id }, auth.user.id);
       return this.get(auth, id);
     } catch (error) { await client.query("ROLLBACK"); throw error; }
     finally { client.release(); }

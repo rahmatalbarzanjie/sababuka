@@ -840,7 +840,7 @@ export class GovernanceService {
         }, auth.user.id);
       } else if (action === "activate") {
         // Bila sudah ada observasi resmi yang valid, aktivasi langsung membuat
-        // publikasi aktif agar alur demo dapat terlihat sampai Dashboard Pimpinan.
+        // publikasi aktif agar alur demo dapat terlihat sampai Dashboard Bupati.
         // Sumber tetap ditampilkan bersama observasi; ini bukan pengganti mapping
         // konektor live yang memerlukan endpoint dan kredensial sumber.
         const observations = await client.query<QueryResultRow & { id: string; dataset_version_id: string }>(
@@ -887,7 +887,7 @@ export class GovernanceService {
             await recordAudit(client, { ...audit, eventType: "publication.auto_activated", entityType: "publication", entityId: publication.rows[0]!.id, afterData: { publication_key: publicationKey, observation_count: observations.rows.length } });
             await notifyRole(client, "pimpinan", {
               entityType: "publication", entityId: publication.rows[0]!.id, type: "publication.activated",
-              title: "Data indikator siap dipantau", message: `${indicator.indicator_name} sudah dirilis ke Dashboard Pimpinan.`,
+              title: "Data indikator siap dipantau", message: `${indicator.indicator_name} sudah dirilis ke Dashboard Bupati.`,
             }, auth.user.id);
           }
         }

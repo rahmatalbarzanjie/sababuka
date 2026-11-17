@@ -50,7 +50,7 @@ function SectorBlock({ sector, items }: { sector: string; items: AchievementItem
   </section>;
 }
 
-/** Capaian terhadap target RPJMD: yang belum tercapai di depan agar pimpinan dapat langsung mengarahkan OPD. */
+/** Capaian terhadap target RPJMD: yang belum tercapai di depan agar Bupati dapat langsung mengarahkan OPD. */
 function downloadCsv(items: AchievementItem[]) {
   const cell = (value: unknown) => `"${plain(String(value ?? "")).replace(/"/g, '""')}"`;
   const head = ["Indikator", "Sektor", "Satuan", "OPD terkait", "Tahun realisasi", "Realisasi", "Tahun target", "Target", "Selisih", "Status"];

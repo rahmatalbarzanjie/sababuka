@@ -83,7 +83,7 @@ function ConflictCard({ conflict, canResolve, onDecided }: { conflict: Conflict;
         <div className="consolidation-decision">
           <p><CheckCircle2 aria-hidden /> Ditetapkan oleh <strong>{conflict.decided_by_name ?? "pengguna"}</strong>{conflict.decided_at ? ` pada ${formatTanggal(conflict.decided_at, "tanggal-waktu")}` : ""}.</p>
           {conflict.decision_note && <blockquote>{conflict.decision_note}</blockquote>}
-          <small>Nilai lain tetap tersimpan bersama sumbernya, tetapi tidak dapat dikurasi ke dashboard pimpinan.</small>
+          <small>Nilai lain tetap tersimpan bersama sumbernya, tetapi tidak dapat dikurasi ke dashboard Bupati.</small>
           {canResolve && <button type="button" className="button secondary compact" onClick={() => { setEditing(true); setChoice(conflict.chosen_observation_id); }}>Ubah keputusan</button>}
         </div>
       )}
@@ -118,7 +118,7 @@ export function ConsolidationPage() {
         <div>
           <h2><GitCompare aria-hidden /> {data ? (data.open_count > 0 ? `${data.open_count} nilai menunggu keputusan` : "Semua nilai antarsumber konsisten") : "Konsolidasi sumber"}</h2>
           <p>Jika dua sumber melaporkan nilai berbeda untuk indikator, periode, dan wilayah yang sama, sistem tidak memilih sendiri. Kedua nilai ditampilkan bersama sumbernya; BAPPERIDA atau OPD pemilik indikator menetapkan yang valid. Nilai yang sama dari sumber berbeda bukan konflik dan tetap tampil sebagai baris bersumber.</p>
-          <p>Capaian yang masih berkonflik ditahan dari kurasi publikasi, sehingga dashboard pimpinan hanya memuat nilai yang sudah tervalidasi.</p>
+          <p>Capaian yang masih berkonflik ditahan dari kurasi publikasi, sehingga dashboard Bupati hanya memuat nilai yang sudah tervalidasi.</p>
         </div>
       </section>
       <div className="toolbar" role="tablist" aria-label="Status konflik">

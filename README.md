@@ -45,9 +45,9 @@ Backend API menjadi jalur data tunggal bagi seluruh kanal. Data mentah, data has
 - Migration 001-013, API master indikator, workflow data, publikasi, provenance sumber, asisten, dan antarmuka lokal telah melalui build serta integration test.
 - Transisi review, persetujuan, aktivasi, dan arsip versi indikator telah diimplementasikan dengan permission serta audit trail.
 - Formulir realisasi per OPD/periode, penyimpanan capaian, serta alur submit-return-approve telah diimplementasikan dan diuji pada database sementara.
-- Bukti dukung privat dan ringkasan capaian aman untuk pimpinan telah masuk ke MVP; angka pimpinan hanya berasal dari publikasi aktif.
-- Modul kurasi/publikasi sudah menghubungkan capaian approved ke dashboard pimpinan melalui aktivasi yang terkendali dan teraudit.
-- Asisten Data Pimpinan lokal sudah membaca publikasi aktif, memberikan sitasi, dan menolak jawaban jika data belum cukup.
+- Bukti dukung privat dan ringkasan capaian aman untuk Bupati telah masuk ke MVP; angka Bupati hanya berasal dari publikasi aktif.
+- Modul kurasi/publikasi sudah menghubungkan capaian approved ke dashboard Bupati melalui aktivasi yang terkendali dan teraudit.
+- Asisten Data Bupati lokal sudah membaca publikasi aktif, memberikan sitasi, dan menolak jawaban jika data belum cukup.
 - Notifikasi workflow dan audit viewer sudah tersedia untuk memantau tindak lanjut OPD/Bapperida sesuai scope.
 - QA lintas-role dan dashboard operasional telah tersedia; kesiapan deployment development dinilai melalui dokumen audit sebelum VPS/domain disentuh.
 - Environment lokal memakai katalog RPJMD sebagai master indikator; paket kategori dan indikator demo tidak ditanamkan saat startup.

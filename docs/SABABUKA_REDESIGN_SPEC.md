@@ -9,7 +9,7 @@
 > **Catatan konteks:** riwayat percakapan desain TIDAK otomatis terbaca oleh agen lain. Dokumen ini adalah satu-satunya sumber kebenaran handoff. Mockup visual (tautan di bawah) adalah acuan tampilan.
 
 ## 0. Referensi mockup (acuan visual)
-- Dashboard Pimpinan (+ AI melayang): `claude.ai/artifact/1fV4RsgaSKPQxiZKutEYm9`
+- Dashboard Bupati (+ AI melayang): `claude.ai/artifact/1fV4RsgaSKPQxiZKutEYm9`
 - Mockup 3 Peran (OPD / Walidata / Pembina): `claude.ai/artifact/42JweTZs2jED5bFfrCRsxX`
 - Laporan Audit: `claude.ai/artifact/FWsEMRWhcZp1TyBZKEsjXe`
 
@@ -69,7 +69,7 @@ Label tahap/status mengikuti sudut pandang pengguna. Dalam alur indikator, penyu
 
 ---
 
-## 3. Dashboard Pimpinan (route: `/dashboard`)
+## 3. Dashboard Bupati (route: `/dashboard`)
 Acuan: mockup dashboard.
 
 **Susunan dari atas ke bawah:**
@@ -167,10 +167,10 @@ Prinsip urutan: **beranda/overview → kerja harian → setelan → audit**. Uru
 | Peran | Urutan menu |
 |---|---|
 | **OPD** | Beranda Tugas · Profil Data OPD · Pelaporan Realisasi · Matriks Indikator · Dataset |
-| **Pimpinan** | Dashboard Pimpinan · Kurasi & Publikasi · Analisis & Peta · Keuangan Daerah · Layanan Publik - Asisten AI melayang |
+| **Pimpinan** | Dashboard Bupati · Kurasi & Publikasi · Analisis & Peta · Keuangan Daerah · Layanan Publik - Asisten AI melayang |
 | **Walidata/BAPPERIDA** | Beranda Tugas · Verifikasi Pelaporan OPD · Kurasi & Publikasi · Tata Kelola/Matriks Indikator · Pusat Sinkronisasi Data · Audit |
 | **Pembina Data (BPS)** | Beranda Pembinaan · Tata Kelola/Matriks Indikator · Pelaporan Realisasi |
-| **Developer/Admin** | Dashboard Sistem · Kesiapan OPD · Dashboard Pimpinan · Pusat Sinkronisasi Data · Audit · Administrasi Sistem |
+| **Developer/Admin** | Dashboard Sistem · Kesiapan OPD · Dashboard Bupati · Pusat Sinkronisasi Data · Audit · Administrasi Sistem |
 
 ## 10. Dashboard Sistem dan Pusat Sinkronisasi Data
 

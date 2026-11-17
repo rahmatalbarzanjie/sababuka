@@ -95,7 +95,7 @@ function SectorHealth({ insights }: { insights: Insight[] }) {
 
 type StatusFilter = "semua" | Assessment;
 
-/** Seluruh indikator kinerja dalam satu tabel agar pimpinan melihat gambaran lengkap, bukan hanya yang perlu perhatian. */
+/** Seluruh indikator kinerja dalam satu tabel agar Bupati melihat gambaran lengkap, bukan hanya yang perlu perhatian. */
 function AllIndicators({ insights }: { insights: Insight[] }) {
   const [status, setStatus] = useState<StatusFilter>("semua");
   const [sectorFilter, setSectorFilter] = useState("");
@@ -166,13 +166,11 @@ export function BerandaPage() {
   }, []);
   if (data.loading) return <PageLoading />;
   if (data.error || !data.data) return <ErrorState title="Dashboard belum dapat dimuat" onRetry={data.reload}>{data.error}</ErrorState>;
-  const { summary, insights, analyzed, generated_at, context, konteks, capaian } = data.data;
+  const { summary, insights, generated_at, context, konteks, capaian } = data.data;
   const cap = capaian.summary;
   const capAssessed = cap.tercapai + cap.belum_tercapai;
   const capOther = Math.max(0, cap.total - capAssessed);
   const contextMovers = konteks.filter((item) => item.change_pct !== null).sort((a, b) => Math.abs(b.change_pct ?? 0) - Math.abs(a.change_pct ?? 0)).slice(0, 6);
-  const assessed = summary.membaik + summary.memburuk;
-  const netral = Math.max(0, analyzed - assessed);
   const attention = insights.filter((item) => item.assessment === "memburuk" || item.analysis.anomaly?.is_anomaly);
   const spotlight = attention.slice(0, 3);
   const spotlightIds = new Set(spotlight.map((item) => item.indicator_id));
@@ -182,7 +180,6 @@ export function BerandaPage() {
   const movers = insights.filter((item) => item.change_pct !== null && item.assessment !== "netral").sort((a, b) => Math.abs(b.change_pct ?? 0) - Math.abs(a.change_pct ?? 0))
     .filter((item) => { const key = `${item.latest_year}|${item.latest_value}|${item.change_pct}`; if (seenMovers.has(key)) return false; seenMovers.add(key); return true; }).slice(0, 8);
   const latestYear = Math.max(...insights.map((item) => item.latest_year), 0);
-  const focusNames = spotlight.map((item) => plain(item.name)).join("; ");
 
   return <div className="exec">
     <section className="exec-brief" aria-labelledby="ikhtisar">

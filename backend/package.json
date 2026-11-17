@@ -18,13 +18,8 @@
     "test:e2e": "playwright test",
     "db:migrate": "tsx src/scripts/migrate.ts",
     "admin:create": "tsx src/scripts/create-superadmin.ts",
-    "dev:seed-users": "tsx src/scripts/seed-demo-users.ts",
-    "accounts:reset-foundation": "tsx src/scripts/reset-foundation-accounts.ts",
     "accounts:sync-google-form": "tsx src/scripts/sync-google-form-registrants.ts",
     "data:sync-bps-rpjmd": "tsx src/scripts/sync-bps-rpjmd-observations.ts",
-    "dev:seed-pilot": "tsx src/scripts/seed-pilot-account.ts",
-    "dev:seed-official": "tsx src/scripts/seed-official-pilot-data.ts",
-    "dev:seed-opd-websites": "tsx src/scripts/seed-local-opd-websites.ts",
     "db:repair-orphans": "tsx src/scripts/repair-orphans.ts"
   },
   "dependencies": {

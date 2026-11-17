@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import { AuthProvider, useAuth } from "./auth";
 import { LoadingScreen, Notice, PageLoading } from "./components";
-import { AdminLayout, ComingSoon } from "./layout/AdminLayout";
+import { AdminLayout, NotFoundPage } from "./layout/AdminLayout";
 import { navigate, usePathname } from "./router";
 
 const RolesPage = lazy(() => import("./pages/AccessPages").then((module) => ({ default: module.RolesPage })));
@@ -18,7 +18,6 @@ const UsersPage = lazy(() => import("./pages/UsersPage").then((module) => ({ def
 const CategoriesPage = lazy(() => import("./pages/GovernancePages").then((module) => ({ default: module.CategoriesPage })));
 const IndicatorsPage = lazy(() => import("./pages/GovernancePages").then((module) => ({ default: module.IndicatorsPage })));
 const SubmissionsPage = lazy(() => import("./pages/SubmissionPages").then((module) => ({ default: module.SubmissionsPage })));
-const ExecutivePage = lazy(() => import("./pages/ExecutivePage").then((module) => ({ default: module.ExecutivePage })));
 const PublicationsPage = lazy(() => import("./pages/PublicationsPage").then((module) => ({ default: module.PublicationsPage })));
 const AssistantPage = lazy(() => import("./pages/AssistantPage").then((module) => ({ default: module.AssistantPage })));
 const AuditPage = lazy(() => import("./pages/MonitoringPages").then((module) => ({ default: module.AuditPage })));
@@ -39,7 +38,6 @@ const pageMeta: Record<string, { title: string; subtitle: string; permission?: s
   "/dashboard": { title: "Dashboard Eksekutif", subtitle: "Kondisi, tren, dan sebaran wilayah Kabupaten Kapuas untuk pengambilan keputusan.", permission: "executive_dashboard.view" },
   "/dashboard/bank-data": { title: "Bank Data Kapuas", subtitle: "Seluruh seri BPS dan Satu Data yang tersimpan, dapat dicari, ditelusuri, dan diunduh.", permission: "executive_dashboard.view" },
   "/dashboard/indikator": { title: "Detail Indikator", subtitle: "Grafik, tabulasi data, analisis, tindak lanjut, dan sumber satu indikator.", permission: "executive_dashboard.view" },
-  "/executive": { title: "Ringkasan Pimpinan", subtitle: "Capaian terkurasi dari data yang telah disetujui dan dipublikasikan.", permission: "executive_dashboard.view" },
   "/assistant": { title: "Tanya Sababuka", subtitle: "Tanyakan data, tren, dan tindak lanjut; jawaban dihitung dari data resmi.", permission: "assistant.use" },
   "/analysis": { title: "Analisis dan Peta", subtitle: "Baca tren, kesenjangan wilayah, konsistensi sumber, dan rekomendasi keputusan.", permission: "executive_dashboard.view" },
   "/notifications": { title: "Notifikasi", subtitle: "Pembaruan kategori, indikator, verifikasi OPD, pengiriman, dan publikasi." },
@@ -54,13 +52,11 @@ const pageMeta: Record<string, { title: string; subtitle: string; permission?: s
   "/admin/profile": { title: "Pengguna", subtitle: "Kelola nama, data akun, dan kata sandi Anda." },
   "/governance/categories": { title: "Kategori", subtitle: "Kelompokkan indikator berdasarkan fokus pembangunan daerah.", permission: "category.view" },
   "/governance/indicators": { title: "Matriks Indikator", subtitle: "Finalisasi definisi, sumber, target tahunan, serta OPD penanggung jawab indikator pembangunan.", permission: "indicator.view" },
-  "/governance/focuses": { title: "Fokus Kebijakan", subtitle: "Modul fokus kebijakan sedang disiapkan.", permission: "policy_focus.view" },
   "/governance/datasets": { title: "Dataset", subtitle: "Temukan dataset resmi, sumber, versi, dan keterkaitannya dengan indikator pembangunan.", permission: "dataset.view" },
-  "/admin/metadata-profiles": { title: "Profil Metadata", subtitle: "Modul profil metadata sedang disiapkan.", permission: "metadata_profile.manage" },
   "/submissions": { title: "Pelaporan Realisasi", subtitle: "Isi, simpan, dan kirim realisasi indikator OPD untuk periode pelaporan.", permission: "submission.view" },
   "/reviews": { title: "Verifikasi Pelaporan OPD", subtitle: "Periksa, kembalikan, atau setujui pelaporan yang dikirim perangkat daerah.", permission: "submission.review" },
   "/guidance": { title: "Pembinaan Data Statistik", subtitle: "Telaah standar, metadata, metodologi, dan konsistensi tanpa mengubah data milik produsen.", permission: "statistical_guidance.view" },
-  "/publications": { title: "Kurasi & Publikasi", subtitle: "Pilih capaian yang disetujui sebelum diterbitkan ke dashboard pimpinan.", permission: "publication.view" },
+  "/publications": { title: "Kurasi & Publikasi", subtitle: "Pilih capaian yang disetujui sebelum diterbitkan ke dashboard Bupati.", permission: "publication.view" },
   "/consolidation": { title: "Konsolidasi Sumber", subtitle: "Tentukan nilai yang valid bila sumber data melaporkan angka berbeda untuk indikator yang sama.", permission: "consolidation.view" },
   "/connectors": { title: "Pusat Sinkronisasi Data", subtitle: "Telusuri sumber, staging mentah, transformasi, indikator, dan capaian dalam satu pipeline.", permission: "connector.view" },
   "/opd-profile": { title: "Profil Data OPD", subtitle: "Konfirmasi PIC, sumber data, dokumen acuan, dan baseline OPD.", permission: "submission.view" },
@@ -91,9 +87,9 @@ function ProtectedApp() {
   if (loading) return <LoadingScreen />;
   if (!user || pathname === "/login") return <LoginPage />;
   const detailMatch = new RegExp("^/dashboard/indikator/([0-9a-fA-F-]{36})$", "u").exec(pathname);
-  const baseMeta = pageMeta[detailMatch ? "/dashboard/indikator" : pathname] ?? { title: "Modul SABABUKA", subtitle: "Modul sedang disiapkan." };
+  const baseMeta = pageMeta[detailMatch ? "/dashboard/indikator" : pathname] ?? { title: "Halaman tidak ditemukan", subtitle: "Alamat ini tidak tersedia atau sudah dihapus." };
   const meta = pathname === "/publications" && user.roles.some((role) => role.code === "pimpinan")
-    ? { ...baseMeta, title: "Rilis Data", subtitle: "Rilis resmi yang aktif dan masih layak ditampilkan untuk pimpinan." }
+    ? { ...baseMeta, title: "Rilis Data", subtitle: "Rilis resmi yang aktif dan masih layak ditampilkan untuk Bupati." }
     : baseMeta;
   const denied = meta.permission && !user.permissions.includes(meta.permission);
   let content;
@@ -115,7 +111,6 @@ function ProtectedApp() {
   else if (pathname === "/dashboard/bank-data") content = <BankDataPage />;
   else if (detailMatch) content = <IndicatorDetailPage id={detailMatch[1]!} />;
   else if (pathname === "/dashboard") content = <BerandaPage />;
-  else if (pathname === "/executive") content = <ExecutivePage />;
   else if (pathname === "/publications") content = <PublicationsPage />;
   else if (pathname === "/assistant") content = <AssistantPage />;
   else if (pathname === "/analysis") content = <AnalysisPage />;
@@ -125,7 +120,7 @@ function ProtectedApp() {
   else if (pathname === "/connectors") content = <ConnectorsPage />;
   else if (pathname === "/consolidation") content = <ConsolidationPage />;
   else if (pathname === "/opd-profile") content = <OpdProfilePage />;
-  else content = <ComingSoon title={meta.title} />;
+  else content = <NotFoundPage />;
 
   return (
     <AdminLayout pathname={pathname} title={meta.title} subtitle={meta.subtitle}>

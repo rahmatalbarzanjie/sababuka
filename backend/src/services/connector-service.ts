@@ -1354,7 +1354,7 @@ export class ConnectorService {
     return { variable_id: variableId, title: merged.variable.title, status: "imported", indicators: created.length, observations: observationCount, district_observations: districtCount };
   }
 
-  /** Terbitkan seluruh observasi valid sebuah indikator ke publikasi aktif (versi baru bila isinya berubah) agar tampil di dashboard pimpinan. */
+  /** Terbitkan seluruh observasi valid sebuah indikator ke publikasi aktif (versi baru bila isinya berubah) agar tampil di dashboard Bupati. */
   async publishIndicatorObservations(auth: AuthContext, versionId: string, audit: AuditContext) {
     const info = await this.db.query<{ code: string; name: string }>(`SELECT i.code, i.name FROM sababuka.indicator_versions iv JOIN sababuka.indicators i ON i.id=iv.indicator_id WHERE iv.id=$1 AND iv.status='active'`, [versionId]);
     if (!info.rows[0]) return null;

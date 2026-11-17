@@ -30,7 +30,7 @@ Konektor hanya bertugas mengambil realisasi dari sumber resmi. Target RPJMD/Rens
 
 Ruang konektor, mapping kandidat, dan isi preview staging hanya dapat dibuka oleh akun Developer atau Superadmin dengan role `superadmin` berscope `global`. Pemeriksaan ini diterapkan pada API, bukan hanya dengan menyembunyikan menu. Walidata, BPS, OPD, BAPPERIDA, dan pimpinan tidak dapat membaca nilai mentah staging.
 
-Mapping kandidat boleh dibuat untuk indikator berstatus `opd_verification`. Mapping draf boleh menjalankan preview, tetapi tidak dapat disetujui, diaktifkan, dijadwalkan, atau diimpor sampai indikator berstatus `approved` atau `active`. Preview tidak menulis ke `data_batches`, `observations`, dashboard pimpinan, maupun publikasi.
+Mapping kandidat boleh dibuat untuk indikator berstatus `opd_verification`. Mapping draf boleh menjalankan preview, tetapi tidak dapat disetujui, diaktifkan, dijadwalkan, atau diimpor sampai indikator berstatus `approved` atau `active`. Preview tidak menulis ke `data_batches`, `observations`, dashboard Bupati, maupun publikasi.
 
 ## Rujukan data untuk OPD (hanya-baca)
 
@@ -76,7 +76,7 @@ Nilai dari sumber berbeda untuk slot yang sama (indikator, periode, wilayah, dim
 - **Nilai identik dari sumber berbeda:** bukan konflik; tetap dua baris dengan sumber masing-masing.
 - **Nilai berbeda:** ditandai konflik (`open`) dan tampil di menu **Konsolidasi Sumber** lengkap dengan sumbernya. BAPPERIDA, atau OPD pemilik indikator, menetapkan satu nilai valid dengan catatan alasan (min. 10 karakter, masuk audit). Observasi tidak diubah atau dihapus; keputusan disimpan di `observation_conflict_decisions`.
 - **Sumber baru dengan nilai lain** setelah keputusan membuka konflik kembali.
-- **Dashboard pimpinan hanya memuat data tervalidasi:** konflik terbuka menahan capaian dari kandidat kurasi dan dari penambahan ke publikasi; capaian yang tidak dipilih (`not_chosen`) tidak tampil di dashboard dan analisis pimpinan. Publikasi yang sudah aktif tidak ditarik otomatis saat konflik baru muncul; konflik itu terlihat di menu konsolidasi sampai diputuskan.
+- **Dashboard Bupati hanya memuat data tervalidasi:** konflik terbuka menahan capaian dari kandidat kurasi dan dari penambahan ke publikasi; capaian yang tidak dipilih (`not_chosen`) tidak tampil di dashboard dan analisis Bupati. Publikasi yang sudah aktif tidak ditarik otomatis saat konflik baru muncul; konflik itu terlihat di menu konsolidasi sampai diputuskan.
 
 Izin: `consolidation.view` (OPD, BAPPERIDA, Walidata, Superadmin) dan `consolidation.resolve` (OPD pemilik indikator, BAPPERIDA, Superadmin). API: `GET /consolidation/conflicts`, `POST /consolidation/decisions`.
 

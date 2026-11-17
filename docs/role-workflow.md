@@ -1,10 +1,10 @@
 # Alur kerja SABABUKA
 
-Dokumen ini menjelaskan alur data dari master indikator sampai Dashboard Pimpinan. Dua paket demo (`DEMO_PRESENTATION` dan `DEMO_PRACTICE`) memakai indikator dan kategori sendiri; objek RPJMD resmi tidak dipakai sebagai transaksi latihan.
+Dokumen ini menjelaskan alur data dari master indikator sampai Dashboard Bupati. Dua paket demo (`DEMO_PRESENTATION` dan `DEMO_PRACTICE`) memakai indikator dan kategori sendiri; objek RPJMD resmi tidak dipakai sebagai transaksi latihan.
 
 ## Swimlane per role
 
-| Tahap | Superadmin | BAPPERIDA | OPD pemilik | Kominfo | Pimpinan |
+| Tahap | Superadmin | BAPPERIDA | OPD pemilik | Kominfo | Bupati |
 |---|---|---|---|---|---|
 | Master kategori | Menyiapkan atau mengelola draf | Meninjau, menyetujui, atau menolak kategori | Melihat bila diberi akses | Melihat | Melihat ringkasan yang relevan |
 | Master indikator | Menyiapkan metadata dan mengajukan bila berwenang | Menyetujui definisi perencanaan | Memverifikasi teknis indikator miliknya | Melihat | Melihat indikator aktif |
@@ -37,7 +37,7 @@ Kategori harus disetujui BAPPERIDA sebelum indikator di bawahnya diajukan.
 
 ### Publikasi
 
-Publikasi dibuat sebagai `draft`, hanya boleh memilih observasi dari form capaian `approved`, lalu menjadi `active` setelah pengguna dengan `publication.activate` mengaktifkannya. Dashboard Pimpinan hanya mengambil publikasi aktif.
+Publikasi dibuat sebagai `draft`, hanya boleh memilih observasi dari form capaian `approved`, lalu menjadi `active` setelah pengguna dengan `publication.activate` mengaktifkannya. Dashboard Bupati hanya mengambil publikasi aktif.
 
 ## Notifikasi dan reset demo
 
