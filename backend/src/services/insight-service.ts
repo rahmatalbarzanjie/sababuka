@@ -123,7 +123,7 @@ export class InsightService {
         const earlier = [...series.keys()].filter((year) => year < districtYear).sort((a, b) => b - a)[0];
         return { name: name.replace(/^Kecamatan\s+/u, ""), value: series.get(districtYear)!, previous: earlier === undefined ? null : series.get(earlier)! };
       }) };
-      const opds = (opdMap.get(indicatorId) ?? []).sort((a, b) => Number(b.primary) - Number(a.primary)).slice(0, 2).map((entry) => entry.label);
+      const opds = (opdMap.get(indicatorId) ?? []).sort((a, b) => Number(b.primary) - Number(a.primary)).map((entry) => entry.label);
       const narrative = limited
         ? { headline: "Data belum cukup untuk tren", detail: `Baru ada ${analysis.years} tahun data (terbaru ${analysis.latest_year}). Tren dan penilaian memerlukan minimal 3 tahun data.`, recommendation: "Lengkapi data tahun-tahun sebelumnya agar tren dapat dinilai." }
         : buildNarrative({ name: plainDash(first.name), unit, analysis, districts, opds, direction });
