@@ -213,6 +213,7 @@ b.good { color: var(--exec-good); } b.bad { color: var(--exec-bad); } b.neutral 
 .bank-stats span { font-weight: 600; font-size: 13px; }
 .bank-stats small { color: var(--ui-muted, #5b6672); font-size: 12px; }
 .bank-filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0; }
+.bank-filters select { flex: 0 1 240px; min-width: 0; }
 .bank-filters select, .bank-filters input[type="search"] { min-height: 40px; padding: 0 10px; border: 1px solid var(--ui-rule); border-radius: 6px; background: inherit; color: inherit; font: inherit; }
 .bank-search { display: flex; align-items: center; gap: 6px; flex: 1 1 240px; }
 .bank-search input { flex: 1; min-width: 0; }
