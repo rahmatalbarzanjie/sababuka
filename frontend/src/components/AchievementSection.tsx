@@ -51,6 +51,17 @@ function SectorBlock({ sector, items }: { sector: string; items: AchievementItem
 }
 
 /** Capaian terhadap target RPJMD: yang belum tercapai di depan agar pimpinan dapat langsung mengarahkan OPD. */
+function downloadCsv(items: AchievementItem[]) {
+  const cell = (value: unknown) => `"${plain(String(value ?? "")).replace(/"/g, '""')}"`;
+  const head = ["Indikator", "Sektor", "Satuan", "OPD terkait", "Tahun realisasi", "Realisasi", "Tahun target", "Target", "Selisih", "Status"];
+  const lines = items.map((item) => [item.name, item.sector, item.unit, item.opds.join("; "), item.latest_year, item.latest_value, item.target_year, item.target_value, item.gap, statusLabel[item.status]].map(cell).join(","));
+  const blob = new Blob(["\uFEFF" + [head.map(cell).join(","), ...lines].join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url; link.download = "capaian-target-rpjmd.csv"; link.click();
+  URL.revokeObjectURL(url);
+}
+
 export function AchievementSection({ data }: { data: AchievementResponse }) {
   const [showAll, setShowAll] = useState(false);
   const groups = useMemo(() => {
@@ -64,15 +75,16 @@ export function AchievementSection({ data }: { data: AchievementResponse }) {
     const map = new Map<string, { opd: string; behind: string[]; missing: string[] }>();
     for (const item of data.items) {
       if (item.status !== "belum_tercapai" && item.status !== "belum_ada_data") continue;
-      const opd = item.opds[0] ?? "OPD belum dipetakan";
-      const row = map.get(opd) ?? { opd, behind: [], missing: [] };
-      (item.status === "belum_tercapai" ? row.behind : row.missing).push(plain(item.name)); map.set(opd, row);
+      for (const opd of item.opds.length ? item.opds : ["OPD belum dipetakan"]) {
+        const row = map.get(opd) ?? { opd, behind: [], missing: [] };
+        (item.status === "belum_tercapai" ? row.behind : row.missing).push(plain(item.name)); map.set(opd, row);
+      }
     }
     return [...map.values()].sort((a, b) => b.behind.length - a.behind.length || b.missing.length - a.missing.length).slice(0, 8);
   }, [data.items]);
   const shown = showAll ? attention : attention.slice(0, 4);
   return <section className="panel-card achievement" aria-labelledby="capaian">
-    <header className="card-head"><div><h2 id="capaian">Capaian target RPJMD</h2><p>Realisasi terbit terbaru dibandingkan target tahun yang sama. Sektor dengan indikator belum tercapai ditampilkan lebih dulu.</p></div></header>
+    <header className="card-head"><div><h2 id="capaian">Capaian target RPJMD</h2><p>Realisasi terbit terbaru dibandingkan target tahun yang sama. Sektor dengan indikator belum tercapai ditampilkan lebih dulu.</p></div><button type="button" className="button secondary" onClick={() => downloadCsv(data.items)}>Unduh CSV</button></header>
     {attention.length === 0 ? <p className="muted">Seluruh indikator bertarget sudah tercapai.</p> : <>
       <h3 className="achv-heading">Belum tercapai atau belum ada data ({attention.length} sektor)</h3>
       {shown.map((group) => <SectorBlock key={group.sector} sector={group.sector} items={group.items} />)}

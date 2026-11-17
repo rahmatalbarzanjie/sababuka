@@ -142,7 +142,7 @@ export interface InsightContext { name: string; unit: string; analysis: SeriesAn
 /** Ringkasan kalimat dan saran tindak lanjut untuk Bupati, murni dari angka hasil hitung. */
 export function buildNarrative(context: InsightContext): { headline: string; detail: string; recommendation: string } {
   const { analysis, districts, opds, name, unit } = context;
-  const opdText = opds.length ? opds.join(" dan ") : "OPD terkait";
+  const opdText = opds.length > 1 ? `${opds.slice(0, -1).join(", ")} dan ${opds[opds.length - 1]}` : opds[0] ?? "OPD terkait";
   const unitText = unit ? ` ${unit}` : "";
   const moved = analysis.change_pct === null ? "" : ` (${formatPct(analysis.change_pct)} dari ${analysis.previous_year})`;
   const lastStep = analysis.change === null ? 0 : Math.sign(analysis.change);

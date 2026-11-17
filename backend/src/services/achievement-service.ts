@@ -71,8 +71,8 @@ export class AchievementService {
       const direction = row.direction ?? inferDirection(row.name);
       const latestYear = row.latest_year;
       const latestValue = row.latest_value === null ? null : Number(row.latest_value);
-      const opds = (opdMap.get(row.indicator_id) ?? []).sort((a, b) => Number(b.primary) - Number(a.primary)).slice(0, 2).map((entry) => entry.label);
-      const opdText = opds.length ? opds.join(" dan ") : "OPD penanggung jawab";
+      const opds = (opdMap.get(row.indicator_id) ?? []).sort((a, b) => Number(b.primary) - Number(a.primary)).map((entry) => entry.label);
+      const opdText = opds.length > 1 ? `${opds.slice(0, -1).join(", ")} dan ${opds[opds.length - 1]}` : opds[0] ?? "OPD penanggung jawab";
       const unit = plainDash(row.unit_symbol || row.unit_name || "");
       const base = { indicator_id: row.indicator_id, name: plainDash(row.name), sector: plainDash(row.category_name), unit, source_kind: row.origin_type === "rpjmd_master" ? "rpjmd" as const : "opd" as const, direction, opds };
       const referenceYear = Math.min(Math.max(currentYear, Math.min(...byYear.keys())), MAX_TARGET_YEAR);

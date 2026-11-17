@@ -30,6 +30,7 @@ const DatasetPage = lazy(() => import("./pages/DatasetPage").then((module) => ({
 const AnalysisPage = lazy(() => import("./pages/DecisionPages").then((module) => ({ default: module.AnalysisPage })));
 const FinancePage = lazy(() => import("./pages/DecisionPages").then((module) => ({ default: module.FinancePage })));
 const PublicServicesPage = lazy(() => import("./pages/DecisionPages").then((module) => ({ default: module.PublicServicesPage })));
+const BankDataPage = lazy(() => import("./pages/BankDataPage").then((module) => ({ default: module.BankDataPage })));
 const IndicatorDetailPage = lazy(() => import("./pages/IndicatorDetailPage").then((module) => ({ default: module.IndicatorDetailPage })));
 const BerandaPage = lazy(() => import("./pages/BerandaPage").then((module) => ({ default: module.BerandaPage })));
 const OpdProfilePage = lazy(() => import("./pages/OpdProfilePage").then((module) => ({ default: module.OpdProfilePage })));
@@ -38,6 +39,7 @@ const OpdMonitoringPage = lazy(() => import("./pages/OpdMonitoringPage").then((m
 const pageMeta: Record<string, { title: string; subtitle: string; permission?: string }> = {
   "/admin": { title: "Dashboard Sistem", subtitle: "Kesehatan layanan dan pekerjaan administrasi yang perlu ditindaklanjuti.", permission: "system.configure" },
   "/dashboard": { title: "Dashboard Eksekutif", subtitle: "Kondisi, tren, dan sebaran wilayah Kabupaten Kapuas untuk pengambilan keputusan.", permission: "executive_dashboard.view" },
+  "/dashboard/bank-data": { title: "Bank Data Kapuas", subtitle: "Seluruh seri BPS dan Satu Data yang tersimpan, dapat dicari, ditelusuri, dan diunduh.", permission: "executive_dashboard.view" },
   "/dashboard/indikator": { title: "Detail Indikator", subtitle: "Grafik, tabulasi data, analisis, tindak lanjut, dan sumber satu indikator.", permission: "executive_dashboard.view" },
   "/executive": { title: "Ringkasan Pimpinan", subtitle: "Capaian terkurasi dari data yang telah disetujui dan dipublikasikan.", permission: "executive_dashboard.view" },
   "/assistant": { title: "Tanya Sababuka", subtitle: "Tanyakan data, tren, dan tindak lanjut; jawaban dihitung dari data resmi.", permission: "assistant.use" },
@@ -114,6 +116,7 @@ function ProtectedApp() {
   else if (pathname === "/submissions") content = <SubmissionsPage />;
   else if (pathname === "/reviews") content = <SubmissionsPage review />;
   else if (pathname === "/guidance") content = <SubmissionsPage guidance />;
+  else if (pathname === "/dashboard/bank-data") content = <BankDataPage />;
   else if (detailMatch) content = <IndicatorDetailPage id={detailMatch[1]!} />;
   else if (pathname === "/dashboard") content = <BerandaPage />;
   else if (pathname === "/executive") content = <ExecutivePage />;

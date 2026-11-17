@@ -105,7 +105,7 @@ export class InsightService {
       const measured = analyzeSeries(points, direction);
       // Seri konteks (Bank Data) tetap ketat; indikator kinerja dengan data kurang dari 3 tahun tetap ditampilkan tanpa penilaian.
       const limited = !measured || measured.years < 3;
-      if (limited && first.origin_type === "bank_data") continue;
+      if (limited && first.origin_type === "bank_data" && !query.indicatorId) continue;
       const ordered = [...points].sort((a, b) => a.year - b.year);
       const lastPoint = ordered[ordered.length - 1];
       if (!lastPoint) continue;
@@ -123,7 +123,7 @@ export class InsightService {
         const earlier = [...series.keys()].filter((year) => year < districtYear).sort((a, b) => b - a)[0];
         return { name: name.replace(/^Kecamatan\s+/u, ""), value: series.get(districtYear)!, previous: earlier === undefined ? null : series.get(earlier)! };
       }) };
-      const opds = (opdMap.get(indicatorId) ?? []).sort((a, b) => Number(b.primary) - Number(a.primary)).slice(0, 2).map((entry) => entry.label);
+      const opds = (opdMap.get(indicatorId) ?? []).sort((a, b) => Number(b.primary) - Number(a.primary)).map((entry) => entry.label);
       const narrative = limited
         ? { headline: "Data belum cukup untuk tren", detail: `Baru ada ${analysis.years} tahun data (terbaru ${analysis.latest_year}). Tren dan penilaian memerlukan minimal 3 tahun data.`, recommendation: "Lengkapi data tahun-tahun sebelumnya agar tren dapat dinilai." }
         : buildNarrative({ name: plainDash(first.name), unit, analysis, districts, opds, direction });
