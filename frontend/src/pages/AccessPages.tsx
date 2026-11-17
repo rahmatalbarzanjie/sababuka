@@ -70,7 +70,7 @@ export function RolesPage() {
 }
 
 function permissionGroupLabel(group: string) {
-  const labels: Record<string, string> = { system: "Konfigurasi sistem", organization: "Organisasi", user: "Pengguna", role: "Peran", menu: "Navigasi", policy_focus: "Fokus pembangunan", category: "Kelompok isu", indicator: "Indikator", dataset: "Data dan metadata", metadata_profile: "Profil metadata", submission: "Pelaporan capaian", publication: "Publikasi", executive_dashboard: "Dashboard pimpinan", assistant: "Asisten Data", audit: "Audit", connector: "Integrasi dan Walidata" };
+  const labels: Record<string, string> = { system: "Konfigurasi sistem", organization: "Organisasi", user: "Pengguna", role: "Peran", menu: "Navigasi", policy_focus: "Fokus pembangunan", category: "Kelompok isu", indicator: "Indikator", dataset: "Data dan metadata", metadata_profile: "Profil metadata", submission: "Pelaporan capaian", publication: "Publikasi", executive_dashboard: "Dashboard Bupati", assistant: "Asisten Data", audit: "Audit", connector: "Integrasi dan Walidata" };
   return labels[group] ?? group.replaceAll("_", " ");
 }
 function riskLabel(risk: Permission["risk_level"]) { return risk === "critical" ? "Kritis" : risk === "elevated" ? "Tinggi" : "Normal"; }

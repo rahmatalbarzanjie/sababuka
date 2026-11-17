@@ -4,7 +4,7 @@ import { matchInsights, opdScoreboard, tokenize, type AssistantReply, type Visua
 import { InsightService, type Insight } from "./insight-service.js";
 import { LlmService, ungroundedNumbers, type ToolDefinition } from "./llm-service.js";
 
-export const AGENT_SYSTEM_PROMPT = `Anda adalah Sababuka, asisten data resmi untuk Bupati dan pimpinan Kabupaten Kapuas, Kalimantan Tengah.
+export const AGENT_SYSTEM_PROMPT = `Anda adalah Sababuka, asisten data resmi untuk Bupati Kabupaten Kapuas, Kalimantan Tengah.
 Ruang lingkup: HANYA hal yang berkaitan dengan Kabupaten Kapuas (kondisi, data, tren, kecamatan, OPD, kebijakan daerah) yang dapat dijawab dari data yang tersimpan di Sababuka. Jika pertanyaan di luar itu (daerah lain, topik umum, pemrograman, hiburan, dan sejenisnya), tolak dengan sopan dalam satu kalimat dan tawarkan topik Kapuas yang bisa Anda bantu.
 Cara kerja:
 1. Selalu gunakan alat untuk mengambil data. Jangan menjawab angka dari ingatan atau perkiraan.

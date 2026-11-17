@@ -15,8 +15,6 @@ menunjuk ke rilis aktif.
 
 - HTTP dan HTTPS melalui Nginx.
 - Konfigurasi `nginx-sababuka.conf` dipakai untuk bootstrap HTTP, lalu
-  `nginx-sababuka-https.conf` dipakai setelah sertifikat Let's Encrypt tersedia.
-- Domain development memakai `nginx-sababuka-dev-bootstrap.conf` sebelum
   sertifikat tersedia dan `nginx-sababuka-dev-https.conf` setelah HTTPS aktif.
 - API hanya mendengarkan `127.0.0.1:3001` dan diteruskan melalui `/api/`.
 - Konfigurasi rahasia berada di `/etc/sababuka/sababuka.env` dengan mode `600`.

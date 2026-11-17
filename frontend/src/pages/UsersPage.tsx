@@ -1,4 +1,4 @@
-import { Check, Copy, KeyRound, Pencil, Plus, Power, PowerOff, Search, ShieldCheck, ShieldPlus, Trash2, UserRound, Users, XCircle } from "lucide-react";
+import { Check, Copy, KeyRound, Pencil, Plus, Power, PowerOff, Search, ShieldCheck, ShieldPlus, Trash2, XCircle } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { api, jsonBody } from "../api";
 import { useAuth } from "../auth";

@@ -1,4 +1,4 @@
-import { Check, Copy, Eye, Flag, Image as ImageIcon, KeyRound, Megaphone, Plus, Save, Settings2, ShieldCheck } from "lucide-react";
+import { Eye, Flag, Image as ImageIcon, KeyRound, Megaphone, Plus, Save, Settings2, ShieldCheck } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { api, jsonBody } from "../api";
 import { useAuth } from "../auth";
@@ -25,10 +25,10 @@ interface BpsSecretStatus {
 
 function featureImpact(flag: FeatureFlag): string {
   const impacts: Record<string, string> = {
-    executive_dashboard: "Menampilkan ruang analisis dan ringkasan untuk pimpinan.",
+    executive_dashboard: "Menampilkan ruang analisis dan ringkasan untuk Bupati.",
     assistant: "Menampilkan Asisten Data bagi peran yang memiliki izin.",
     connector: "Mengaktifkan integrasi, mapping, preview, dan sinkronisasi Walidata.",
-    publication: "Mengaktifkan proses kurasi dan penayangan data ke pimpinan.",
+    publication: "Mengaktifkan proses kurasi dan penayangan data ke Bupati.",
   };
   return impacts[flag.code] ?? "Perubahan berlaku pada menu atau proses yang terkait dengan fitur ini.";
 }

@@ -1,6 +1,6 @@
-import { ArrowRight, Check, Copy, Eye, EyeOff, KeyRound, LockKeyhole, ShieldCheck, UserRoundPlus } from "lucide-react";
+import { ArrowRight, Check, Eye, EyeOff, ShieldCheck, UserRoundPlus } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { api, ApiClientError, jsonBody } from "../api";
+import { api, jsonBody } from "../api";
 import { useAuth } from "../auth";
 import { SababukaLockup } from "../branding/SababukaBrand";
 import { Notice, Spinner } from "../components";

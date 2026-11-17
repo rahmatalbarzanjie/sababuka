@@ -132,7 +132,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--vt-blue) 6%, transparent);
 .system-attention-list > button:hover svg { color: var(--vt-blue); transform: translateX(3px); }
 .system-attention-list > button svg { transition: transform 200ms var(--vt-ease), color 140ms ease; }
 
-/* Kartu perkembangan indikator (Dashboard Pimpinan). */
+/* Kartu perkembangan indikator (Dashboard Bupati). */
 .executive-cards > article { transition: box-shadow 220ms var(--vt-ease), transform 220ms var(--vt-ease), border-color 160ms ease; }
 .executive-cards > article:hover { box-shadow: var(--vt-lift-strong); transform: translateY(-3px); border-color: color-mix(in srgb, var(--vt-blue) 45%, var(--ui-border)); }
 .executive-signal.good { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vt-teal) 30%, transparent); }

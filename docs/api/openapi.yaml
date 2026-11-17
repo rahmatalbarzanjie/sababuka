@@ -4,7 +4,7 @@ info:
   version: 1.0.0-draft
   summary: Kontrak API MVP untuk tata kelola data Kabupaten Kapuas
   description: |
-    API tunggal untuk ruang Superadmin, BAPPERIDA, Kominfo, OPD, Pimpinan,
+    API tunggal untuk ruang Superadmin, BAPPERIDA, Kominfo, OPD, Bupati,
     dashboard eksekutif, dan Asisten AI. Semua operasi dibatasi oleh permission,
     lingkup organisasi, status workflow, dan feature flag.
   contact:
@@ -33,7 +33,7 @@ tags:
   - name: Publications
     description: Penyusunan dan aktivasi publikasi resmi.
   - name: Executive
-    description: Ringkasan terkurasi untuk pimpinan.
+    description: Ringkasan terkurasi untuk Bupati.
   - name: Operations
     description: Ringkasan kerja OPD, Bapperida, dan Kominfo sesuai scope.
   - name: Assistant
@@ -1024,7 +1024,7 @@ paths:
       tags: [Publications]
       operationId: listPublications
       summary: Daftar publikasi
-      description: Membutuhkan `publication.view`; role Pimpinan hanya menerima publikasi aktif.
+      description: Membutuhkan `publication.view`; role Bupati hanya menerima publikasi aktif.
       parameters:
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PageSize"

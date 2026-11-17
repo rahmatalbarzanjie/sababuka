@@ -1,7 +1,7 @@
 import { Building2, CheckCircle2, CircleAlert, FileText, Search, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "../api";
-import { Badge, EmptyState, ErrorState, formatDate, Notice, PageLoading, PageSizeControl, Pagination, SortableHeader, useAsync, type SortDirection } from "../components";
+import { Badge, EmptyState, ErrorState, formatDate, PageLoading, PageSizeControl, Pagination, SortableHeader, useAsync, type SortDirection } from "../components";
 
 interface OpdReadiness {
   organization_id: string; organization_code: string; organization_name: string;

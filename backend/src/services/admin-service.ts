@@ -766,7 +766,7 @@ export class AdminService {
                 WHEN 'kominfo' THEN 'Walidata Diskominfosantik'
                 WHEN 'pembina_statistik' THEN 'Pembina Data Statistik (BPS)'
                 WHEN 'opd' THEN 'Admin/PIC OPD'
-                WHEN 'pimpinan' THEN 'Pimpinan'
+                WHEN 'pimpinan' THEN 'Bupati'
                 ELSE r.name
               END AS name,
               r.description, r.is_system, r.is_active,

@@ -24,7 +24,6 @@ import {
   ChartNoAxesCombined,
   Bot,
   BadgeCheck,
-  ScrollText,
   Activity,
   Plug,
   HelpCircle,
@@ -75,11 +74,11 @@ const iconByCode: Record<string, typeof LayoutDashboard> = {
   "opd-monitoring": Building2,
 };
 
-const supportedRoutes = new Set(["/admin", "/admin/profile", "/dashboard", "/executive", "/assistant", "/analysis", "/notifications", "/audit", "/operations", "/opd-profile", "/admin/organizations", "/admin/opd-monitoring", "/admin/users", "/admin/roles", "/admin/menus", "/admin/system", "/admin/metadata-profiles", "/governance/focuses", "/governance/categories", "/governance/indicators", "/governance/datasets", "/submissions", "/reviews", "/guidance", "/publications", "/connectors", "/consolidation"]);
+const supportedRoutes = new Set(["/admin", "/admin/profile", "/dashboard", "/assistant", "/analysis", "/notifications", "/audit", "/operations", "/opd-profile", "/admin/organizations", "/admin/opd-monitoring", "/admin/users", "/admin/roles", "/admin/menus", "/admin/system", "/governance/categories", "/governance/indicators", "/governance/datasets", "/submissions", "/reviews", "/guidance", "/publications", "/connectors", "/consolidation"]);
 
 const roleLabels: Record<string, string> = {
   superadmin: "Pengelola Sistem",
-  pimpinan: "Pimpinan",
+  pimpinan: "Bupati",
   bapperida: "Verifikator BAPPERIDA",
   kominfo: "Walidata Diskominfosantik",
   pembina_statistik: "Pembina Data Statistik (BPS)",
@@ -133,7 +132,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
   const accountEntries = useMemo<MenuItem[]>(() => user && !user.simulation?.active ? [{ code: "my-account", label: "Akun saya", icon: "user", route_name: "/admin/profile", navigation_disabled: false, display_order: 9999, children: [] }] : [], [user, adminEntries]);
   const navigationSections = useMemo(() => [
     { code: "system", label: "Administrasi sistem", entries: systemEntries },
-    { code: "primary", label: "Ruang pimpinan", entries: primaryEntries },
+    { code: "primary", label: "Ruang Bupati", entries: primaryEntries },
     { code: "assistant", label: "Asisten", entries: assistantEntries },
     { code: "analysis", label: "Analisis keputusan", entries: analysisEntries },
     { code: "governance", label: "Tata kelola data", entries: governanceEntries },
@@ -147,7 +146,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
   ].filter((section) => section.entries.length > 0).sort((a, b) => Math.min(...a.entries.map((entry) => entry.display_order)) - Math.min(...b.entries.map((entry) => entry.display_order))), [accountEntries, assistantEntries, adminEntries, analysisEntries, auditEntries, consolidationEntries, guidanceEntries, governanceEntries, isBapperida, isPimpinan, isSuperadmin, operationalEntries, primaryEntries, sourceEntries, systemEntries]);
   const areaLabel = ["/admin", "/admin/opd-monitoring"].includes(pathname) ? "Administrasi Sistem"
     : pathname.startsWith("/admin") ? "Konfigurasi Internal"
-    : ["/dashboard", "/executive", "/assistant"].includes(pathname) ? "Ruang Pimpinan"
+    : ["/dashboard", "/assistant"].includes(pathname) ? "Ruang Bupati"
     : pathname === "/analysis" ? "Analisis Keputusan"
     : pathname === "/connectors" ? "Walidata Diskominfosantik"
     : pathname.startsWith("/governance") ? "Tata Kelola Data"
@@ -379,7 +378,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
             <button className="profile-button" aria-haspopup="menu" aria-expanded={profileOpen} onClick={() => setProfileOpen((value) => !value)}><span className="avatar">{initials}</span><span><strong>{user?.full_name}</strong><small>{roleLabel}</small></span><ChevronDown /></button>
             {profileOpen && <div className="profile-popover"><div className="profile-identity"><UserRound /><span><strong>{user?.simulation?.original_email ?? user?.email}</strong><small>{isRolePreview ? `Bertindak sebagai: ${roleLabels[user?.roles[0]?.code ?? ""] ?? "Peran"}` : user?.organizations[0]?.name ?? "Lingkup global"}</small></span></div>
               {isRolePreview ? <div className="profile-preview-return"><small>BERTINDAK SEBAGAI PERAN LAIN</small><button disabled={previewBusy} onClick={() => void leavePreview()}><RotateCcw />Kembali ke Developer</button></div>
-                : isSuperadmin && <div className="profile-preview"><small>BERTINDAK SEBAGAI PERAN</small><p>Gunakan menu dan kewenangan peran ini tanpa login ulang. Perubahan tercatat atas nama Developer.</p>{previewError && <span className="profile-preview-error">{previewError}</span>}<button disabled={previewBusy} onClick={() => void enterPreview("bapperida")}><Eye />BAPPERIDA</button><button disabled={previewBusy} onClick={() => void enterPreview("kominfo")}><Eye />Walidata Diskominfosantik</button><button disabled={previewBusy} onClick={() => void enterPreview("pembina_statistik")}><Eye />Pembina Statistik BPS</button><button disabled={previewBusy} onClick={() => void enterPreview("pimpinan")}><Eye />Pimpinan</button><label><span>Pratinjau OPD</span><select value={previewOrganizationId} onChange={(event) => setPreviewOrganizationId(event.target.value)}><option value="">Pilih OPD</option>{previewOrganizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.short_name ? `${organization.short_name} - ` : ""}{organization.name}</option>)}</select></label><button disabled={previewBusy || !previewOrganizationId} onClick={() => void enterPreview("opd", previewOrganizationId)}><Eye />Masuk sebagai OPD terpilih</button></div>}
+                : isSuperadmin && <div className="profile-preview"><small>BERTINDAK SEBAGAI PERAN</small><p>Gunakan menu dan kewenangan peran ini tanpa login ulang. Perubahan tercatat atas nama Developer.</p>{previewError && <span className="profile-preview-error">{previewError}</span>}<button disabled={previewBusy} onClick={() => void enterPreview("bapperida")}><Eye />BAPPERIDA</button><button disabled={previewBusy} onClick={() => void enterPreview("kominfo")}><Eye />Walidata Diskominfosantik</button><button disabled={previewBusy} onClick={() => void enterPreview("pembina_statistik")}><Eye />Pembina Statistik BPS</button><button disabled={previewBusy} onClick={() => void enterPreview("pimpinan")}><Eye />Bupati</button><label><span>Pratinjau OPD</span><select value={previewOrganizationId} onChange={(event) => setPreviewOrganizationId(event.target.value)}><option value="">Pilih OPD</option>{previewOrganizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.short_name ? `${organization.short_name} - ` : ""}{organization.name}</option>)}</select></label><button disabled={previewBusy || !previewOrganizationId} onClick={() => void enterPreview("opd", previewOrganizationId)}><Eye />Masuk sebagai OPD terpilih</button></div>}
               {!isRolePreview && <button onClick={() => go("/admin/profile")}><ShieldCheck />Akun saya</button>}<button className="danger-text" onClick={doLogout}><LogOut />Keluar</button></div>}
           </div>
         </div>
@@ -402,18 +401,18 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     </section>
     {isPimpinan && <button type="button" className="assistant-floating-button" onClick={() => go("/assistant")} aria-label="Buka Asisten AI" title="Buka Asisten AI"><span className="assistant-floating-icon" aria-hidden><SababukaAssistantMark /><i /></span><span className="assistant-floating-label"><strong>Asisten AI</strong></span></button>}
     {paletteOpen && <CommandPalette items={paletteItems} onClose={() => setPaletteOpen(false)} />}
-    {helpOpen && <><button className="help-overlay" aria-label="Tutup bantuan" onClick={() => setHelpOpen(false)} /><aside ref={helpRef} tabIndex={-1} className="help-drawer" role="dialog" aria-modal="true" aria-labelledby="help-drawer-title"><header><div><h2 id="help-drawer-title">{help.title}</h2></div><button type="button" className="icon-button" aria-label="Tutup bantuan" onClick={() => setHelpOpen(false)}><X /></button></header><p>{help.intro}</p><ol>{help.steps.map((step) => <li key={step}><span>{help.steps.indexOf(step) + 1}</span><p>{step}</p></li>)}</ol><section><strong>Istilah penting</strong><dl><div><dt>Target</dt><dd>Sasaran RPJMD untuk tahun pelaporan.</dd></div><div><dt>Realisasi</dt><dd>Nilai yang benar-benar dicapai OPD.</dd></div><div><dt>Dipublikasikan</dt><dd>Sudah diperiksa, dikurasi, dan boleh dilihat pimpinan.</dd></div></dl></section><footer><small>Jika tugas atau data tidak sesuai, catat nama indikator, periode, dan OPD lalu hubungi Pengelola Sistem.</small><button type="button" className="button primary" onClick={() => setHelpOpen(false)}>Saya mengerti</button></footer></aside></>}
+    {helpOpen && <><button className="help-overlay" aria-label="Tutup bantuan" onClick={() => setHelpOpen(false)} /><aside ref={helpRef} tabIndex={-1} className="help-drawer" role="dialog" aria-modal="true" aria-labelledby="help-drawer-title"><header><div><h2 id="help-drawer-title">{help.title}</h2></div><button type="button" className="icon-button" aria-label="Tutup bantuan" onClick={() => setHelpOpen(false)}><X /></button></header><p>{help.intro}</p><ol>{help.steps.map((step) => <li key={step}><span>{help.steps.indexOf(step) + 1}</span><p>{step}</p></li>)}</ol><section><strong>Istilah penting</strong><dl><div><dt>Target</dt><dd>Sasaran RPJMD untuk tahun pelaporan.</dd></div><div><dt>Realisasi</dt><dd>Nilai yang benar-benar dicapai OPD.</dd></div><div><dt>Dipublikasikan</dt><dd>Sudah diperiksa, dikurasi, dan boleh dilihat Bupati.</dd></div></dl></section><footer><small>Jika tugas atau data tidak sesuai, catat nama indikator, periode, dan OPD lalu hubungi Pengelola Sistem.</small><button type="button" className="button primary" onClick={() => setHelpOpen(false)}>Saya mengerti</button></footer></aside></>}
     {announcement?.enabled && <Modal title={announcement.title ?? "Pemberitahuan"} onClose={() => setAnnouncement(null)}><article className="login-announcement"><span className="announcement-icon"><Megaphone /></span>{announcement.image_url && <img src={announcement.image_url} alt="Ilustrasi pemberitahuan" />}<p>{announcement.message}</p><footer className="modal-actions">{announcement.action_url && <a className="button secondary" href={announcement.action_url} target={announcement.action_url.startsWith("http") ? "_blank" : undefined} rel="noreferrer">{announcement.action_label ?? "Buka informasi"}</a>}<button type="button" className="button primary" onClick={() => setAnnouncement(null)}>Tutup</button></footer></article></Modal>}
   </div>;
 }
 
 const roleHelp: Record<string, { title: string; intro: string; steps: string[] }> = {
   superadmin: { title: "Panduan Pengelola Sistem", intro: "Pastikan akun, organisasi, dan hak akses siap sebelum pengguna memulai pekerjaan substansi.", steps: ["Periksa pendaftaran PIC pada menu Pengguna.", "Tetapkan OPD dan peran dengan lingkup akses minimum.", "Pantau konfigurasi dan audit tanpa mengambil alih keputusan substansi BAPPERIDA atau OPD."] },
-  bapperida: { title: "Panduan BAPPERIDA", intro: "Mulai dari Beranda Tugas untuk melihat keputusan yang menunggu Anda.", steps: ["Finalisasi kelompok isu dan indikator RPJMD.", "Verifikasi pelaporan yang dikirim OPD dan beri koreksi yang spesifik.", "Kurasi hanya capaian yang layak sebelum diterbitkan kepada pimpinan."] },
+  bapperida: { title: "Panduan BAPPERIDA", intro: "Mulai dari Beranda Tugas untuk melihat keputusan yang menunggu Anda.", steps: ["Finalisasi kelompok isu dan indikator RPJMD.", "Verifikasi pelaporan yang dikirim OPD dan beri koreksi yang spesifik.", "Kurasi hanya capaian yang layak sebelum diterbitkan kepada Bupati."] },
   opd: { title: "Panduan Operator OPD", intro: "Kartu Tugas Saya menunjukkan pekerjaan yang perlu Anda selesaikan lebih dahulu.", steps: ["Verifikasi indikator yang menjadi tanggung jawab OPD.", "Mulai pelaporan untuk periode berjalan dan isi realisasi.", "Lampirkan dokumen pendukung, simpan perubahan, lalu kirim ke BAPPERIDA."] },
   kominfo: { title: "Panduan Walidata", intro: "Diskominfosantik menjaga kualitas teknis dan aliran data lintas OPD.", steps: ["Daftarkan profil sumber data OPD.", "Petakan kolom sumber ke indikator yang sudah aktif.", "Periksa preview dan hasil validasi sebelum mengimpor atau menjadwalkan sinkronisasi."] },
   pembina_statistik: { title: "Panduan Pembina Data Statistik", intro: "BPS membina standar dan kualitas statistik tanpa mengambil alih data milik OPD.", steps: ["Telaah standar, metadata, metodologi, dan konsistensi data.", "Berikan rekomendasi yang dapat ditindaklanjuti PIC instansi.", "Masukkan data hanya untuk indikator yang memang ditugaskan kepada BPS Kabupaten Kapuas."] },
-  pimpinan: { title: "Panduan Pimpinan", intro: "Informasi di ruang ini hanya berasal dari data yang sudah diterbitkan.", steps: ["Gunakan filter untuk memilih kelompok isu atau OPD.", "Buka Rilis Data untuk melihat paket resmi dan sumbernya.", "Gunakan Asisten Data untuk bertanya berdasarkan data yang tersedia."] },
+  pimpinan: { title: "Panduan Bupati", intro: "Informasi di ruang ini hanya berasal dari data yang sudah diterbitkan.", steps: ["Gunakan filter untuk memilih kelompok isu atau OPD.", "Buka Rilis Data untuk melihat paket resmi dan sumbernya.", "Gunakan Asisten Data untuk bertanya berdasarkan data yang tersedia."] },
 };
 
 export function ComingSoon({ title }: { title: string }) {

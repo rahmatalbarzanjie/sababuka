@@ -98,14 +98,7 @@ pnpm audit --prod
 
 ## Data pengembangan lokal
 
-Khusus `NODE_ENV=development`, akun pengujian dan data sumber resmi dapat disiapkan dengan:
-
-```bash
-pnpm dev:seed-users
-pnpm dev:seed-official
-```
-
-`dev:seed-official` mencatat audit sumber untuk seluruh 15 indikator pilot dan menerbitkan hanya capaian yang sudah dapat ditelusuri. Setiap observasi menyimpan nama sumber, URL, status verifikasi, serta waktu pengambilan. Hasil perhitungan dibedakan dari kutipan langsung. Rangkuman audit terdapat di `docs/17-audit-sumber-indikator-pilot.md`.
+Skrip seed akun dan data demo sudah dihapus menjelang rilis final. Buat akun Developer lokal dengan `pnpm admin:create`; data indikator dan nilai berasal dari migration dan konektor Bank Data.
 
 Integration test membutuhkan database sementara yang sudah dimigrasikan dan akun tes:
 

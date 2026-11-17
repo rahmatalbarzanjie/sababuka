@@ -402,7 +402,7 @@ export class SubmissionService {
     } else if (action === "approve") {
       await notifyOrganization(this.db, detail.organization_id, { ...entity, type: "submission.approved", title: "Capaian disetujui",
         message: `Capaian ${detail.period_label} telah disetujui Bapperida.` }, auth.user.id);
-      // Capaian yang disetujui langsung terbit ke dashboard pimpinan; kegagalan penerbitan tidak membatalkan persetujuan.
+      // Capaian yang disetujui langsung terbit ke dashboard Bupati; kegagalan penerbitan tidak membatalkan persetujuan.
       try { await new PublicationService(this.db).publishApprovedBatch(auth, id, audit); }
       catch (error) { await recordAudit(this.db, { ...audit, eventType: "submission.auto_publish_failed", entityType: "data_batch", entityId: id, organizationId: detail.organization_id as string, metadata: { reason: error instanceof Error ? error.message.slice(0, 200) : "Gagal" } }); }
     }
