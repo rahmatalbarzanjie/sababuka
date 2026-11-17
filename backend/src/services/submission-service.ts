@@ -373,8 +373,10 @@ export class SubmissionService {
     const transition = transitions[action];
     if (!transition.from.includes(from)) throw new ApiError(409, "CONFLICT", `Aksi ${action} tidak berlaku dari status ${from}.`);
     if (action === "return" && !notes?.trim()) throw new ApiError(400, "VALIDATION_ERROR", "Catatan koreksi wajib diisi saat mengembalikan data.");
-    if (action === "submit" && Number(detail.row_count) < detail.observations.length) {
-      throw new ApiError(409, "CONFLICT", `Lengkapi seluruh ${detail.observations.length} indikator periode ini sebelum dikirim.`);
+    // Pengiriman sebagian diizinkan (keputusan pemilik, 17 Nov 2026): indikator yang belum diisi tidak masuk publikasi
+    // dan tetap terlihat sebagai "belum ada data" di dashboard.
+    if (action === "submit" && Number(detail.row_count) < 1) {
+      throw new ApiError(409, "CONFLICT", "Isi minimal satu indikator sebelum dikirim.");
     }
     const timestampSql = action === "submit" ? ", submitted_by = $4, submitted_at = now()"
       : action === "approve" ? ", approved_by = $4, approved_at = now()" : "";
