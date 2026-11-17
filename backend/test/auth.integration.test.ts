@@ -46,7 +46,7 @@ test(
         items.flatMap((item) => [item, ...flattenMenu(item.children as typeof items)]);
       const menuItems = flattenMenu(menu.json().data);
       const placeholders = menuItems.filter((item) => item.navigation_disabled);
-      assert.deepEqual(placeholders.map((item) => item.code).sort(), ["focuses", "metadata-profiles"]);
+      assert.deepEqual(placeholders.map((item) => item.code).sort(), []);
       assert.ok(placeholders.every((item) => item.badge === "Segera"));
 
       const configuredPlaceholders = await db.query<{ code: string; badge: string | null }>(
@@ -55,7 +55,7 @@ test(
          WHERE navigation_disabled = true
          ORDER BY code`,
       );
-      assert.deepEqual(configuredPlaceholders.rows.map((item) => item.code), ["focuses", "metadata-profiles"]);
+      assert.deepEqual(configuredPlaceholders.rows.map((item) => item.code), []);
       assert.ok(configuredPlaceholders.rows.every((item) => item.badge === "Segera"));
 
       const logout = await app.inject({

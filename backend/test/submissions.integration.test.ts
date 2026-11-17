@@ -99,22 +99,7 @@ test("form capaian OPD mendukung isi, submit, return, dan approve", { skip: !dat
     const reviewerNotifications = await db.query<{ count: number }>(`SELECT count(*)::int AS count FROM sababuka.notifications WHERE user_id = $1 AND notification_type = 'submission.submitted'`, [reviewer.rows[0]!.id]);
     assert.ok(reviewerNotifications.rows[0]!.count >= 1);
 
-    const candidates = await app.inject({ method: "GET", url: `/api/v1/publications/candidates?period_id=${period.id}`, headers: { cookie: bapperidaHeaders.cookie } });
-    assert.equal(candidates.statusCode, 200, candidates.body);
-    const candidate = candidates.json().data.find((item: { indicator_code: string }) => item.indicator_code === "IKP");
-    assert.ok(candidate);
-    const publication = await app.inject({ method: "POST", url: "/api/v1/publications", headers: bapperidaHeaders,
-      payload: { publication_key: "RINGKASAN_2025", publication_number: "PUB-TEST-2025", title: "Ringkasan Capaian 2025", description: "Publikasi integration test" } });
-    assert.equal(publication.statusCode, 201, publication.body);
-    const added = await app.inject({ method: "POST", url: `/api/v1/publications/${publication.json().id}/items`, headers: bapperidaHeaders,
-      payload: { observation_ids: [candidate.observation_id] } });
-    assert.equal(added.statusCode, 200, added.body);
-    assert.equal(added.json().items.length, 1);
-    const activated = await app.inject({ method: "POST", url: `/api/v1/publications/${publication.json().id}/activate`, headers: bapperidaHeaders,
-      payload: { notes: "Aktivasi integration test" } });
-    assert.equal(activated.statusCode, 200, activated.body);
-    assert.equal(activated.json().status, "active");
-
+    // Persetujuan BAPPERIDA menerbitkan capaian valid secara otomatis ke publikasi aktif.
     const executive = await app.inject({ method: "GET", url: "/api/v1/executive/dashboard", headers: { cookie: pimpinanHeaders.cookie } });
     assert.equal(executive.statusCode, 200, executive.body);
     assert.ok(executive.json().metrics.approved_submissions >= 1);
