@@ -43,7 +43,7 @@ export function BankDataPage() {
   const sectors = useMemo(() => [...new Set((items ?? []).map((item) => item.sector))].sort((a, b) => a.localeCompare(b, "id")), [items]);
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return (items ?? []).filter((item) => (!needle || `${item.name} ${item.sector}`.toLowerCase().includes(needle))
+    return [...(items ?? [])].sort((x, y) => y.observations - x.observations || x.name.localeCompare(y.name, "id")).filter((item) => (!needle || `${item.name} ${item.sector}`.toLowerCase().includes(needle))
       && (!sectorFilter || item.sector === sectorFilter) && (!sourceFilter || item.source_kind === sourceFilter) && (!districtOnly || item.districts > 0));
   }, [items, query, sectorFilter, sourceFilter, districtOnly]);
   const back = <AppLink to="/dashboard" className="back-link"><ArrowLeft aria-hidden />Kembali ke Dashboard Eksekutif</AppLink>;
