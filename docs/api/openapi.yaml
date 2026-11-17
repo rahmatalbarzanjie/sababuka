@@ -1161,6 +1161,42 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/ExecutiveDashboard"}
         "403": {$ref: "#/components/responses/Forbidden"}
+  /executive/districts:
+    get:
+      tags: [Executive]
+      operationId: listExecutiveDistricts
+      summary: Ringkasan status indikator per kecamatan
+      description: |
+        Membutuhkan `executive_dashboard.view`. Membaca seluruh nilai terbit berdimensi kecamatan (Bank Data sekarang; indikator
+        RPJMD atau OPD otomatis ikut begitu memiliki nilai per kecamatan). Dengan target kecamatan statusnya `tercapai` atau
+        `belum_tercapai`; tanpa target statusnya posisi relatif (`unggul`, `sedang`, `perhatian`, atau `tanpa_arah`).
+        Hanya seri dengan nilai di minimal 8 kecamatan yang dihitung.
+      responses:
+        "200":
+          description: Satu ringkasan per kecamatan beserta cakupan data
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /executive/districts/{name}:
+    get:
+      tags: [Executive]
+      operationId: getExecutiveDistrict
+      summary: Status seluruh indikator untuk satu kecamatan
+      description: Membutuhkan `executive_dashboard.view`. Nama boleh disertai awalan "Kecamatan".
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema: {type: string, minLength: 2, maxLength: 80}
+      responses:
+        "200":
+          description: Ringkasan kecamatan dan daftar indikator dengan peringkat, tren, dan status
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
   /operations/dashboard:
     get:
       tags: [Operations]

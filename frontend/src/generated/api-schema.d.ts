@@ -929,6 +929,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/executive/districts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ringkasan status indikator per kecamatan
+         * @description Membutuhkan `executive_dashboard.view`. Membaca seluruh nilai terbit berdimensi kecamatan (Bank Data sekarang; indikator
+         *     RPJMD atau OPD otomatis ikut begitu memiliki nilai per kecamatan). Dengan target kecamatan statusnya `tercapai` atau
+         *     `belum_tercapai`; tanpa target statusnya posisi relatif (`unggul`, `sedang`, `perhatian`, atau `tanpa_arah`).
+         *     Hanya seri dengan nilai di minimal 8 kecamatan yang dihitung.
+         */
+        get: operations["listExecutiveDistricts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/executive/districts/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Status seluruh indikator untuk satu kecamatan
+         * @description Membutuhkan `executive_dashboard.view`. Nama boleh disertai awalan "Kecamatan".
+         */
+        get: operations["getExecutiveDistrict"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/operations/dashboard": {
         parameters: {
             query?: never;
@@ -3705,6 +3748,55 @@ export interface operations {
                 };
             };
             403: components["responses"]["Forbidden"];
+        };
+    };
+    listExecutiveDistricts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Satu ringkasan per kecamatan beserta cakupan data */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getExecutiveDistrict: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ringkasan kecamatan dan daftar indikator dengan peringkat, tren, dan status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     getOperationsDashboard: {
