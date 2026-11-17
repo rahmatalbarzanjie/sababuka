@@ -30,8 +30,6 @@ import {
   HelpCircle,
   MapPinned,
   Moon,
-  WalletCards,
-  HeartHandshake,
   Eye,
   RotateCcw,
   Megaphone,
@@ -72,14 +70,12 @@ const iconByCode: Record<string, typeof LayoutDashboard> = {
   connectors: Plug,
   consolidation: GitCompare,
   analysis: MapPinned,
-  finance: WalletCards,
-  "public-services": HeartHandshake,
   "statistical-guidance": BookCheck,
   "system-dashboard": LayoutDashboard,
   "opd-monitoring": Building2,
 };
 
-const supportedRoutes = new Set(["/admin", "/admin/profile", "/dashboard", "/executive", "/assistant", "/analysis", "/finance", "/public-services", "/notifications", "/audit", "/operations", "/opd-profile", "/admin/organizations", "/admin/opd-monitoring", "/admin/users", "/admin/roles", "/admin/menus", "/admin/system", "/admin/metadata-profiles", "/governance/focuses", "/governance/categories", "/governance/indicators", "/governance/datasets", "/submissions", "/reviews", "/guidance", "/publications", "/connectors", "/consolidation"]);
+const supportedRoutes = new Set(["/admin", "/admin/profile", "/dashboard", "/executive", "/assistant", "/analysis", "/notifications", "/audit", "/operations", "/opd-profile", "/admin/organizations", "/admin/opd-monitoring", "/admin/users", "/admin/roles", "/admin/menus", "/admin/system", "/admin/metadata-profiles", "/governance/focuses", "/governance/categories", "/governance/indicators", "/governance/datasets", "/submissions", "/reviews", "/guidance", "/publications", "/connectors", "/consolidation"]);
 
 const roleLabels: Record<string, string> = {
   superadmin: "Pengelola Sistem",
@@ -128,7 +124,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
   const sourceEntries = useMemo(() => menu.filter((item) => item.code === "connectors" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const primaryEntries = useMemo(() => menu.filter((item) => item.code === "dashboard" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const systemEntries = useMemo(() => menu.filter((item) => ["system-dashboard", "opd-monitoring"].includes(item.code) && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
-  const analysisEntries = useMemo(() => menu.filter((item) => ["analysis", "finance", "public-services"].includes(item.code) && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
+  const analysisEntries = useMemo(() => menu.filter((item) => ["analysis"].includes(item.code) && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const consolidationEntries = useMemo(() => menu.filter((item) => item.code === "consolidation" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const guidanceEntries = useMemo(() => menu.filter((item) => item.code === "statistical-guidance" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const auditEntries = useMemo(() => menu.filter((item) => item.code === "audit" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
@@ -152,7 +148,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
   const areaLabel = ["/admin", "/admin/opd-monitoring"].includes(pathname) ? "Administrasi Sistem"
     : pathname.startsWith("/admin") ? "Konfigurasi Internal"
     : ["/dashboard", "/executive", "/assistant"].includes(pathname) ? "Ruang Pimpinan"
-    : ["/analysis", "/finance", "/public-services"].includes(pathname) ? "Analisis Keputusan"
+    : pathname === "/analysis" ? "Analisis Keputusan"
     : pathname === "/connectors" ? "Walidata Diskominfosantik"
     : pathname.startsWith("/governance") ? "Tata Kelola Data"
     : ["/operations", "/submissions", "/reviews", "/publications"].includes(pathname) ? "Pelaporan dan Verifikasi"
