@@ -415,6 +415,6 @@ const roleHelp: Record<string, { title: string; intro: string; steps: string[] }
   pimpinan: { title: "Panduan Bupati", intro: "Informasi di ruang ini hanya berasal dari data yang sudah diterbitkan.", steps: ["Gunakan filter untuk memilih kelompok isu atau OPD.", "Buka Rilis Data untuk melihat paket resmi dan sumbernya.", "Gunakan Asisten Data untuk bertanya berdasarkan data yang tersedia."] },
 };
 
-export function ComingSoon({ title }: { title: string }) {
-  return <div className="empty-state"><Database size={28} /><h3>{title}</h3><p>Modul ini masuk tahap pembangunan berikutnya setelah fondasi administrasi selesai.</p></div>;
+export function NotFoundPage() {
+  return <div className="empty-state"><Database size={28} /><h3>Halaman tidak ditemukan</h3><p>Alamat ini tidak tersedia atau sudah dihapus. Pilih menu di sebelah kiri untuk melanjutkan.</p></div>;
 }

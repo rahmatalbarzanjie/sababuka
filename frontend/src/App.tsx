@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import { AuthProvider, useAuth } from "./auth";
 import { LoadingScreen, Notice, PageLoading } from "./components";
-import { AdminLayout, ComingSoon } from "./layout/AdminLayout";
+import { AdminLayout, NotFoundPage } from "./layout/AdminLayout";
 import { navigate, usePathname } from "./router";
 
 const RolesPage = lazy(() => import("./pages/AccessPages").then((module) => ({ default: module.RolesPage })));
@@ -87,7 +87,7 @@ function ProtectedApp() {
   if (loading) return <LoadingScreen />;
   if (!user || pathname === "/login") return <LoginPage />;
   const detailMatch = new RegExp("^/dashboard/indikator/([0-9a-fA-F-]{36})$", "u").exec(pathname);
-  const baseMeta = pageMeta[detailMatch ? "/dashboard/indikator" : pathname] ?? { title: "Modul SABABUKA", subtitle: "Modul sedang disiapkan." };
+  const baseMeta = pageMeta[detailMatch ? "/dashboard/indikator" : pathname] ?? { title: "Halaman tidak ditemukan", subtitle: "Alamat ini tidak tersedia atau sudah dihapus." };
   const meta = pathname === "/publications" && user.roles.some((role) => role.code === "pimpinan")
     ? { ...baseMeta, title: "Rilis Data", subtitle: "Rilis resmi yang aktif dan masih layak ditampilkan untuk Bupati." }
     : baseMeta;
@@ -120,7 +120,7 @@ function ProtectedApp() {
   else if (pathname === "/connectors") content = <ConnectorsPage />;
   else if (pathname === "/consolidation") content = <ConsolidationPage />;
   else if (pathname === "/opd-profile") content = <OpdProfilePage />;
-  else content = <ComingSoon title={meta.title} />;
+  else content = <NotFoundPage />;
 
   return (
     <AdminLayout pathname={pathname} title={meta.title} subtitle={meta.subtitle}>
