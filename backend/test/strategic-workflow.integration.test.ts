@@ -171,27 +171,7 @@ test("alur kategori, indikator, OPD, publikasi, dan dashboard berjalan lintas pe
     });
     assert.equal(approved.statusCode, 200, approved.body);
 
-    const candidates = await app.inject({
-      method: "GET", url: `/api/v1/publications/candidates?period_id=${period.id}`, headers: { cookie: bapperida.cookie },
-    });
-    const candidate = candidates.json().data.find((item: { indicator_code: string }) => item.indicator_code === `FLOW_${suffix}`);
-    assert.ok(candidate);
-    const publication = await app.inject({
-      method: "POST", url: "/api/v1/publications", headers: bapperida,
-      payload: { publication_key: `FLOW_${suffix}`, publication_number: `FLOW-${suffix}`, title: `Publikasi Alur ${suffix}` },
-    });
-    assert.equal(publication.statusCode, 201, publication.body);
-    const added = await app.inject({
-      method: "POST", url: `/api/v1/publications/${publication.json().id}/items`, headers: bapperida,
-      payload: { observation_ids: [candidate.observation_id] },
-    });
-    assert.equal(added.statusCode, 200, added.body);
-    const published = await app.inject({
-      method: "POST", url: `/api/v1/publications/${publication.json().id}/activate`, headers: bapperida,
-      payload: { notes: "Aktivasi pengujian lintas peran." },
-    });
-    assert.equal(published.statusCode, 200, published.body);
-
+    // Persetujuan BAPPERIDA menerbitkan capaian valid secara otomatis ke publikasi aktif.
     const dashboard = await app.inject({ method: "GET", url: "/api/v1/executive/dashboard", headers: { cookie: pimpinan.cookie } });
     assert.equal(dashboard.statusCode, 200, dashboard.body);
     const item = dashboard.json().items.find((entry: { indicator_code: string }) => entry.indicator_code === `FLOW_${suffix}`);

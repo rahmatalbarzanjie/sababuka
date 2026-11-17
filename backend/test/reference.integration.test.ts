@@ -19,7 +19,7 @@ test("rujukan data: OPD boleh mencari, pimpinan dan anonim ditolak", { skip: !da
     const search = (cookie?: string) => app.inject({ method: "GET", url: "/api/v1/reference/datasets?q=kemiskinan&source=bps", headers: cookie ? { cookie } : {} });
 
     assert.equal((await search()).statusCode, 401);
-    assert.equal((await search(await login("pimpinan@sababuka.com"))).statusCode, 403);
+    assert.equal((await search(await login("bupati@sababuka.com"))).statusCode, 403);
     // OPD lolos otorisasi; hasilnya bergantung pada kunci/jaringan BPS, jadi hanya pastikan bukan 401/403.
     const opd = await search(await login("opd.dkpp@sababuka.com"));
     assert.ok(![401, 403].includes(opd.statusCode), `OPD ditolak: ${opd.statusCode} ${opd.body}`);
