@@ -55,7 +55,7 @@ function downloadCsv(items: AchievementItem[]) {
   const cell = (value: unknown) => `"${plain(String(value ?? "")).replace(/"/g, '""')}"`;
   const head = ["Indikator", "Sektor", "Satuan", "OPD terkait", "Tahun realisasi", "Realisasi", "Tahun target", "Target", "Selisih", "Status"];
   const lines = items.map((item) => [item.name, item.sector, item.unit, item.opds.join("; "), item.latest_year, item.latest_value, item.target_year, item.target_value, item.gap, statusLabel[item.status]].map(cell).join(","));
-  const blob = new Blob(["﻿" + [head.map(cell).join(","), ...lines].join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const blob = new Blob(["\uFEFF" + [head.map(cell).join(","), ...lines].join("\r\n")], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url; link.download = "capaian-target-rpjmd.csv"; link.click();

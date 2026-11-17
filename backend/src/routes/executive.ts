@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import type { QueryResultRow } from "pg";
 import { requirePermission } from "../plugins/authentication.js";
 import { AchievementService } from "../services/achievement-service.js";
+import { BankDataCatalogService } from "../services/bank-data-catalog-service.js";
 import { InsightService } from "../services/insight-service.js";
 
 const uuid = { type: "string", format: "uuid" } as const;
@@ -222,6 +223,11 @@ export async function executiveRoutes(app: FastifyInstance): Promise<void> {
   app.get("/executive/achievement", async (request) => {
     requirePermission(request, "executive_dashboard.view");
     return new AchievementService(app.db).list();
+  });
+
+  app.get("/executive/bank-data", async (request) => {
+    requirePermission(request, "executive_dashboard.view");
+    return new BankDataCatalogService(app.db).catalog();
   });
 
   app.get<{ Querystring: { limit?: number; source?: string; assessment?: string; q?: string; indicator_id?: string; layer?: "kinerja" | "konteks" } }>("/executive/insights", {

@@ -12,6 +12,18 @@ interface InsightsResponse { generated_at: string; insights: Insight[] }
 const relationLabel = { primary: "Utama", supporting: "Pendukung", comparison: "Pembanding" } as const;
 const kindLabel: Record<string, string> = { rpjmd: "Indikator RPJMD", opd: "Usulan OPD", bps: "BPS Kabupaten Kapuas", satudata: "Satu Data Kapuas" };
 
+function downloadSeries(item: Insight) {
+  const cell = (value: unknown) => `"${plain(String(value ?? "")).replace(/"/g, '""')}"`;
+  const rows: Array<Array<unknown>> = [["Indikator", "Wilayah", "Tahun", "Nilai", "Satuan"]];
+  for (const point of item.series) rows.push([item.name, "Kabupaten Kapuas", point.year, point.value, item.unit]);
+  if (item.district_latest) for (const entry of item.district_latest.items) rows.push([item.name, entry.name, item.district_latest.year, entry.value, item.unit]);
+  const blob = new Blob(["\uFEFF" + rows.map((row) => row.map(cell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url; link.download = "data-indikator.csv"; link.click();
+  URL.revokeObjectURL(url);
+}
+
 /** Satu indikator selengkapnya: grafik, tabulasi data, analisis, tindak lanjut, OPD terkait, dan sumber. */
 export function IndicatorDetailPage({ id }: { id: string }) {
   const data = useAsync(() => api<InsightsResponse>(`/executive/insights?indicator_id=${encodeURIComponent(id)}&limit=1`), [id]);
@@ -43,7 +55,7 @@ export function IndicatorDetailPage({ id }: { id: string }) {
     </section>
 
     <section className="panel-card" aria-labelledby="tabulasi">
-      <header className="card-head"><div><h2 id="tabulasi">Tabulasi data</h2><p>Nilai per tahun dalam satuan {plain(item.unit) || "asal"}.</p></div></header>
+      <header className="card-head"><div><h2 id="tabulasi">Tabulasi data</h2><p>Nilai per tahun dalam satuan {plain(item.unit) || "asal"}.</p></div><button type="button" className="button secondary" onClick={() => downloadSeries(item)}>Unduh CSV</button></header>
       <div className="table-scroll"><table className="all-table"><thead><tr><th>Tahun</th><th>Nilai</th><th>Perubahan dari tahun sebelumnya</th></tr></thead><tbody>
         {rows.map((row) => { const change = changeOf(row.year, row.value); return <tr key={row.year}><td>{row.year}</td><td className="num"><strong>{num(row.value)}</strong></td><td className="num">{pct(change)}</td></tr>; })}
       </tbody></table></div>

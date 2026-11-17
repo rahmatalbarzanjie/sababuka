@@ -105,7 +105,7 @@ export class InsightService {
       const measured = analyzeSeries(points, direction);
       // Seri konteks (Bank Data) tetap ketat; indikator kinerja dengan data kurang dari 3 tahun tetap ditampilkan tanpa penilaian.
       const limited = !measured || measured.years < 3;
-      if (limited && first.origin_type === "bank_data") continue;
+      if (limited && first.origin_type === "bank_data" && !query.indicatorId) continue;
       const ordered = [...points].sort((a, b) => a.year - b.year);
       const lastPoint = ordered[ordered.length - 1];
       if (!lastPoint) continue;
