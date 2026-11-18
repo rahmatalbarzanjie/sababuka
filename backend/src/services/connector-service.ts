@@ -13,6 +13,7 @@ import { parseKecamatanTable } from "./satudata-table.js";
 import { resolveUnit } from "./unit-inference.js";
 import { PublicationService } from "./publication-service.js";
 import { GovernanceService } from "./governance-service.js";
+import { buildSeries, isCategoricalVariable } from "./bank-series.js";
 import { plainDash } from "./plain-text.js";
 
 interface SourceRow extends QueryResultRow { id: string; code: string; name: string; source_type: string; base_url: string | null; connection_config: Record<string, unknown>; credential_reference: string | null; last_checked_at: string | null }
@@ -1119,14 +1120,20 @@ export class ConnectorService {
     const detail = await this.getBpsVariable(variableId);
     const existing = await this.existingBankSeries(`BPS!_${variableId}!_%`);
     const kapuas = findKapuasOption(detail.vervars);
-    const regions = detail.vervars.filter((option) => option.val !== kapuas?.val);
+    const geo = await this.db.query<{ name: string; level: string }>(`SELECT name, level FROM sababuka.geographies WHERE is_active = true`);
+    const normName = (value: string) => value.toLowerCase().replace(/^kecamatans+/u, "").replace(/[^a-z0-9]+/gu, " ").trim();
+    const districtNames = new Set(geo.rows.filter((row) => row.level === "district").map((row) => normName(row.name)));
+    const categorical = isCategoricalVariable(detail.rows as never, detail.vervars.length, (label) => districtNames.has(normName(label)), (label) => ["kapuas", "kabupaten kapuas", "6203"].includes(normName(label)));
+    const regions = categorical ? [] : detail.vervars.filter((option) => option.val !== kapuas?.val);
     const years = detail.years;
     return {
       source: "BPS", id: variableId, title: plainDash(detail.variable.title), subject: detail.variable.subject ? plainDash(detail.variable.subject) : null,
       unit: detail.variable.unit, note: detail.variable.note ? plainDash(detail.variable.note) : null, region_label: detail.vervar_label,
       years, year_min: years[0] ?? null, year_max: years[years.length - 1] ?? null, year_count: years.length,
+      mode: categorical ? "kategori" : "wilayah",
       value_count: detail.row_count, region_count: regions.length, has_regency_total: Boolean(kapuas),
-      series_count: Math.max(1, detail.turvars.length), series_labels: detail.turvars.slice(0, 12).map((option) => plainDash(option.label)),
+      series_count: categorical ? detail.vervars.length * Math.max(1, detail.turvars.length) : Math.max(1, detail.turvars.length),
+      series_labels: (categorical ? detail.vervars : detail.turvars).slice(0, 12).map((option) => plainDash(option.label)),
       existing,
       newer_than_system: existing.year_max !== null && years.length > 0 && years[years.length - 1]! > existing.year_max,
       sample: detail.rows.slice(0, 8).map((row) => ({ year: row.tahun, region: row.vervar_label, series: row.turvar_label, value: row.nilai, unit: row.satuan })),
@@ -1335,19 +1342,9 @@ export class ConnectorService {
       return null;
     };
     const preferredTurtahun = merged.turtahuns.length > 1 ? (merged.turtahuns.find((item) => /tahun/iu.test(item.label)) ?? merged.turtahuns[0]!).val : null;
-    type Point = { geography_id: string; year: number; value: number };
-    const series = new Map<string, { label: string; points: Map<string, Point> }>();
-    for (const row of merged.rows) {
-      if (preferredTurtahun && row.turtahun !== preferredTurtahun) continue;
-      const geographyId = geoOf(row.vervar_label);
-      if (!geographyId || row.nilai === null) continue;
-      const value = typeof row.nilai === "number" ? row.nilai : Number(String(row.nilai).replace(/\s/gu, "").replace(/\./gu, "").replace(",", "."));
-      if (!Number.isFinite(value) || row.tahun < 1990 || row.tahun > CONNECTOR_YEAR_MAX) continue;
-      const entry = series.get(row.turvar) ?? { label: row.turvar_label, points: new Map() };
-      entry.points.set(`${geographyId}:${row.tahun}`, { geography_id: geographyId, year: row.tahun, value });
-      series.set(row.turvar, entry);
-    }
-    if (!series.size || series.size > 40) return { variable_id: variableId, status: "skipped", reason: series.size ? "Terlalu banyak kategori (lebih dari 40)." : "Tidak ada baris yang cocok dengan wilayah Kapuas atau kecamatan." };
+    const categorical = isCategoricalVariable(merged.rows, merged.vervars.length, (label) => districtByName.has(norm(label)), (label) => { const key = norm(label); return key === "kapuas" || key === "kabupaten kapuas" || key === "6203"; });
+    const series = buildSeries({ rows: merged.rows, preferredTurtahun, categorical, turvarCount: merged.turvars.length, geoOf, regencyId: regency?.id ?? null, yearMin: 1990, yearMax: CONNECTOR_YEAR_MAX });
+    if (!series.size || series.size > 40) return { variable_id: variableId, status: "skipped", reason: series.size ? "Terlalu banyak kategori (lebih dari 40)." : "Tidak ada baris yang cocok dengan wilayah Kapuas atau kecamatan, dan variabel tidak berkategori." };
 
     const client = await this.db.connect();
     const created: string[] = [];

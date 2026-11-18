@@ -12,7 +12,7 @@ interface SdItem { id: string; title: string; organization: string; format: stri
 interface Existing { imported: boolean; series: number; observations: number; year_min: number | null; year_max: number | null; district_series: number }
 interface Preview {
   source: "BPS" | "SATUDATA"; id: string; title: string; subject?: string | null; organization?: string | null; unit?: string | null; note: string | null;
-  region_label?: string | null; modified?: string | null; page_url?: string; file_name?: string | null; file_size?: number | null; readable?: boolean; reason?: string | null;
+  region_label?: string | null; mode?: "kategori" | "wilayah"; modified?: string | null; page_url?: string; file_name?: string | null; file_size?: number | null; readable?: boolean; reason?: string | null;
   years: number[]; year_min: number | null; year_max: number | null; year_count: number; value_count: number; region_count: number; series_count: number; series_labels: string[];
   existing: Existing; newer_than_system: boolean; sample: Array<{ year: number; region: string | null; series: string | null; value: number | string | null; unit?: string | null }>;
 }
@@ -51,6 +51,7 @@ function ImportPreview({ source, id, title, onClose, onDone }: { source: Source;
         {error && <Notice tone="error">{error}</Notice>}
         {result && <Notice tone={result.status === "failed" ? "error" : result.status === "imported" ? "success" : "warning"}><strong>{statusText[result.status] ?? result.status}.</strong>{" "}
           {result.status === "imported" ? `${result.indicators ?? 0} seri, ${(result.observations ?? 0).toLocaleString("id-ID")} nilai (${(result.district_observations ?? 0).toLocaleString("id-ID")} nilai kecamatan).` : result.reason ?? ""}</Notice>}
+        {data.mode === "kategori" && <Notice tone="info">Variabel ini berdimensi kategori ({plain(data.region_label ?? "kategori")}), bukan wilayah. Tiap kategori diimpor sebagai seri tingkat kabupaten, sehingga tidak muncul di peta kecamatan.</Notice>}
         {data.readable === false && <Notice tone="warning">Berkas belum dapat dibaca: {data.reason}</Notice>}
         <section><h3>Metadata sumber</h3>
           <div className="detail-grid">
@@ -65,7 +66,7 @@ function ImportPreview({ source, id, title, onClose, onDone }: { source: Source;
             <Fact label="Tahun terbaru" value={data.year_max ? String(data.year_max) : "-"} hint={data.year_count ? `${data.year_count} tahun berisi data` : undefined} />
             <Fact label="Jumlah nilai" value={data.value_count.toLocaleString("id-ID")} />
             <Fact label="Jumlah seri" value={data.series_count.toLocaleString("id-ID")} hint="indikator Bank Data yang dibuat" />
-            <Fact label={data.region_label ? `Wilayah (${plain(data.region_label)})` : "Kecamatan"} value={data.region_count ? `${data.region_count} wilayah` : "Tingkat kabupaten"} />
+            {data.mode === "kategori" ? <Fact label={`Kategori (${plain(data.region_label ?? "kategori")})`} value={`${data.series_count} seri`} hint="tiap kategori menjadi satu seri tingkat kabupaten" /> : <Fact label={data.region_label ? `Wilayah (${plain(data.region_label)})` : "Kecamatan"} value={data.region_count ? `${data.region_count} wilayah` : "Tingkat kabupaten"} />}
           </div>
           {data.years.length > 0 && <p className="muted import-years">Tahun tersedia: {data.years.join(", ")}</p>}
           {data.series_labels.length > 0 && <p className="import-series"><span className="muted">Seri yang dibuat:</span> {data.series_labels.map((label) => <Badge key={label} tone="neutral">{label}</Badge>)}{data.series_count > data.series_labels.length ? ` dan ${data.series_count - data.series_labels.length} lainnya` : ""}</p>}
