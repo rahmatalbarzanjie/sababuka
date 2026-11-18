@@ -54,7 +54,7 @@ test("capaian_target menyajikan status terhadap target tanpa menghitung ulang", 
   assert.deepEqual([result.tercapai, result.belum_tercapai, result.belum_ada_realisasi], [1, 1, 1]);
   assert.deepEqual(result.indikator.map((entry) => entry.nama), ["A"]);
   assert.equal(result.indikator[0]!.selisih, "0,48");
-  assert.match(AGENT_SYSTEM_PROMPT, /belum menyimpan tanggapan atau rencana OPD/);
+  assert.match(AGENT_SYSTEM_PROMPT, /tidak menyimpan tanggapan atau rencana OPD/);
 });
 
 test("angka di luar hasil alat terdeteksi", () => {

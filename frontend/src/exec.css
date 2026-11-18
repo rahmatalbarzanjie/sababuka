@@ -216,7 +216,14 @@ b.good { color: var(--exec-good); } b.bad { color: var(--exec-bad); } b.neutral 
 .achv-table td.good { color: var(--ui-good, #1a7f4b); font-variant-numeric: tabular-nums; }
 .achv-table td.bad { color: var(--ui-bad, #b4501a); font-variant-numeric: tabular-nums; font-weight: 700; }
 .achv-brief { margin-top: 12px; }
-.achv-brief ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.achv-brief ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0; }
+.achv-brief li { padding: 10px 0; border-top: 1px solid var(--ui-rule); line-height: 1.55; }
+.achv-brief li:first-child { border-top: 0; padding-top: 0; }
+/* Pemisah tegas antarindikator: garis tebal tipis, latar selang-seling, nama indikator menonjol */
+.achv-table tbody tr { border-top: 2px solid var(--ui-rule); }
+.achv-table tbody tr:first-child { border-top: 0; }
+.achv-table tbody tr:nth-child(even) td { background: var(--ui-surface-subtle); }
+.achv-table tbody td { padding-top: 14px; padding-bottom: 14px; }
 .achv-done { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .achv-done li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; }
 .achv-done small { display: block; color: var(--ui-muted); font-size: 12px; margin-top: 2px; }

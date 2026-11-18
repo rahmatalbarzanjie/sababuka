@@ -4,7 +4,7 @@ import { api } from "../api";
 import { Badge, EmptyState, ErrorState, PageLoading, useAsync } from "../components";
 import { AchievementSection, type AchievementFilter, type AchievementResponse } from "../components/AchievementSection";
 import { AppLink } from "../components/AppLink";
-import { DistrictMap, normalizeName, useKapuasGeography } from "../components/DistrictMap";
+import { DistrictMap, normalizeName, shade, useKapuasGeography } from "../components/DistrictMap";
 import { DistrictSummaryPanel } from "../components/DistrictSummaryPanel";
 import { InlineLegend } from "../components/InlineLegend";
 import { Tabs } from "../components/Tabs";
@@ -147,18 +147,19 @@ function DistrictPanel({ insights }: { insights: Insight[] }) {
   const top = ranked[0]; const bottom = ranked[ranked.length - 1];
   const detail = district ? ranked.find((item) => normalizeName(item.name) === normalizeName(district)) : null;
   const maxValue = top?.value || 1;
+  const minValue = bottom?.value ?? 0; const span = maxValue - minValue || 1;
   return <div className="district-embedded">
     <header className="card-head"><div><h3 id="sebaran">Sebaran satu indikator</h3><p>Nilai terbaru ({current.district_latest.year}) menurut kecamatan. Warna lebih tua berarti nilai lebih tinggi.</p></div>
       <label className="select-inline"><span className="sr-only">Pilih indikator</span><select value={current.indicator_id} onChange={(event) => { setChosen(event.target.value); setDistrict(null); }}>{options.map((item) => <option key={item.indicator_id} value={item.indicator_id}>{plain(item.name)}</option>)}</select></label>
     </header>
-    <div className="district-layout">
-      <div>{geography.data ? <DistrictMap geography={geography.data} items={current.district_latest.items} unit={current.unit} selected={district} onSelect={setDistrict} /> : <p className="muted">{geography.error ? "Peta wilayah belum tersedia." : "Memuat peta…"}</p>}</div>
-      <div className="district-rank">
+    <div className="district-split">
+      <div className="district-map-col">{geography.data ? <DistrictMap geography={geography.data} items={current.district_latest.items} unit={current.unit} selected={district} onSelect={setDistrict} /> : <p className="muted">{geography.error ? "Peta wilayah belum tersedia." : "Memuat peta…"}</p>}</div>
+      <div className="district-pane district-rank">
         {detail ? <p className="district-callout"><strong>{detail.name}</strong>: {num(detail.value)} {current.unit}{detail.previous !== null && detail.previous !== 0 ? ` (${pct(((detail.value - detail.previous) / Math.abs(detail.previous)) * 100)} dari periode sebelumnya)` : ""}</p>
           : <p className="district-callout">Tertinggi <strong>{top?.name}</strong> ({num(top?.value ?? 0)}), terendah <strong>{bottom?.name}</strong> ({num(bottom?.value ?? 0)}) {current.unit}.</p>}
         <ol>{ranked.map((item) => <li key={plain(item.name)} className={district && normalizeName(district) === normalizeName(item.name) ? "active" : undefined}>
           <button type="button" onClick={() => setDistrict(district && normalizeName(district) === normalizeName(item.name) ? null : item.name)}>
-            <span>{plain(item.name)}</span><span className="rank-bar" role="presentation"><i style={{ width: `${Math.max(3, (item.value / maxValue) * 100)}%` }} /></span><b>{num(item.value)}</b>
+            <i className="rank-dot" style={{ background: shade((item.value - minValue) / span) }} aria-hidden /><span>{plain(item.name)}</span><span className="rank-bar" role="presentation"><i style={{ width: `${Math.max(3, (item.value / maxValue) * 100)}%` }} /></span><b>{num(item.value)}</b>
           </button></li>)}</ol>
       </div>
     </div>
