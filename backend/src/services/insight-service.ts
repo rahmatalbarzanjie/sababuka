@@ -42,6 +42,13 @@ export class InsightService {
   }
 
   async insights(query: InsightQuery) {
+    // Tautan Seri Data dimuat lebih dulu: seri tertaut ikut dihitung walau datanya kurang dari 3 tahun, dan saat satu indikator
+    // diminta (halaman detail) seri tertautnya ikut dimuat agar tampil sebagai data pendukung.
+    const linkRows = await this.db.query<QueryResultRow & { rpjmd_id: string; series_id: string; relation_type: LinkedSeries["relation"]; notes: string | null }>(
+      `SELECT rpjmd_indicator_id::text AS rpjmd_id, series_indicator_id::text AS series_id, relation_type, notes FROM sababuka.indicator_series_links ORDER BY relation_type, created_at`,
+    );
+    const linkedIds = new Set(linkRows.rows.map((link) => link.series_id));
+    const wanted = query.indicatorId ? [query.indicatorId, ...linkRows.rows.filter((link) => link.rpjmd_id === query.indicatorId).map((link) => link.series_id)] : null;
     const rows = await this.db.query<ObservationRow>(
       `SELECT i.id::text AS indicator_id, i.code, i.name, i.origin_type, c.name AS category_name, iv.direction,
               u.symbol AS unit_symbol, u.name AS unit_name, o.source_name, o.source_url, g.level AS geo_level, g.name AS geo_name,
@@ -55,11 +62,11 @@ export class InsightService {
        JOIN sababuka.units u ON u.id = iv.unit_id
        LEFT JOIN sababuka.geographies g ON g.id = o.geography_id
        WHERE o.numeric_value IS NOT NULL AND o.quality_status IN ('valid', 'warning')
-         AND ($1::uuid IS NULL OR i.id = $1::uuid)
+         AND ($1::uuid[] IS NULL OR i.id = ANY($1::uuid[]))
          AND EXISTS (SELECT 1 FROM sababuka.publication_items pi JOIN sababuka.publications pub ON pub.id = pi.publication_id AND pub.status = 'active' WHERE pi.observation_id = o.id)
          AND NOT EXISTS (SELECT 1 FROM sababuka.observation_publication_blocks nb WHERE nb.observation_id = o.id AND nb.reason = 'not_chosen')
        ORDER BY i.id, p.code`,
-      [query.indicatorId ?? null],
+      [wanted],
     );
     const opdRows = await this.db.query<QueryResultRow & { indicator_id: string; label: string; is_primary: boolean }>(
       `SELECT r.indicator_id::text, COALESCE(o.short_name, o.name) AS label, r.is_primary
@@ -80,6 +87,7 @@ export class InsightService {
     for (const row of rows.rows) groups.set(row.indicator_id, [...(groups.get(row.indicator_id) ?? []), row]);
 
     const insights: Insight[] = [];
+    const linkOnly = new Set<string>();
     for (const [indicatorId, items] of groups) {
       const first = items[0]!;
       const unit = first.unit_symbol || first.unit_name || "";
@@ -105,7 +113,10 @@ export class InsightService {
       const measured = analyzeSeries(points, direction);
       // Seri konteks (Bank Data) tetap ketat; indikator kinerja dengan data kurang dari 3 tahun tetap ditampilkan tanpa penilaian.
       const limited = !measured || measured.years < 3;
-      if (limited && first.origin_type === "bank_data" && !query.indicatorId) continue;
+      if (limited && first.origin_type === "bank_data" && !query.indicatorId) {
+        if (!linkedIds.has(indicatorId)) continue;
+        linkOnly.add(indicatorId);
+      }
       const ordered = [...points].sort((a, b) => a.year - b.year);
       const lastPoint = ordered[ordered.length - 1];
       if (!lastPoint) continue;
@@ -138,16 +149,14 @@ export class InsightService {
 
     // Tautan manual Seri Data ke indikator RPJMD: seri yang dapat dianalisis dilampirkan sebagai data pendukung/pembanding.
     const byId = new Map(insights.map((item) => [item.indicator_id, item]));
-    const linkRows = await this.db.query<QueryResultRow & { rpjmd_id: string; series_id: string; relation_type: LinkedSeries["relation"]; notes: string | null }>(
-      `SELECT rpjmd_indicator_id::text AS rpjmd_id, series_indicator_id::text AS series_id, relation_type, notes FROM sababuka.indicator_series_links ORDER BY relation_type, created_at`,
-    );
     for (const link of linkRows.rows) {
       const owner = byId.get(link.rpjmd_id); const series = byId.get(link.series_id);
       if (!owner || !series) continue;
       owner.links.push({ relation: link.relation_type, notes: link.notes ? plainDash(link.notes) : null, indicator_id: series.indicator_id, name: series.name, unit: series.unit, latest_year: series.latest_year, latest_value: series.latest_value, change_pct: series.change_pct, trend: series.trend, source_label: series.source_label });
     }
 
-    const scoped = query.layer ? insights.filter((item) => item.layer === query.layer) : insights;
+    const visible = insights.filter((item) => !linkOnly.has(item.indicator_id) && (!query.indicatorId || item.indicator_id === query.indicatorId));
+    const scoped = query.layer ? visible.filter((item) => item.layer === query.layer) : visible;
     const needle = query.q?.trim().toLowerCase();
     const filtered = scoped
       .filter((item) => !query.source || item.source_kind === query.source)
@@ -157,7 +166,7 @@ export class InsightService {
     return {
       generated_at: new Date().toISOString(),
       analyzed: scoped.length,
-      context: { series: insights.filter((item) => item.layer === "konteks").length, linked: insights.filter((item) => item.layer === "kinerja" && item.links.length > 0).length },
+      context: { series: visible.filter((item) => item.layer === "konteks").length, linked: visible.filter((item) => item.layer === "kinerja" && item.links.length > 0).length },
       summary: {
         membaik: scoped.filter((item) => item.assessment === "membaik").length,
         memburuk: scoped.filter((item) => item.assessment === "memburuk").length,

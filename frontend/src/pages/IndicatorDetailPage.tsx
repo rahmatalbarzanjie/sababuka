@@ -1,6 +1,7 @@
 import { ArrowLeft, ExternalLink, MessageCircle } from "lucide-react";
 import { api } from "../api";
 import { AppLink } from "../components/AppLink";
+import { LinkedSeries } from "../components/LinkedSeries";
 import { Badge, EmptyState, ErrorState, PageLoading, useAsync } from "../components";
 import { DistrictBars, TrendChart } from "../components/InsightVisuals";
 import { Legend } from "../components/Legend";
@@ -88,7 +89,7 @@ export function IndicatorDetailPage({ id }: { id: string }) {
         <div><dt>Data hingga</dt><dd>{item.latest_year}</dd></div>
         <div><dt>Tautan sumber</dt><dd>{item.source_url ? <a href={item.source_url} target="_blank" rel="noopener noreferrer">Buka sumber asli <ExternalLink aria-hidden /></a> : "Tautan sumber asli belum tercatat."}</dd></div>
       </dl>
-      {item.links.length > 0 && <div className="spotlight-links"><b>Data pendukung dan pembanding (Bank Data, belum diverifikasi)</b><ul>{item.links.map((link) => <li key={`${link.relation}:${link.indicator_id}`}><Badge tone="neutral">{relationLabel[link.relation]}</Badge><span><AppLink to={indicatorPath(link.indicator_id)}>{plain(link.name)}</AppLink></span><strong>{num(link.latest_value)} {plain(link.unit)}</strong><small>{link.latest_year} · {pct(link.change_pct)}</small></li>)}</ul></div>}
+      <LinkedSeries links={item.links} baseYear={item.latest_year} />
     </section>
 
     <Legend />
