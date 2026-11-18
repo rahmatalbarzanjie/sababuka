@@ -303,6 +303,16 @@ export class AuthService {
     };
   }
 
+  /**
+   * Menerbitkan token CSRF baru untuk sesi yang sedang berjalan. Token hanya diberikan saat login dan disimpan di sessionStorage per tab;
+   * tab baru atau tab yang kehilangan token memanggil ini agar tidak terkunci. Token lama menjadi tidak berlaku.
+   */
+  async rotateCsrfToken(auth: AuthContext): Promise<string> {
+    const csrfToken = randomToken();
+    await this.db.query(`UPDATE sababuka.auth_sessions SET csrf_token_hash = $2 WHERE id = $1 AND revoked_at IS NULL`, [auth.sessionId, hashToken(csrfToken)]);
+    return csrfToken;
+  }
+
   async logout(
     auth: AuthContext,
     request: { requestId: string; ipAddress: string | null; userAgent: string | null },

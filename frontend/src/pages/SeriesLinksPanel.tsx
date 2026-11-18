@@ -1,7 +1,8 @@
 import { Link2, Search, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, jsonBody } from "../api";
-import { Badge, EmptyState, ErrorState, Notice, Spinner, useAsync } from "../components";
+import { Badge, EmptyState, ErrorState, Spinner, useAsync } from "../components";
+import { toast } from "../toast";
 import type { Indicator } from "../types";
 
 interface SeriesLink { id: string; relation_type: string; notes: string | null; rpjmd_indicator_id: string; rpjmd_code: string; rpjmd_name: string; series_indicator_id: string; series_code: string; series_name: string; series_observations: number }
@@ -20,6 +21,7 @@ export function SeriesLinksPanel({ indicators }: { indicators: Indicator[] }) {
   const [searching, setSearching] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  useEffect(() => { if (message) (message.tone === "success" ? toast.success("Tautan diperbarui", message.text) : toast.error("Tindakan gagal", message.text)); }, [message]);
 
   const search = async () => {
     setSearching(true); setMessage(null);
@@ -45,7 +47,7 @@ export function SeriesLinksPanel({ indicators }: { indicators: Indicator[] }) {
 
   return <section className="panel connector-panel" aria-labelledby="series-links-title">
     <header className="panel-heading"><div><h2 id="series-links-title">Tautan Seri Data ke RPJMD</h2><p>Seri Data BPS dan Satu Data berdiri sendiri sebagai bank data. Tautkan ke indikator RPJMD hanya bila memang berkaitan, sebagai data utama, pendukung, atau pembanding. Seri tanpa tautan tetap dipakai untuk tren, peta, dan Tanya Sababuka.</p></div><Link2 aria-hidden /></header>
-    {message && <Notice tone={message.tone}>{message.text}</Notice>}
+
     <div className="form-grid connector-form">
       <label className="field"><span>Indikator RPJMD</span><select value={rpjmdId} onChange={(event) => setRpjmdId(event.target.value)}><option value="">Pilih indikator…</option>{indicators.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
       <label className="field"><span>Jenis hubungan</span><select value={relation} onChange={(event) => setRelation(event.target.value)}><option value="primary">Utama</option><option value="supporting">Pendukung</option><option value="comparison">Pembanding</option></select></label>

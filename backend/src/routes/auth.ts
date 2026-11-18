@@ -91,6 +91,12 @@ export async function authenticationRoutes(app: FastifyInstance): Promise<void> 
     },
   );
 
+  app.post("/auth/csrf", async (request, reply) => {
+    if (!request.auth) throw new ApiError(401, "AUTH_REQUIRED", "Sesi diperlukan.");
+    if (request.headers["x-sababuka-client"] !== "web") throw new ApiError(403, "PERMISSION_DENIED", "Permintaan tidak dikenali.");
+    return reply.send({ csrf_token: await authService(request).rotateCsrfToken(request.auth) });
+  });
+
   app.post("/auth/logout", async (request, reply) => {
     requireCsrf(request);
     await authService(request).logout(request.auth!, requestAuditContext(request));

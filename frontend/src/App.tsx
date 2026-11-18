@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { AuthProvider, useAuth } from "./auth";
 import { LoadingScreen, Notice, PageLoading } from "./components";
 import { AdminLayout, NotFoundPage } from "./layout/AdminLayout";
+import { ToastHost } from "./components/ToastHost";
 import { usePageTitleOverride } from "./pageTitle";
 import { navigate, usePathname } from "./router";
 
@@ -138,6 +139,7 @@ export default function App() {
       <Suspense fallback={<LoadingScreen />}>
         <ProtectedApp />
       </Suspense>
+      <ToastHost />
     </AuthProvider>
   );
 }

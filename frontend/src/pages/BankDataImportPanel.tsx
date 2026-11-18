@@ -1,9 +1,10 @@
 import { Download, Search } from "lucide-react";
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { api } from "../api";
+import { api, ApiClientError } from "../api";
 import { Badge, EmptyState, ErrorState, formatDate, Modal, Notice, Spinner, useAsync } from "../components";
 import { plain } from "../text";
+import { toast } from "../toast";
 
 type Source = "bps" | "satudata";
 interface BpsItem { id: string; title: string; subject: string | null; unit: string | null; description: string }
@@ -20,7 +21,7 @@ interface ImportResult { status: string; reason?: string; indicators?: number; o
 
 const number = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 4 });
 const bytes = (value: number | null | undefined) => value == null ? "-" : value >= 1_048_576 ? `${(value / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(value / 1024))} KB`;
-const titleCase = (value: string) => value.replace(/(^|s)S/gu, (match) => match.toUpperCase());
+const titleCase = (value: string) => value.replace(/(^|\s)\S/gu, (match) => match.toUpperCase());
 const statusText: Record<string, string> = { imported: "Berhasil diimpor", unchanged: "Tidak ada yang berubah", skipped: "Dilewati", failed: "Gagal" };
 
 function Fact({ label, value, hint }: { label: string; value: string; hint?: string }) {
@@ -30,17 +31,21 @@ function Fact({ label, value, hint }: { label: string; value: string; hint?: str
 function ImportPreview({ source, id, title, onClose, onDone }: { source: Source; id: string; title: string; onClose(): void; onDone(): void }) {
   const preview = useAsync(() => api<Preview>(`/connectors/bank-data/${source === "bps" ? "bps" : "satudata"}/${encodeURIComponent(id)}/preview`), [source, id]);
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<ImportResult | null>(null);
-  const [error, setError] = useState("");
   const data = preview.data;
   const run = async () => {
     if (!data) return;
-    setBusy(true); setError("");
+    setBusy(true);
     try {
-      setResult(await api<ImportResult>(`/connectors/bank-data/${source === "bps" ? "bps" : "satudata"}/${encodeURIComponent(id)}/import${data.existing.imported ? "?refresh=true" : ""}`, { method: "POST", mutation: true }));
-      onDone();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Impor gagal."); }
-    finally { setBusy(false); }
+      const result = await api<ImportResult>(`/connectors/bank-data/${source === "bps" ? "bps" : "satudata"}/${encodeURIComponent(id)}/import${data.existing.imported ? "?refresh=true" : ""}`, { method: "POST", mutation: true });
+      if (result.status === "imported") {
+        toast.success("Impor berhasil", `${plain(title)}: ${result.indicators ?? 0} seri, ${(result.observations ?? 0).toLocaleString("id-ID")} nilai (${(result.district_observations ?? 0).toLocaleString("id-ID")} nilai kecamatan).`);
+        onDone(); onClose();
+      } else if (result.status === "failed") toast.error("Impor gagal", `${plain(title)}: ${result.reason ?? "Penyebab tidak diketahui."}`);
+      else toast.warning(statusText[result.status] ?? result.status, `${plain(title)}: ${result.reason ?? "Tidak ada nilai baru untuk diimpor."}`);
+    } catch (cause) {
+      const id2 = cause instanceof ApiClientError ? cause.requestId : undefined;
+      toast.error("Impor gagal", cause instanceof Error ? cause.message : "Impor gagal.", id2 ? `Kode permintaan: ${id2}` : undefined);
+    } finally { setBusy(false); }
   };
   const importable = Boolean(data) && data!.readable !== false && data!.value_count > 0;
   // Dirender ke body agar overlay tidak terpotong oleh panel induk yang memakai transform.
@@ -48,9 +53,6 @@ function ImportPreview({ source, id, title, onClose, onDone }: { source: Source;
     {preview.loading ? <div className="panel-loading"><Spinner /><p className="muted">Membaca metadata dari sumber. Untuk tabel besar ini dapat memakan waktu puluhan detik.</p></div>
       : preview.error || !data ? <ErrorState title="Metadata sumber belum dapat dibaca" onRetry={preview.reload}>{preview.error}</ErrorState>
       : <div className="import-preview">
-        {error && <Notice tone="error">{error}</Notice>}
-        {result && <Notice tone={result.status === "failed" ? "error" : result.status === "imported" ? "success" : "warning"}><strong>{statusText[result.status] ?? result.status}.</strong>{" "}
-          {result.status === "imported" ? `${result.indicators ?? 0} seri, ${(result.observations ?? 0).toLocaleString("id-ID")} nilai (${(result.district_observations ?? 0).toLocaleString("id-ID")} nilai kecamatan).` : result.reason ?? ""}</Notice>}
         {data.mode === "kategori" && <Notice tone="info">Variabel ini berdimensi kategori ({plain(data.region_label ?? "kategori")}), bukan wilayah. Tiap kategori diimpor sebagai seri tingkat kabupaten, sehingga tidak muncul di peta kecamatan.</Notice>}
         {data.readable === false && <Notice tone="warning">Berkas belum dapat dibaca: {data.reason}</Notice>}
         <section><h3>Metadata sumber</h3>
@@ -84,9 +86,9 @@ function ImportPreview({ source, id, title, onClose, onDone }: { source: Source;
         </section>
         {data.note && <section><h3>Catatan sumber</h3><p className="muted">{plain(data.note)}</p></section>}
         {data.sample.length > 0 && <section><h3>Contoh nilai</h3><div className="table-scroll"><table className="all-table"><thead><tr><th>Tahun</th><th>Wilayah</th><th>Seri</th><th>Nilai</th></tr></thead>
-          <tbody>{data.sample.map((row, index) => <tr key={index}><td>{row.year}</td><td>{titleCase(plain(row.region ?? "Kabupaten"))}</td><td>{plain(row.series ?? "-")}</td><td className="num">{typeof row.value === "number" ? number.format(row.value) : row.value ?? "-"}</td></tr>)}</tbody></table></div></section>}
-        <footer className="modal-actions"><button type="button" className="button secondary" onClick={onClose}>{result ? "Tutup" : "Batal"}</button>
-          {!result && <button type="button" className="button primary" disabled={busy || !importable} onClick={() => void run()}><Download aria-hidden />{busy ? "Mengimpor..." : data.existing.imported ? "Perbarui dengan impor ulang" : "Impor sekarang"}</button>}</footer>
+          <tbody>{data.sample.map((row, index) => <tr key={index}><td data-label="Tahun">{row.year}</td><td data-label="Wilayah">{titleCase(plain(row.region ?? "Kabupaten"))}</td><td data-label="Seri">{plain(row.series ?? "-")}</td><td data-label="Nilai" className="num">{typeof row.value === "number" ? number.format(row.value) : row.value ?? "-"}</td></tr>)}</tbody></table></div></section>}
+        <footer className="modal-actions"><button type="button" className="button secondary" onClick={onClose}>Batal</button>
+          <button type="button" className="button primary" disabled={busy || !importable} onClick={() => void run()}><Download aria-hidden />{busy ? "Mengimpor..." : data.existing.imported ? "Perbarui dengan impor ulang" : "Impor sekarang"}</button></footer>
       </div>}
   </Modal>, document.body);
 }
@@ -124,7 +126,6 @@ export function BankDataImportPanel() {
             {sdRows.map((item) => <tr key={item.id}><td><strong>{plain(item.title)}</strong><small>{item.format}</small></td><td>{plain(item.organization)}</td><td>{item.modified ? formatDate(item.modified) : "-"}</td>
               <td><button type="button" className="button secondary" onClick={() => setChosen({ source: "satudata", id: item.id, title: item.title })}>Impor</button></td></tr>)}</tbody></table></div>
           <p className="muted">{sdRows.length} dari {packages.data.data.length} tabel.</p></>)}
-    {doneCount > 0 && <Notice tone="success">{doneCount} impor selesai pada sesi ini. Daftar seri di dashboard diperbarui otomatis.</Notice>}
     {chosen && <ImportPreview source={chosen.source} id={chosen.id} title={chosen.title} onClose={() => setChosen(null)} onDone={() => setDoneCount((count) => count + 1)} />}
   </section>;
 }
