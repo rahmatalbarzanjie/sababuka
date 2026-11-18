@@ -58,3 +58,15 @@ test("ringkasan: indeks perhatian menghitung perhatian dan belum tercapai terhad
   assert.equal(summary.attention_index, 100);
   assert.equal(summarize("X", [none.get("A")!]).attention_index, null);
 });
+
+test("ringkasan memuat indeks unggul dan pertumbuhan dari tren indikator", () => {
+  const up = buildCells({ indicator: meta("increase"), year: 2024, current: current([110, 99, 60, 50, 40, 30, 20, 10]), previous: new Map([["A", 100], ["B", 100], ["C", 100]]) });
+  const summaryA = summarize("A", [up.get("A")!]);
+  assert.equal(summaryA.good_index, 100);
+  assert.equal(summaryA.growth_index, 100);
+  assert.deepEqual(summaryA.trend_counts, { membaik: 1, memburuk: 0, stabil: 0 });
+  const mixed = summarize("C", [up.get("C")!, up.get("B")!]);
+  assert.deepEqual(mixed.trend_counts, { membaik: 0, memburuk: 1, stabil: 1 });
+  assert.equal(mixed.growth_index, -50);
+  assert.equal(summarize("H", [buildCells({ indicator: meta(null), year: 2024, current: current([1, 2, 3, 4, 5, 6, 7, 8]), previous: new Map() }).get("H")!]).growth_index, null);
+});

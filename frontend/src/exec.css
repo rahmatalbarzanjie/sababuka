@@ -1,6 +1,6 @@
 /* Dashboard Eksekutif */
-:root { --exec-good: #15803d; --exec-good-soft: #e3f4ea; --exec-bad: #c2410c; --exec-bad-soft: #fdebdf; --exec-warn: #a16207; --exec-neutral: #94a3b8; }
-html[data-theme="dark"] { --exec-good: #4ade80; --exec-good-soft: #12301f; --exec-bad: #fb923c; --exec-bad-soft: #35200f; --exec-warn: #facc15; --exec-neutral: #64748b; }
+:root { --exec-good: #15803d; --exec-good-soft: #e3f4ea; --exec-bad: #b91c1c; --exec-bad-soft: #fde8e8; --exec-warn: #a16207; --exec-neutral: #94a3b8; }
+html[data-theme="dark"] { --exec-good: #4ade80; --exec-good-soft: #12301f; --exec-bad: #f87171; --exec-bad-soft: #3a1717; --exec-warn: #facc15; --exec-neutral: #64748b; }
 .exec { display: grid; gap: 22px; padding-bottom: 72px; }
 .exec h2, .exec h3 { margin: 0; }
 .exec .muted { color: var(--ui-muted); }
@@ -13,7 +13,7 @@ html[data-theme="dark"] { --exec-good: #4ade80; --exec-good-soft: #12301f; --exe
 .composition-bar i, .sector-bar i { display: block; min-width: 4px; }
 .composition-bar i.good, .composition-legend i.good { background: #4ade80; }
 .composition-bar i.neutral, .composition-legend i.neutral { background: #94a3b8; }
-.composition-bar i.bad, .composition-legend i.bad { background: #fb923c; }
+.composition-bar i.bad, .composition-legend i.bad { background: #f87171; }
 .composition-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: #e3edf8; }
 .composition-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .composition-legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
@@ -81,11 +81,21 @@ b.good { color: var(--exec-good); } b.bad { color: var(--exec-bad); } b.neutral 
 .district-callout { margin: 0 0 10px; padding: 10px 14px; border-radius: 10px; background: var(--ui-active); line-height: 1.5; font-size: 14px; }
 .district-rank ol { list-style: none; margin: 0; padding: 0; display: grid; }
 .district-rank li.active button { background: var(--ui-active); }
-.district-rank button { display: grid; grid-template-columns: minmax(96px, 130px) minmax(0, 1fr) 64px; gap: 10px; align-items: center; width: 100%; padding: 6px 8px; border: 0; border-radius: 8px; background: transparent; color: var(--ui-text); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.district-rank button { display: grid; grid-template-columns: 12px minmax(96px, 130px) minmax(0, 1fr) 64px; gap: 10px; align-items: center; width: 100%; padding: 6px 8px; border: 0; border-radius: 8px; background: transparent; color: var(--ui-text); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
 .district-rank button:hover { background: var(--ui-surface-subtle); }
 .district-rank button b { text-align: right; font-variant-numeric: tabular-nums; }
 .rank-bar { display: block; height: 8px; border-radius: 999px; background: var(--ui-rule); overflow: hidden; }
 .rank-bar i { display: block; height: 100%; border-radius: 999px; background: var(--ui-accent); }
+.district-rank .rank-bar { display: flex; gap: 2px; }
+.district-rank .rank-bar i { flex: none; max-width: 50%; }
+.rank-bar i.bad { background: var(--exec-bad); } .rank-bar i.good { background: var(--exec-good); }
+.rank-dot { width: 12px; height: 12px; border-radius: 50%; display: block; box-shadow: 0 0 0 1px var(--ui-rule); }
+.rank-hint { margin: 8px 0 0; font-size: 12.5px; color: var(--ui-muted); }
+.map-modes { margin: 0 0 8px; }
+.map-scale { display: grid; grid-template-columns: auto minmax(80px, 220px) auto; gap: 10px; align-items: center; justify-content: start; margin-top: 8px; font-size: 12px; color: var(--ui-muted); }
+.scale-bar { display: block; height: 10px; border-radius: 999px; background: linear-gradient(90deg, rgb(200,40,40), rgb(226,232,240), rgb(22,128,61)); box-shadow: 0 0 0 1px var(--ui-rule); }
+.inline-legend { list-style: none; margin: 0 0 4px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ui-muted); }
+.inline-legend li { display: inline-flex; align-items: center; gap: 8px; }
 .exec-footnote { margin: 0; font-size: 12.5px; color: var(--ui-muted); line-height: 1.6; max-width: 100ch; }
 .insight-chart.bad .line { stroke: var(--exec-bad); } .insight-chart.bad .area { fill: var(--exec-bad-soft); } .insight-chart.bad circle { fill: var(--exec-bad); }
 .insight-chart.good .line { stroke: var(--exec-good); } .insight-chart.good .area { fill: var(--exec-good-soft); } .insight-chart.good circle { fill: var(--exec-good); }
@@ -316,7 +326,7 @@ html[data-theme="dark"] .card-head .chip-row .chip.active, html[data-theme="dark
 .district-split { display: grid; grid-template-columns: minmax(280px, .95fr) minmax(340px, 1.05fr); gap: 24px; align-items: start; }
 .district-map-col { position: sticky; top: 16px; min-width: 0; }
 .district-pane { position: sticky; top: 16px; min-width: 0; max-height: calc(100vh - 32px); overflow: auto; padding: 14px 16px; border: 1px solid var(--ui-rule); border-radius: 12px; background: var(--ui-surface); }
-.district-pane .district-rank button { grid-template-columns: minmax(96px, 120px) minmax(0, 1fr) 56px; }
+.district-pane .district-rank button { grid-template-columns: 12px minmax(96px, 120px) minmax(0, 1fr) 56px; }
 .map-caption { margin: 8px 0 0; font-size: 13px; color: var(--ui-muted); }
 .district-howto { margin-top: 6px; font-size: 13px; }
 .district-howto summary { cursor: pointer; color: var(--ui-accent); }

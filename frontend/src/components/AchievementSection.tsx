@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Badge } from "../components";
 import { AppLink } from "./AppLink";
+import { InlineLegend } from "./InlineLegend";
 import { indicatorPath, num } from "../insight";
 import { plain } from "../text";
 
@@ -17,7 +18,7 @@ export interface AchievementResponse {
 }
 
 const statusLabel: Record<AchievementStatus, string> = { tercapai: "Tercapai", belum_tercapai: "Belum tercapai", belum_ada_data: "Belum ada data", tanpa_arah: "Arah belum ditetapkan", tanpa_target: "Target belum ada" };
-const tone = (status: AchievementStatus) => status === "tercapai" ? "success" : status === "belum_tercapai" ? "warning" : "neutral";
+const tone = (status: AchievementStatus) => status === "tercapai" ? "success" : status === "belum_tercapai" ? "danger" : "neutral";
 const order: Record<AchievementStatus, number> = { belum_tercapai: 0, belum_ada_data: 1, tanpa_target: 2, tanpa_arah: 3, tercapai: 4 };
 const signed = (value: number) => `${value > 0 ? "+" : ""}${num(value)}`;
 
@@ -32,7 +33,7 @@ function SectorBlock({ sector, items, open }: { sector: string; items: Achieveme
     ? `${done} dari ${items.length} indikator tercapai. ${behind.length} belum tercapai${worst && worst.latest_value !== null && worst.target_value !== null ? `; selisih terbesar pada ${plain(worst.name)}: ${num(worst.latest_value)} dari target ${num(worst.target_value)} (${worst.latest_year}).` : "."}${missing.length ? ` ${missing.length} belum ada realisasi.` : ""}`
     : `${done} dari ${items.length} indikator tercapai.${missing.length ? ` ${missing.length} belum ada realisasi yang terbit.` : ""}`;
   return <details className="achv-sector" open={open}>
-    <summary><h3>{plain(sector)}</h3><span className="achv-badges">{behind.length > 0 && <Badge tone="warning">{behind.length} belum tercapai</Badge>}{missing.length > 0 && <Badge tone="neutral">{missing.length} belum ada data</Badge>}<Badge tone="success">{done} tercapai</Badge></span></summary>
+    <summary><h3>{plain(sector)}</h3><span className="achv-badges">{behind.length > 0 && <Badge tone="danger">{behind.length} belum tercapai</Badge>}{missing.length > 0 && <Badge tone="neutral">{missing.length} belum ada data</Badge>}<Badge tone="success">{done} tercapai</Badge></span></summary>
     <p className="achv-summary">{summary}</p>
     <div className="table-scroll"><table className="all-table achv-table"><thead><tr><th>Indikator</th><th>Realisasi</th><th>Target</th><th>Selisih</th><th>Status</th></tr></thead><tbody>
       {sorted.map((item) => <tr key={item.indicator_id}>
@@ -89,6 +90,7 @@ export function AchievementSection({ data }: { data: AchievementResponse }) {
       <button type="button" className={`chip${view === "sektor" ? " active" : ""}`} aria-pressed={view === "sektor"} onClick={() => setView("sektor")}>Per sektor</button>
       <button type="button" className={`chip${view === "opd" ? " active" : ""}`} aria-pressed={view === "opd"} onClick={() => setView("opd")}>Per OPD</button>
     </div>
+    <InlineLegend label="Arti warna status" items={[{ tone: "success", name: "Tercapai", text: "realisasi memenuhi target tahun yang sama" }, { tone: "danger", name: "Belum tercapai", text: "realisasi di bawah target, perlu percepatan" }, { tone: "neutral", name: "Belum ada data", text: "realisasi belum diisi atau belum terbit" }]} />
     {view === "sektor" ? (attention.length === 0 ? <p className="muted">Seluruh indikator bertarget sudah tercapai.</p> : <>
       <h3 className="achv-heading">Perlu tindakan ({attention.length} sektor)</h3>
       <div className="achv-list">{(allSectors ? attention : attention.slice(0, 8)).map((group, index) => <SectorBlock key={group.sector} sector={group.sector} items={group.items} open={index === 0} />)}</div>

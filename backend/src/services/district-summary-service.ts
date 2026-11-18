@@ -25,6 +25,11 @@ export interface DistrictSummary {
   counts: Record<DistrictStatus, number>;
   /** Persentase indikator berarah yang berada di kuartil bawah (perhatian) atau belum mencapai target. Null bila tidak ada yang berarah. */
   attention_index: number | null;
+  /** Persentase indikator berarah yang unggul (kuartil atas) atau tercapai. Null bila tidak ada yang berarah. */
+  good_index: number | null;
+  /** Selisih persentase indikator bertren membaik dikurangi memburuk, dari -100 sampai 100. Null bila tidak ada indikator bertren. */
+  growth_index: number | null;
+  trend_counts: { membaik: number; memburuk: number; stabil: number };
 }
 
 interface Row extends QueryResultRow {
@@ -90,7 +95,16 @@ export function summarize(name: string, cells: DistrictCell[]): DistrictSummary 
   for (const cell of cells) counts[cell.status] += 1;
   const judged = counts.tercapai + counts.belum_tercapai + counts.unggul + counts.sedang + counts.perhatian;
   const attention = counts.belum_tercapai + counts.perhatian;
-  return { name, indicators: cells.length, counts, attention_index: judged ? Math.round((attention / judged) * 1000) / 10 : null };
+  const trend_counts = { membaik: 0, memburuk: 0, stabil: 0 };
+  for (const cell of cells) if (cell.trend) trend_counts[cell.trend] += 1;
+  const trended = trend_counts.membaik + trend_counts.memburuk + trend_counts.stabil;
+  const good = counts.tercapai + counts.unggul;
+  return {
+    name, indicators: cells.length, counts, trend_counts,
+    attention_index: judged ? Math.round((attention / judged) * 1000) / 10 : null,
+    good_index: judged ? Math.round((good / judged) * 1000) / 10 : null,
+    growth_index: trended ? Math.round(((trend_counts.membaik - trend_counts.memburuk) / trended) * 1000) / 10 : null,
+  };
 }
 
 let cache: { at: number; value: Map<string, DistrictCell[]> } | null = null;

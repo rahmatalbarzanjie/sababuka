@@ -10,7 +10,7 @@ import { DistrictMap, normalizeName, useKapuasGeography } from "./DistrictMap";
 
 type Status = "tercapai" | "belum_tercapai" | "unggul" | "sedang" | "perhatian" | "tanpa_arah";
 type Trend = "membaik" | "memburuk" | "stabil" | null;
-interface Summary { name: string; indicators: number; counts: Record<Status, number>; attention_index: number | null }
+interface Summary { name: string; indicators: number; counts: Record<Status, number>; attention_index: number | null; good_index: number | null; growth_index: number | null; trend_counts: { membaik: number; memburuk: number; stabil: number } }
 interface ListResponse { generated_at: string; coverage: { indicators: number; with_target: number; by_source: { rpjmd: number; opd: number; bank_data: number } }; districts: Summary[] }
 interface Cell {
   indicator_id: string; name: string; sector: string; unit: string; source_kind: "rpjmd" | "opd" | "bank_data"; year: number; value: number;
@@ -19,9 +19,30 @@ interface Cell {
 interface DetailResponse { summary: Summary; items: Cell[] }
 
 const statusLabel: Record<Status, string> = { tercapai: "Tercapai", belum_tercapai: "Belum tercapai", unggul: "Unggul", sedang: "Sedang", perhatian: "Perlu perhatian", tanpa_arah: "Arah belum ditetapkan" };
-const statusTone = (status: Status) => status === "tercapai" || status === "unggul" ? "success" : status === "belum_tercapai" || status === "perhatian" ? "warning" : "neutral";
+const statusTone = (status: Status) => status === "tercapai" || status === "unggul" ? "success" : status === "belum_tercapai" || status === "perhatian" ? "danger" : "neutral";
 const trendLabel: Record<string, string> = { membaik: "membaik", memburuk: "memburuk", stabil: "stabil" };
 const PAGE = 12;
+
+type MapMode = "kondisi" | "pertumbuhan";
+const RED = [200, 40, 40]; const GREEN = [22, 128, 61]; const NEUTRAL = [226, 232, 240];
+/** Skor -100 sampai 100 menjadi warna: merah (kurang baik), abu terang (seimbang), hijau (baik). */
+function divergingColor(score: number): string {
+  const t = Math.max(-1, Math.min(1, score / 100));
+  const target = t < 0 ? RED : GREEN;
+  const k = Math.min(1, Math.abs(t) * 1.15);
+  const mix = NEUTRAL.map((value, index) => Math.round(value + (target[index]! - value) * k));
+  return `rgb(${mix[0]}, ${mix[1]}, ${mix[2]})`;
+}
+/** Kondisi: persentase indikator unggul dikurangi yang perlu perhatian. Pertumbuhan: indikator membaik dikurangi memburuk. */
+function scoreOf(mode: MapMode, district: Summary): number | null {
+  if (mode === "pertumbuhan") return district.growth_index;
+  if (district.good_index === null && district.attention_index === null) return null;
+  return (district.good_index ?? 0) - (district.attention_index ?? 0);
+}
+const modeText: Record<MapMode, { good: string; bad: string; note: string }> = {
+  kondisi: { bad: "Banyak perlu perhatian", good: "Banyak yang unggul", note: "Merah: banyak indikator berada di seperempat terbawah dari 17 kecamatan atau belum mencapai target. Hijau: banyak indikator di seperempat teratas atau sudah tercapai. Abu: seimbang." },
+  pertumbuhan: { bad: "Banyak memburuk", good: "Banyak membaik", note: "Merah: lebih banyak indikator yang memburuk dibanding periode sebelumnya. Hijau: lebih banyak yang membaik. Hanya indikator yang punya data pembanding yang dihitung; abu tua berarti belum ada." },
+};
 
 function downloadCsv(name: string, items: Cell[]) {
   const cell = (value: unknown) => `"${plain(String(value ?? "")).replace(/"/g, '""')}"`;
@@ -107,6 +128,7 @@ export function DistrictSummaryPanel() {
   const [district, setDistrict] = useState<string | null>(() => { try { return new URLSearchParams(window.location.search).get("kecamatan"); } catch { return null; } });
   const select = (name: string | null) => { setDistrict(name); writeQuery(name); };
   const narrow = useNarrow();
+  const [mode, setMode] = useState<MapMode>("kondisi");
   useEffect(() => {
     if (!district) return undefined;
     const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") { setDistrict(null); writeQuery(null); } };
@@ -117,13 +139,20 @@ export function DistrictSummaryPanel() {
   if (list.error || !list.data) return <ErrorState title="Ringkasan kecamatan belum dapat dimuat" onRetry={list.reload}>{list.error}</ErrorState>;
   const { districts, coverage } = list.data;
   if (!districts.length) return <EmptyState title="Belum ada data per kecamatan yang terbit">Ringkasan akan tampil otomatis begitu ada indikator yang memiliki nilai per kecamatan.</EmptyState>;
-  const mapItems = districts.filter((item) => item.attention_index !== null).map((item) => ({ name: item.name, value: item.attention_index!, previous: null }));
-  const ranked = [...districts].sort((a, b) => (b.attention_index ?? -1) - (a.attention_index ?? -1));
+  const mapItems = districts.flatMap((item) => { const score = scoreOf(mode, item); return score === null ? [] : [{ name: item.name, value: score, previous: null }]; });
+  const ranked = [...districts].sort((a, b) => (scoreOf(mode, a) ?? 999) - (scoreOf(mode, b) ?? 999));
+  const withoutData = districts.length - mapItems.length;
   const active = district ? districts.find((item) => normalizeName(item.name) === normalizeName(district)) ?? null : null;
   return <div className={`district-split${active ? " has-selection" : ""}`}>
     <div className="district-map-col">
-      {geography.data ? <DistrictMap geography={geography.data} items={mapItems} unit="% perlu perhatian" selected={active?.name ?? null} onSelect={select} /> : <p className="muted">{geography.error ? "Peta wilayah belum tersedia." : "Memuat peta..."}</p>}
-      <p className="map-caption">Warna lebih tua berarti lebih banyak indikator yang perlu perhatian.</p>
+      <div className="dd-chips map-modes" role="group" aria-label="Dasar warna peta">
+        <button type="button" className={`chip${mode === "kondisi" ? " active" : ""}`} aria-pressed={mode === "kondisi"} onClick={() => setMode("kondisi")}>Kondisi</button>
+        <button type="button" className={`chip${mode === "pertumbuhan" ? " active" : ""}`} aria-pressed={mode === "pertumbuhan"} onClick={() => setMode("pertumbuhan")}>Pertumbuhan</button>
+      </div>
+      {geography.data ? <DistrictMap geography={geography.data} items={mapItems} unit="skor" selected={active?.name ?? null} onSelect={select} colorOf={divergingColor}
+        valueText={(value) => `${value < -5 ? modeText[mode].bad.toLowerCase() : value > 5 ? modeText[mode].good.toLowerCase() : "seimbang"} (skor ${value > 0 ? "+" : ""}${Math.round(value)})`}
+        legend={<figcaption className="map-scale"><span>{modeText[mode].bad}</span><i className="scale-bar" aria-hidden /><span>{modeText[mode].good}</span></figcaption>} /> : <p className="muted">{geography.error ? "Peta wilayah belum tersedia." : "Memuat peta..."}</p>}
+      <p className="map-caption">{modeText[mode].note}{withoutData > 0 ? ` ${withoutData} dari ${districts.length} kecamatan belum punya data untuk dasar warna ini.` : ""}</p>
       <details className="district-howto"><summary>Cara membaca peta</summary>
         <p>Indeks perhatian adalah persentase indikator kecamatan yang berada di seperempat terbawah dari 17 kecamatan, atau belum mencapai target bila ada target kecamatan. {coverage.with_target > 0 ? `${coverage.with_target} indikator sudah memiliki target kecamatan.` : "Belum ada target tingkat kecamatan, jadi statusnya berupa posisi relatif."} Sumber Bank Data belum diverifikasi OPD.</p></details>
     </div>
@@ -134,9 +163,15 @@ export function DistrictSummaryPanel() {
         : <div className="district-rank">
           <p className="district-callout">Klik kecamatan pada peta atau daftar untuk melihat status seluruh indikatornya.</p>
           <ol>{ranked.map((item) => <li key={item.name}>
-            <button type="button" onClick={() => select(item.name)}>
-              <span>{plain(item.name)}</span><span className="rank-bar" role="presentation"><i style={{ width: `${Math.max(3, item.attention_index ?? 0)}%` }} /></span><b>{item.attention_index === null ? "-" : `${item.attention_index.toLocaleString("id-ID")}%`}</b>
-            </button></li>)}</ol>
+            {(() => { const score = scoreOf(mode, item); return <button type="button" onClick={() => select(item.name)}>
+              <i className="rank-dot" style={{ background: score === null ? "var(--ui-rule)" : divergingColor(score) }} aria-hidden />
+              <span>{plain(item.name)}</span>
+              <span className="rank-bar" role="presentation">{mode === "kondisi"
+                ? <><i className="bad" style={{ width: `${item.attention_index ?? 0}%` }} /><i className="good" style={{ width: `${item.good_index ?? 0}%` }} /></>
+                : score !== null && <i className={score >= 0 ? "good" : "bad"} style={{ width: `${Math.max(3, Math.abs(score))}%` }} />}</span>
+              <b>{mode === "kondisi" ? (item.attention_index === null ? "-" : `${item.attention_index.toLocaleString("id-ID")}%`) : score === null ? "-" : `${score > 0 ? "+" : ""}${Math.round(score)}%`}</b>
+            </button>; })()}</li>)}</ol>
+          <p className="rank-hint">{mode === "kondisi" ? "Bilah: merah = perlu perhatian, hijau = unggul. Angka: persentase perlu perhatian." : "Angka: selisih persentase indikator membaik dan memburuk."}</p>
         </div>}
     </aside>
   </div>;
