@@ -44,7 +44,7 @@ test("akses dan menu lintas role mengikuti permission serta scope", { skip: !dat
     assert.equal(forbiddenCategory.statusCode, 403, forbiddenCategory.body);
 
     const bapperida = await login("bapperida"); const bappMenu = await menuCodes(bapperida.cookie);
-    assert.deepEqual([...bappMenu].sort(), ["analysis", "assistant", "audit", "connectors", "consolidation", "governance", "operations", "publications", "reviews"]);
+    assert.deepEqual([...bappMenu].sort(), ["assistant", "audit", "connectors", "consolidation", "governance", "operations", "publications", "reviews"]);
     const bappMe = await app.inject({ method: "GET", url: "/api/v1/me", headers: { cookie: bapperida.cookie } });
     assert.equal(bappMe.statusCode, 200, bappMe.body);
     assert.ok(!bappMe.json().permissions.includes("indicator.submit"));

@@ -28,7 +28,6 @@ const OperationsPage = lazy(() => import("./pages/OperationsPage").then((module)
 const ConsolidationPage = lazy(() => import("./pages/ConsolidationPage").then((module) => ({ default: module.ConsolidationPage })));
 const ConnectorsPage = lazy(() => import("./pages/ConnectorsPage").then((module) => ({ default: module.ConnectorsPage })));
 const DatasetPage = lazy(() => import("./pages/DatasetPage").then((module) => ({ default: module.DatasetPage })));
-const AnalysisPage = lazy(() => import("./pages/DecisionPages").then((module) => ({ default: module.AnalysisPage })));
 const BankDataPage = lazy(() => import("./pages/BankDataPage").then((module) => ({ default: module.BankDataPage })));
 const IndicatorDetailPage = lazy(() => import("./pages/IndicatorDetailPage").then((module) => ({ default: module.IndicatorDetailPage })));
 const BerandaPage = lazy(() => import("./pages/BerandaPage").then((module) => ({ default: module.BerandaPage })));
@@ -41,7 +40,6 @@ const pageMeta: Record<string, { title: string; subtitle: string; permission?: s
   "/dashboard/bank-data": { title: "Bank Data Kapuas", subtitle: "Seluruh seri BPS dan Satu Data yang tersimpan, dapat dicari, ditelusuri, dan diunduh.", permission: "executive_dashboard.view" },
   "/dashboard/indikator": { title: "Detail Indikator", subtitle: "Grafik, tabulasi data, analisis, tindak lanjut, dan sumber satu indikator.", permission: "executive_dashboard.view" },
   "/assistant": { title: "Tanya Sababuka", subtitle: "Tanyakan data, tren, dan tindak lanjut; jawaban dihitung dari data resmi.", permission: "assistant.use" },
-  "/analysis": { title: "Analisis Indikator", subtitle: "Baca tren, konsistensi sumber, dan rekomendasi keputusan per indikator. Peta kecamatan ada di Dashboard Eksekutif.", permission: "executive_dashboard.view" },
   "/notifications": { title: "Notifikasi", subtitle: "Pembaruan kategori, indikator, verifikasi OPD, pengiriman, dan publikasi." },
   "/audit": { title: "Audit Aktivitas", subtitle: "Jejak perubahan permanen sesuai lingkup organisasi.", permission: "audit.view" },
   "/operations": { title: "Beranda Tugas", subtitle: "Lihat pekerjaan yang perlu diselesaikan sesuai peran dan kewenangan Anda.", permission: "submission.view" },
@@ -69,6 +67,7 @@ function ProtectedApp() {
   const pathname = usePathname();
   const titleOverride = usePageTitleOverride();
   useEffect(() => {
+    if (!loading && user && pathname === "/analysis") navigate("/dashboard");
     if (!loading && !user && !["/login", "/activate", "/register"].includes(pathname)) navigate("/login");
     if (!loading && user?.must_change_password && pathname !== "/security/setup") navigate("/security/setup");
     if (!loading && user && ["/", "/login", "/register", "/design-lab/fresh"].includes(pathname)) {
@@ -117,7 +116,6 @@ function ProtectedApp() {
   else if (pathname === "/dashboard") content = <BerandaPage />;
   else if (pathname === "/publications") content = <PublicationsPage />;
   else if (pathname === "/assistant") content = <AssistantPage />;
-  else if (pathname === "/analysis") content = <AnalysisPage />;
   else if (pathname === "/notifications") content = <NotificationsPage />;
   else if (pathname === "/audit") content = <AuditPage />;
   else if (pathname === "/operations") content = <OperationsPage />;
