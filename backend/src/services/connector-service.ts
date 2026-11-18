@@ -1099,6 +1099,67 @@ export class ConnectorService {
     return { data: packages };
   }
 
+  /** Ringkasan seri Bank Data yang sudah ada di sistem untuk satu variabel atau paket sumber (awalan kode indikator). */
+  private async existingBankSeries(codePattern: string) {
+    const result = await this.db.query<{ series: number; observations: number; year_min: string | null; year_max: string | null; district_series: number }>(
+      `SELECT count(DISTINCT i.id)::int AS series, count(ob.id)::int AS observations, min(p.code) AS year_min, max(p.code) AS year_max,
+              count(DISTINCT i.id) FILTER (WHERE g.level = 'district')::int AS district_series
+       FROM sababuka.indicators i
+       JOIN sababuka.indicator_versions iv ON iv.indicator_id = i.id
+       LEFT JOIN sababuka.observations ob ON ob.indicator_version_id = iv.id
+       LEFT JOIN sababuka.periods p ON p.id = ob.period_id AND p.code ~ '^[0-9]{4}$'
+       LEFT JOIN sababuka.geographies g ON g.id = ob.geography_id
+       WHERE i.origin_type = 'bank_data' AND i.code LIKE $1 ESCAPE '!'`, [codePattern]);
+    const row = result.rows[0]!;
+    return { imported: row.series > 0, series: row.series, observations: row.observations, year_min: row.year_min ? Number(row.year_min) : null, year_max: row.year_max ? Number(row.year_max) : null, district_series: row.district_series };
+  }
+
+  /** Pratinjau sebelum impor variabel BPS: metadata lengkap, cakupan tahun dan wilayah, serta perbandingan dengan isi sistem. Hanya membaca. */
+  async previewBankVariable(variableId: string) {
+    const detail = await this.getBpsVariable(variableId);
+    const existing = await this.existingBankSeries(`BPS!_${variableId}!_%`);
+    const kapuas = findKapuasOption(detail.vervars);
+    const regions = detail.vervars.filter((option) => option.val !== kapuas?.val);
+    const years = detail.years;
+    return {
+      source: "BPS", id: variableId, title: plainDash(detail.variable.title), subject: detail.variable.subject ? plainDash(detail.variable.subject) : null,
+      unit: detail.variable.unit, note: detail.variable.note ? plainDash(detail.variable.note) : null, region_label: detail.vervar_label,
+      years, year_min: years[0] ?? null, year_max: years[years.length - 1] ?? null, year_count: years.length,
+      value_count: detail.row_count, region_count: regions.length, has_regency_total: Boolean(kapuas),
+      series_count: Math.max(1, detail.turvars.length), series_labels: detail.turvars.slice(0, 12).map((option) => plainDash(option.label)),
+      existing,
+      newer_than_system: existing.year_max !== null && years.length > 0 && years[years.length - 1]! > existing.year_max,
+      sample: detail.rows.slice(0, 8).map((row) => ({ year: row.tahun, region: row.vervar_label, series: row.turvar_label, value: row.nilai, unit: row.satuan })),
+    };
+  }
+
+  /** Pratinjau sebelum impor tabel Satu Data: mengunduh dan membaca berkasnya tanpa menyimpan apa pun. */
+  async previewSatuDataPackage(packageId: string) {
+    const shown = await (await fetch(`https://satudata.kapuaskab.go.id/api/3/action/package_show?id=${encodeURIComponent(packageId)}`, { signal: AbortSignal.timeout(30_000) })).json() as {
+      success: boolean; result?: { id: string; name: string; title: string; notes?: string | null; metadata_modified?: string | null; organization?: { title: string } | null; resources: Array<{ name?: string; format: string; url: string; size?: number | null }> };
+    };
+    const pkg = shown.result;
+    if (!shown.success || !pkg) throw new ApiError(404, "NOT_FOUND", "Paket Satu Data tidak ditemukan.");
+    const resource = pkg.resources.find((candidate) => /^xlsx$/iu.test(candidate.format));
+    const existing = await this.existingBankSeries(`SD!_${pkg.id.replace(/[^A-Za-z0-9]/gu, "").slice(0, 8).toUpperCase()}!_%`);
+    const base = { source: "SATUDATA", id: pkg.id, title: plainDash(pkg.title), organization: pkg.organization?.title ? plainDash(pkg.organization.title) : null, note: pkg.notes ? plainDash(pkg.notes).slice(0, 400) : null,
+      modified: pkg.metadata_modified ?? null, page_url: `https://satudata.kapuaskab.go.id/dataset/${pkg.name}`, file_name: resource?.name ?? null, file_format: resource?.format ?? null, existing };
+    const empty = { years: [] as number[], year_min: null as number | null, year_max: null as number | null, year_count: 0, series_count: 0, series_labels: [] as string[], region_count: 0, value_count: 0, newer_than_system: false, sample: [] as Array<{ year: number; region: string | null; series: string; value: number }> };
+    if (!resource) return { ...base, ...empty, readable: false, reason: "Tidak ada berkas XLSX (format XLS lama belum didukung).", file_size: null as number | null };
+    const response = await fetch(resource.url, { signal: AbortSignal.timeout(60_000) });
+    if (!response.ok) return { ...base, ...empty, readable: false, reason: `Berkas tidak dapat diunduh (HTTP ${response.status}).`, file_size: null as number | null };
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const table = await parseKecamatanTable(buffer, pkg.title);
+    if (!table.metrics.length) return { ...base, ...empty, readable: false, reason: table.skipped ?? "Tidak ada kolom angka per kecamatan yang dapat dibaca.", file_size: buffer.length };
+    const years = [...new Set(table.metrics.flatMap((metric) => metric.points.map((point) => point.year)))].sort((a, b) => a - b);
+    const regions = new Set(table.metrics.flatMap((metric) => metric.points.map((point) => point.district).filter((name): name is string => Boolean(name))));
+    return { ...base, readable: true, reason: null as string | null, file_size: buffer.length as number | null, years, year_min: years[0] ?? null, year_max: years[years.length - 1] ?? null, year_count: years.length,
+      series_count: table.metrics.length, series_labels: table.metrics.slice(0, 12).map((metric) => plainDash(metric.label)), region_count: regions.size,
+      value_count: table.metrics.reduce((sum, metric) => sum + metric.points.length, 0),
+      newer_than_system: existing.year_max !== null && years.length > 0 && years[years.length - 1]! > existing.year_max,
+      sample: table.metrics.flatMap((metric) => metric.points.slice(0, 2).map((point) => ({ year: point.year, region: point.district, series: metric.label, value: point.value }))).slice(0, 8) };
+  }
+
   /** Bank Data dari Satu Data: tabel Excel per kecamatan menjadi indikator berlabel "belum diverifikasi" lalu diterbitkan. */
   async importSatuDataPackage(auth: AuthContext, packageId: string, audit: AuditContext, refresh = false) {
     try { return await this.importSatuDataPackageInner(auth, packageId, audit, refresh); }
