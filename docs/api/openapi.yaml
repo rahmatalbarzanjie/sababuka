@@ -759,7 +759,7 @@ paths:
       operationId: transitionIndicatorVersion
       summary: Menjalankan transisi versi indikator
       description: |
-        Aksi `submit`, `approve`, `activate`, atau `retire`. Permission dan status
+        Aksi `submit`, `approve`, `verify`, `activate`, `retire`, atau `return`. `return` (BAPPERIDA, izin `indicator.approve`) hanya dari status `in_review`: indikator kembali ke `draft` dengan `notes` wajib (min. 10 karakter), alasan ditampilkan ke pengaju dan dikirim sebagai notifikasi. Permission dan status
         asal diperiksa sesuai dokumen workflow MVP v1.
       parameters:
         - $ref: "#/components/parameters/VersionId"
@@ -768,7 +768,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [submit, approve, activate, retire]
+            enum: [submit, approve, verify, activate, retire, return]
         - $ref: "#/components/parameters/CsrfToken"
       requestBody:
         content:

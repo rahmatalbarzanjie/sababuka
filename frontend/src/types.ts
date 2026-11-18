@@ -181,6 +181,8 @@ export interface IndicatorTarget {
 
 export interface Indicator {
   id: string;
+  /** Alasan pengembalian terbaru dari BAPPERIDA bila status draf akibat dikembalikan. */
+  return_notes?: string | null;
   code: string;
   kodref_ip: string | null;
   name: string;

@@ -29,7 +29,7 @@ function isDeveloperActor(auth: AuthContext): boolean {
     || auth.user.roles.some((role) => role.code === "superadmin" && role.scope_type === "global");
 }
 
-export type IndicatorTransitionAction = "submit" | "approve" | "verify" | "activate" | "retire";
+export type IndicatorTransitionAction = "submit" | "approve" | "verify" | "activate" | "retire" | "return";
 
 export function buildAutoPublicationNumber(publicationKey: string, versionNumber: number): string {
   return `${publicationKey}-${versionNumber.toString().padStart(3, "0")}`;
@@ -408,6 +408,8 @@ export class GovernanceService {
               iv.id::text AS version_id, iv.version_number, iv.definition, iv.formula,
               iv.frequency, iv.data_type, iv.direction, iv.source_reference,
               iv.access_level, iv.effective_from::text, iv.status,
+              (SELECT wa.notes FROM sababuka.workflow_actions wa WHERE wa.entity_type = 'indicator_version' AND wa.entity_id = iv.id AND wa.action = 'return'
+                ORDER BY wa.created_at DESC LIMIT 1) AS return_notes,
               u.id::text AS unit_id, u.name AS unit_name, u.symbol AS unit_symbol,
               COALESCE(orgs.items, '[]'::json) AS organizations,
               COALESCE(targets.items, '[]'::json) AS targets,
@@ -713,6 +715,7 @@ export class GovernanceService {
     versionId: string,
     action: IndicatorTransitionAction,
     audit: AuditContext,
+    notes: string | null = null,
   ) {
     const transitions = {
       submit: { from: "draft", to: "in_review" },
@@ -720,8 +723,13 @@ export class GovernanceService {
       verify: { from: "opd_verification", to: "approved" },
       activate: { from: "approved", to: "active" },
       retire: { from: "active", to: "retired" },
+      // Dikembalikan ke pengaju dengan alasan (keputusan pemilik, 18 Nov 2026): pengaju memperbaiki lalu mengajukan ulang.
+      return: { from: "in_review", to: "draft" },
     } as const;
     const transition = transitions[action];
+    if (action === "return" && (notes?.trim().length ?? 0) < 10) {
+      throw new ApiError(400, "VALIDATION_ERROR", "Alasan pengembalian wajib diisi, minimal 10 karakter.");
+    }
     const client = await this.db.connect();
     try {
       await client.query("BEGIN");
@@ -814,11 +822,24 @@ export class GovernanceService {
       );
       await recordAudit(client, {
         ...audit, eventType: `indicator.${action}`, entityType: "indicator_version", entityId: versionId,
-        beforeData: { status: transition.from }, afterData: result.rows[0]!,
+        beforeData: { status: transition.from }, afterData: result.rows[0]!, ...(action === "return" ? { metadata: { notes: notes!.trim() } } : {}),
       });
+      if (action === "return") {
+        await client.query(
+          `INSERT INTO sababuka.workflow_actions (entity_type, entity_id, action, from_status, to_status, actor_id, actor_role_code, notes, request_id)
+           VALUES ('indicator_version', $1, 'return', 'in_review', 'draft', $2, $3, $4, $5)`,
+          [versionId, auth.user.id, auth.user.roles[0]?.code ?? "unknown", notes!.trim(), audit.requestId]);
+      }
       const indicator = current.rows[0]!;
       const indicatorEntity = { entityType: "indicator_version", entityId: versionId };
-      if (action === "submit") {
+      if (action === "return") {
+        if (indicator.owner_organization_id) {
+          await notifyOrganization(client, indicator.owner_organization_id, {
+            ...indicatorEntity, type: "indicator.returned", title: "Usulan indikator dikembalikan",
+            message: `Usulan ${indicator.indicator_name} dikembalikan BAPPERIDA. Alasan: ${notes!.trim()}`,
+          }, auth.user.id);
+        }
+      } else if (action === "submit") {
         await notifyRole(client, "bapperida", {
           ...indicatorEntity, type: "indicator.submitted", title: "Indikator menunggu review BAPPERIDA",
           message: `Indikator ${indicator.indicator_name} diajukan untuk ditinjau.`,
