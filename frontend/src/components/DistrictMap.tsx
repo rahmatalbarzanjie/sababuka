@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 interface GeoFeature { type: "Feature"; properties: Record<string, unknown>; geometry: { type: "Polygon" | "MultiPolygon"; coordinates: number[][][] | number[][][][] } }
 interface GeoCollection { type: "FeatureCollection"; features: GeoFeature[] }
@@ -38,7 +38,7 @@ export function useKapuasGeography() {
 }
 
 /** Peta kecamatan berwarna menurut nilai terbaru sebuah indikator; klik/fokus memilih kecamatan. */
-export function DistrictMap({ geography, items, unit, selected, onSelect }: { geography: GeoCollection; items: DistrictValue[]; unit: string; selected: string | null; onSelect(name: string | null): void }) {
+export function DistrictMap({ geography, items, unit, selected, onSelect, colorOf, legend, valueText }: { geography: GeoCollection; items: DistrictValue[]; unit: string; selected: string | null; onSelect(name: string | null): void; /** Warna sendiri per nilai (mis. merah ke hijau). Tanpa ini peta berwarna biru berurutan. */ colorOf?(value: number): string; /** Legenda sendiri; tanpa ini tampil skala nilai terendah ke tertinggi. */ legend?: ReactNode; valueText?(value: number): string }) {
   const shape = useMemo(() => {
     const all = geography.features.flatMap(rings).flat();
     const xs = all.map((point) => point[0]!); const ys = all.map((point) => point[1]!);
@@ -58,12 +58,12 @@ export function DistrictMap({ geography, items, unit, selected, onSelect }: { ge
       {shape.paths.map((path, index) => {
         const item = byName.get(normalizeName(path.name));
         const active = selected !== null && normalizeName(selected) === normalizeName(path.name);
-        return <path key={`${path.name}-${index}`} d={path.d} fill={item ? shade((item.value - min) / span) : "var(--ui-rule)"} className={active ? "active" : undefined}
-          tabIndex={item ? 0 : -1} role="button" aria-label={item ? `${path.name}: ${fmt(item.value)} ${unit}` : `${path.name}: data belum tersedia`}
+        return <path key={`${path.name}-${index}`} d={path.d} fill={item ? (colorOf ? colorOf(item.value) : shade((item.value - min) / span)) : "var(--ui-rule)"} className={active ? "active" : undefined}
+          tabIndex={item ? 0 : -1} role="button" aria-label={item ? `${path.name}: ${valueText ? valueText(item.value) : `${fmt(item.value)} ${unit}`}` : `${path.name}: data belum tersedia`}
           onClick={() => onSelect(active ? null : path.name)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(active ? null : path.name); } }}>
-          <title>{path.name}: {item ? `${fmt(item.value)} ${unit}` : "belum ada data"}</title></path>;
+          <title>{path.name}: {item ? (valueText ? valueText(item.value) : `${fmt(item.value)} ${unit}`) : "belum ada data"}</title></path>;
       })}
     </svg>
-    <figcaption className="map-legend" aria-hidden="true"><span>{fmt(min)}</span><i /><span>{fmt(max)}</span><small>{unit}</small></figcaption>
+    {legend ?? <figcaption className="map-legend" aria-hidden="true"><span>{fmt(min)}</span><i /><span>{fmt(max)}</span><small>{unit}</small></figcaption>}
   </figure>;
 }

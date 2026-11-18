@@ -5,7 +5,6 @@ import { AppLink } from "../components/AppLink";
 import { DetailTrend } from "../components/DetailTrend";
 import { LinkedSeries } from "../components/LinkedSeries";
 import { Badge, EmptyState, ErrorState, PageLoading, useAsync } from "../components";
-import { Legend, type LegendGroup } from "../components/Legend";
 import { askAbout, askPath, isVerified, num, pct, sector, statusOf, toneOf, type Insight } from "../insight";
 import { setPageTitle } from "../pageTitle";
 import { navigate } from "../router";
@@ -88,13 +87,12 @@ export function IndicatorDetailPage({ id }: { id: string }) {
   const spread = top && bottom && bottom.value > 0 ? top.value / bottom.value : null;
   const hasTrend = item.series.length >= 2;
   const shownRows = allYears ? rows : rows.slice(0, YEAR_ROWS);
-  const legendGroups: LegendGroup[] = verified ? ["target", "status", "source", "chart"] : ["status", "source", "chart"];
   const sections = [hasTrend && ["grafik", "Grafik"], districts.length > 0 && ["kecamatan", "Per kecamatan"], hasTrend && ["data-tahun", "Data per tahun"], ["sumber", "Sumber"]].filter(Boolean) as Array<[string, string]>;
   return <div className="exec indicator-detail">
     {back}
     <div className="detail-head">
       <span className="spotlight-badges">
-        <Badge tone={tone === "good" ? "success" : tone === "bad" ? "warning" : "neutral"}>{statusOf(item)}</Badge>
+        <Badge tone={tone === "good" ? "success" : tone === "bad" ? "danger" : "neutral"}>{statusOf(item)}</Badge>
         {item.analysis.anomaly?.is_anomaly && <Badge tone="warning">Tidak biasa</Badge>}
         <Badge tone={stale ? "warning" : "neutral"}>Data tahun {item.latest_year}</Badge>
         <Badge tone={verified ? "success" : "neutral"}>{verified ? "Terverifikasi" : "Bank Data · belum diverifikasi"}</Badge>
@@ -147,6 +145,5 @@ export function IndicatorDetailPage({ id }: { id: string }) {
       <LinkedSeries links={item.links} baseYear={item.latest_year} />
     </section>
 
-    <Legend groups={legendGroups} folded />
   </div>;
 }

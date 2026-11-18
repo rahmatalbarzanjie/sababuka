@@ -6,7 +6,7 @@ import { AchievementSection, type AchievementResponse } from "../components/Achi
 import { AppLink } from "../components/AppLink";
 import { DistrictMap, normalizeName, useKapuasGeography } from "../components/DistrictMap";
 import { DistrictSummaryPanel } from "../components/DistrictSummaryPanel";
-import { Legend } from "../components/Legend";
+import { InlineLegend } from "../components/InlineLegend";
 import { Tabs } from "../components/Tabs";
 import { LinkedSeries } from "../components/LinkedSeries";
 import { askAbout, askPath, indicatorPath, isVerified, num, pct, sector, statusOf, toneOf, type Assessment, type Insight } from "../insight";
@@ -34,7 +34,7 @@ function Spotlight({ item, rank }: { item: Insight; rank: number }) {
     <header>
       <span className="spotlight-rank" aria-hidden>{rank}</span>
       <div><small>{sector(item.category)}</small><h3><AppLink to={indicatorPath(item.indicator_id)}>{plain(item.name)}</AppLink></h3></div>
-      <span className="spotlight-badges">{a.anomaly?.is_anomaly && <Badge tone="warning">Perubahan tidak biasa</Badge>}<Badge tone={tone === "good" ? "success" : tone === "bad" ? "warning" : "neutral"}><Icon aria-hidden />{pct(item.change_pct)}</Badge></span>
+      <span className="spotlight-badges">{a.anomaly?.is_anomaly && <Badge tone="warning">Perubahan tidak biasa</Badge>}<Badge tone={tone === "good" ? "success" : tone === "bad" ? "danger" : "neutral"}><Icon aria-hidden />{pct(item.change_pct)}</Badge></span>
     </header>
     <div className="spotlight-grid">
       <TrendChart points={item.series} unit={plain(item.unit)} title={item.analysis.years > item.series.length ? `Tren ${item.series.length} tahun terakhir (${item.series[0]?.year ?? ""}-${item.latest_year})` : `Tren ${item.series[0]?.year ?? ""}-${item.latest_year}`} tone={tone} />
@@ -121,13 +121,14 @@ function AllIndicators({ insights }: { insights: Insight[] }) {
       <label className="select-inline"><span className="sr-only">Filter sektor</span><select value={sectorFilter} onChange={(event) => setSectorFilter(event.target.value)}><option value="">Semua sektor</option>{sectors.map((name) => <option key={name} value={name}>{name}</option>)}</select></label>
       <label className="search-field"><Search aria-hidden /><span className="sr-only">Cari indikator</span><input type="search" value={query} placeholder="Cari indikator" onChange={(event) => setQuery(event.target.value)} /></label>
     </div>
+    <InlineLegend label="Arti warna status" items={[{ tone: "success", name: "Membaik", text: "bergerak ke arah yang diinginkan" }, { tone: "danger", name: "Memburuk", text: "menjauhi arah yang diinginkan" }, { tone: "neutral", name: "Belum dinilai", text: "arah baik-buruk belum ditetapkan atau data kurang dari 3 tahun" }]} />
     {rows.length === 0 ? <EmptyState title="Tidak ada indikator">Ubah filter atau kata kunci pencarian.</EmptyState> : <div className="table-scroll"><table className="all-table"><thead><tr><th>Indikator</th><th>Nilai terbaru</th><th>Tren</th><th>Perubahan</th><th>Status</th><th>OPD</th></tr></thead><tbody>
       {rows.slice(0, limit).map((item) => { const tone = toneOf(item.assessment); return <tr key={item.indicator_id}>
         <td><strong><AppLink to={indicatorPath(item.indicator_id)}>{plain(item.name)}</AppLink></strong><small>{sector(item.category)} · Sumber: {plain(item.source_label)}</small>{item.links.length > 0 && <details className="row-links"><summary>{item.links.length} data pendukung Bank Data</summary><LinkedSeries links={item.links} baseYear={item.latest_year} title={false} /></details>}</td>
         <td className="num"><strong>{num(item.latest_value)}</strong><small>{plain(item.unit)} · {item.latest_year}</small></td>
         <td>{item.series.length >= 2 ? <Sparkline points={item.series} tone={tone} /> : <small>Baru {item.series.length} tahun</small>}</td>
         <td className={`num ${tone}`}>{pct(item.change_pct)}</td>
-        <td><Badge tone={tone === "good" ? "success" : tone === "bad" ? "warning" : "neutral"}>{statusOf(item)}</Badge>{item.analysis.anomaly?.is_anomaly && <Badge tone="warning">Tidak biasa</Badge>}</td>
+        <td><Badge tone={tone === "good" ? "success" : tone === "bad" ? "danger" : "neutral"}>{statusOf(item)}</Badge>{item.analysis.anomaly?.is_anomaly && <Badge tone="warning">Tidak biasa</Badge>}</td>
         <td>{item.opds.length ? item.opds.join(", ") : "-"}</td>
       </tr>; })}
     </tbody></table></div>}
@@ -254,7 +255,6 @@ export function BerandaPage() {
       </>}
     </Tabs>
 
-    <Legend folded />
     <p className="exec-footnote">Dihitung otomatis dari data tersimpan per {dateLabel(generated_at)}. Penilaian kinerja hanya dari indikator RPJMD dan usulan OPD yang diverifikasi. Data BPS Kabupaten Kapuas dan Satu Data Kapuas berstatus belum diverifikasi OPD dan BAPPERIDA, dipakai sebagai konteks dan pembanding. Tren menunjukkan arah, bukan sebab.</p>
   </div>;
 }
