@@ -1,5 +1,5 @@
 import { AlertTriangle, Database, Search, ArrowDownRight, ArrowUpRight, Building2, CheckCircle2, MessageCircle, Minus, TrendingUp } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { Badge, EmptyState, ErrorState, PageLoading, useAsync } from "../components";
 import { AchievementSection, type AchievementResponse } from "../components/AchievementSection";
@@ -7,6 +7,7 @@ import { AppLink } from "../components/AppLink";
 import { DistrictMap, normalizeName, useKapuasGeography } from "../components/DistrictMap";
 import { DistrictSummaryPanel } from "../components/DistrictSummaryPanel";
 import { Legend } from "../components/Legend";
+import { Tabs } from "../components/Tabs";
 import { LinkedSeries } from "../components/LinkedSeries";
 import { askAbout, askPath, indicatorPath, isVerified, num, pct, sector, statusOf, toneOf, type Assessment, type Insight } from "../insight";
 import { navigate } from "../router";
@@ -102,6 +103,7 @@ function AllIndicators({ insights }: { insights: Insight[] }) {
   const [status, setStatus] = useState<StatusFilter>("semua");
   const [sectorFilter, setSectorFilter] = useState("");
   const [query, setQuery] = useState("");
+  const [limit, setLimit] = useState(12);
   const sectors = useMemo(() => [...new Set(insights.map((item) => sector(item.category)))].sort((a, b) => a.localeCompare(b, "id")), [insights]);
   const counts = useMemo(() => ({ semua: insights.length, membaik: insights.filter((i) => i.assessment === "membaik").length, memburuk: insights.filter((i) => i.assessment === "memburuk").length, netral: insights.filter((i) => i.assessment === "netral").length }), [insights]);
   const rows = useMemo(() => {
@@ -120,7 +122,7 @@ function AllIndicators({ insights }: { insights: Insight[] }) {
       <label className="search-field"><Search aria-hidden /><span className="sr-only">Cari indikator</span><input type="search" value={query} placeholder="Cari indikator" onChange={(event) => setQuery(event.target.value)} /></label>
     </div>
     {rows.length === 0 ? <EmptyState title="Tidak ada indikator">Ubah filter atau kata kunci pencarian.</EmptyState> : <div className="table-scroll"><table className="all-table"><thead><tr><th>Indikator</th><th>Nilai terbaru</th><th>Tren</th><th>Perubahan</th><th>Status</th><th>OPD</th></tr></thead><tbody>
-      {rows.map((item) => { const tone = toneOf(item.assessment); return <tr key={item.indicator_id}>
+      {rows.slice(0, limit).map((item) => { const tone = toneOf(item.assessment); return <tr key={item.indicator_id}>
         <td><strong><AppLink to={indicatorPath(item.indicator_id)}>{plain(item.name)}</AppLink></strong><small>{sector(item.category)} · Sumber: {plain(item.source_label)}</small>{item.links.length > 0 && <details className="row-links"><summary>{item.links.length} data pendukung Bank Data</summary><LinkedSeries links={item.links} baseYear={item.latest_year} title={false} /></details>}</td>
         <td className="num"><strong>{num(item.latest_value)}</strong><small>{plain(item.unit)} · {item.latest_year}</small></td>
         <td>{item.series.length >= 2 ? <Sparkline points={item.series} tone={tone} /> : <small>Baru {item.series.length} tahun</small>}</td>
@@ -129,6 +131,7 @@ function AllIndicators({ insights }: { insights: Insight[] }) {
         <td>{item.opds.length ? item.opds.join(", ") : "-"}</td>
       </tr>; })}
     </tbody></table></div>}
+    {rows.length > limit && <button type="button" className="button secondary all-more" onClick={() => setLimit((value) => value + 12)}>Tampilkan {Math.min(12, rows.length - limit)} lagi ({rows.length - limit} tersisa)</button>}
   </section>;
 }
 
@@ -162,15 +165,32 @@ function DistrictPanel({ insights }: { insights: Insight[] }) {
 }
 
 function DistrictSection({ insights }: { insights: Insight[] }) {
-  const [tab, setTab] = useState<"ringkasan" | "indikator">("ringkasan");
+  const [view, setView] = useState<"ringkasan" | "indikator">("ringkasan");
   return <section className="panel-card district-panel" aria-labelledby="peta-kecamatan">
-    <header className="card-head"><div><h2 id="peta-kecamatan">Peta kecamatan</h2><p>Klik kecamatan untuk melihat status seluruh indikatornya, atau pilih satu indikator untuk melihat sebarannya.</p></div>
-      <div className="chip-row" role="group" aria-label="Tampilan peta"><button type="button" className={`chip${tab === "ringkasan" ? " active" : ""}`} aria-pressed={tab === "ringkasan"} onClick={() => setTab("ringkasan")}>Ringkasan kecamatan</button><button type="button" className={`chip${tab === "indikator" ? " active" : ""}`} aria-pressed={tab === "indikator"} onClick={() => setTab("indikator")}>Per indikator</button></div></header>
-    {tab === "ringkasan" ? <DistrictSummaryPanel /> : <DistrictPanel insights={insights} />}
+    <header className="card-head"><div><h2 id="peta-kecamatan">Peta kecamatan</h2><p>{view === "ringkasan" ? "Pilih kecamatan untuk melihat status seluruh indikatornya." : "Pilih satu indikator untuk melihat sebarannya di 17 kecamatan."}</p></div>
+      <div className="chip-row" role="group" aria-label="Tampilan peta"><button type="button" className={`chip${view === "ringkasan" ? " active" : ""}`} aria-pressed={view === "ringkasan"} onClick={() => setView("ringkasan")}>Status kecamatan</button><button type="button" className={`chip${view === "indikator" ? " active" : ""}`} aria-pressed={view === "indikator"} onClick={() => setView("indikator")}>Sebaran satu indikator</button></div></header>
+    {view === "ringkasan" ? <DistrictSummaryPanel /> : <DistrictPanel insights={insights} />}
   </section>;
 }
 
+type DashTab = "ringkasan" | "capaian" | "peta" | "indikator";
+const DASH_TABS: DashTab[] = ["ringkasan", "capaian", "peta", "indikator"];
+function initialTab(): DashTab {
+  try {
+    if (new URLSearchParams(window.location.search).get("kecamatan")) return "peta";
+    const hash = window.location.hash.replace("#", "") as DashTab;
+    return DASH_TABS.includes(hash) ? hash : "ringkasan";
+  } catch { return "ringkasan"; }
+}
+
 export function BerandaPage() {
+  const [tab, setTab] = useState<DashTab>(initialTab);
+  useEffect(() => {
+    const sync = () => setTab(initialTab());
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
+  const changeTab = (id: string) => { setTab(id as DashTab); try { window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${id}`); } catch { /* alamat bersifat tambahan */ } };
   const data = useAsync(async () => {
     const [kinerja, konteks, capaian] = await Promise.all([api<InsightsResponse>("/executive/insights?layer=kinerja&limit=100"), api<InsightsResponse>("/executive/insights?layer=konteks&limit=100"), api<AchievementResponse>("/executive/achievement")]);
     return { ...kinerja, context: konteks.context, konteks: konteks.insights, capaian };
@@ -192,6 +212,12 @@ export function BerandaPage() {
     .filter((item) => { const key = `${item.latest_year}|${item.latest_value}|${item.change_pct}`; if (seenMovers.has(key)) return false; seenMovers.add(key); return true; }).slice(0, 8);
   const latestYear = Math.max(...insights.map((item) => item.latest_year), 0);
 
+  const tabs = [
+    { id: "ringkasan", label: "Ringkasan" },
+    { id: "capaian", label: "Capaian target", count: cap.belum_tercapai, tone: "warning" as const },
+    { id: "peta", label: "Peta kecamatan" },
+    { id: "indikator", label: "Semua indikator", count: insights.length },
+  ];
   return <div className="exec">
     <section className="exec-brief" aria-labelledby="ikhtisar">
       <div>
@@ -204,10 +230,8 @@ export function BerandaPage() {
       </div>
     </section>
 
-    <AchievementSection data={capaian} />
-
-    <DistrictSection insights={[...insights, ...konteks]} />
-
+    <Tabs tabs={tabs} value={tab} onChange={changeTab} label="Bagian dashboard">
+      {tab === "ringkasan" && <>
     <div className="exec-columns">
       <section className="exec-main" aria-labelledby="sorotan">
         <header className="section-head"><h2 id="sorotan"><AlertTriangle aria-hidden />Sorotan utama</h2><p>Indikator yang memburuk atau berubah tidak wajar, diurutkan menurut tingkat prioritas.</p></header>
@@ -219,16 +243,18 @@ export function BerandaPage() {
         <section className="panel-card" aria-labelledby="sektor"><header className="card-head"><div><h2 id="sektor">Kondisi per sektor</h2><p>Sektor dengan indikator memburuk terbanyak di atas.</p></div></header><SectorHealth insights={insights} /></section>
       </aside>
     </div>
-
-    <AllIndicators insights={insights} />
-
-    <section className="panel-card" aria-labelledby="konteks"><header className="card-head"><div><h2 id="konteks"><Database aria-hidden />Konteks dari Bank Data</h2><p>{context.series.toLocaleString("id-ID")} seri BPS Kapuas dalam Angka dan Satu Data tersedia sebagai pembanding, {context.linked} indikator RPJMD sudah ditautkan. Seri ini tidak menilai kinerja dan dibaca lengkap lewat Tanya Sababuka.</p></div><span className="spotlight-badges"><Badge tone="neutral">Bank Data · belum diverifikasi</Badge><AppLink to="/dashboard/bank-data" className="button secondary">Telusuri seluruh Bank Data</AppLink></span></header>{contextMovers.length > 0 ? <ChangeBoard items={contextMovers} /> : <EmptyState title="Belum ada seri Bank Data">Seri akan tampil setelah sinkron Bank Data berjalan.</EmptyState>}</section>
-
     {better.length > 0 && <section className="panel-card" aria-labelledby="membaik"><header className="card-head"><div><h2 id="membaik"><CheckCircle2 aria-hidden />Perkembangan baik</h2><p>Capaian yang perlu dipertahankan dan dapat direplikasi.</p></div></header>
       <ul className="good-grid">{better.map((item) => <li key={item.indicator_id}><Sparkline points={item.series} tone="good" /><span><strong><AppLink to={indicatorPath(item.indicator_id)}>{plain(item.name)}</AppLink></strong><small>{sector(item.category)}</small></span><b className="good">{pct(item.change_pct)}</b></li>)}</ul></section>}
+      </>}
+      {tab === "capaian" && <AchievementSection data={capaian} />}
+      {tab === "peta" && <DistrictSection insights={[...insights, ...konteks]} />}
+      {tab === "indikator" && <>
+        <AllIndicators insights={insights} />
 
-    <Legend />
+      </>}
+    </Tabs>
 
+    <Legend folded />
     <p className="exec-footnote">Dihitung otomatis dari data tersimpan per {dateLabel(generated_at)}. Penilaian kinerja hanya dari indikator RPJMD dan usulan OPD yang diverifikasi. Data BPS Kabupaten Kapuas dan Satu Data Kapuas berstatus belum diverifikasi OPD dan BAPPERIDA, dipakai sebagai konteks dan pembanding. Tren menunjukkan arah, bukan sebab.</p>
   </div>;
 }

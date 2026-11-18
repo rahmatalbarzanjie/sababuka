@@ -1,4 +1,6 @@
+import { X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { api } from "../api";
 import { Badge, EmptyState, ErrorState, Spinner, useAsync } from "../components";
 import { indicatorPath, num, pct } from "../insight";
@@ -18,8 +20,8 @@ interface DetailResponse { summary: Summary; items: Cell[] }
 
 const statusLabel: Record<Status, string> = { tercapai: "Tercapai", belum_tercapai: "Belum tercapai", unggul: "Unggul", sedang: "Sedang", perhatian: "Perlu perhatian", tanpa_arah: "Arah belum ditetapkan" };
 const statusTone = (status: Status) => status === "tercapai" || status === "unggul" ? "success" : status === "belum_tercapai" || status === "perhatian" ? "warning" : "neutral";
-const trendLabel: Record<string, string> = { membaik: "Membaik", memburuk: "Memburuk", stabil: "Stabil" };
-const PAGE = 25;
+const trendLabel: Record<string, string> = { membaik: "membaik", memburuk: "memburuk", stabil: "stabil" };
+const PAGE = 12;
 
 function downloadCsv(name: string, items: Cell[]) {
   const cell = (value: unknown) => `"${plain(String(value ?? "")).replace(/"/g, '""')}"`;
@@ -33,6 +35,19 @@ function downloadCsv(name: string, items: Cell[]) {
   URL.revokeObjectURL(url);
 }
 
+/** Layar sempit: rincian tampil sebagai lembar bawah yang dirender ke body agar tidak terpotong panel induk bertransform. */
+function useNarrow(): boolean {
+  const query = "(max-width: 959px)";
+  const [narrow, setNarrow] = useState(() => typeof window !== "undefined" && window.matchMedia(query).matches);
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    const update = () => setNarrow(media.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  return narrow;
+}
+
 function writeQuery(name: string | null) {
   try {
     const url = new URL(window.location.href);
@@ -41,15 +56,13 @@ function writeQuery(name: string | null) {
   } catch { /* pembaruan alamat bersifat tambahan */ }
 }
 
-function Row({ item }: { item: Cell }) {
-  return <tr>
-    <td><strong><AppLink to={indicatorPath(item.indicator_id)}>{plain(item.name)}</AppLink></strong>
-      <small>{plain(item.sector)}{item.source_kind === "bank_data" ? " · Bank Data · belum diverifikasi" : ""}</small></td>
-    <td className="num">{num(item.value)} <small>{plain(item.unit)} ({item.year})</small></td>
-    <td className="num">{item.rank} dari {item.of}</td>
-    <td>{item.trend ? `${trendLabel[item.trend]}${item.change_pct !== null ? ` (${pct(item.change_pct)})` : ""}` : "-"}</td>
-    <td><Badge tone={statusTone(item.status)}>{statusLabel[item.status]}</Badge>{item.target !== null && <small>Target {num(item.target)}</small>}</td>
-  </tr>;
+function IndicatorRow({ item, showSource }: { item: Cell; showSource: boolean }) {
+  const detail = [`${num(item.value)} ${plain(item.unit)} (${item.year})`, `peringkat ${item.rank} dari ${item.of}`, item.trend ? `${trendLabel[item.trend]}${item.change_pct !== null ? ` ${pct(item.change_pct)}` : ""}` : null, item.target !== null ? `target ${num(item.target)}` : null].filter(Boolean).join(" · ");
+  return <li>
+    <div className="dd-row-top"><AppLink to={indicatorPath(item.indicator_id)}>{plain(item.name)}</AppLink><Badge tone={statusTone(item.status)}>{statusLabel[item.status]}</Badge></div>
+    <small>{plain(item.sector)}{showSource ? " · Bank Data" : ""}</small>
+    <span className="dd-row-detail">{detail}</span>
+  </li>;
 }
 
 function DistrictDetail({ name, onClose }: { name: string; onClose(): void }) {
@@ -60,48 +73,46 @@ function DistrictDetail({ name, onClose }: { name: string; onClose(): void }) {
   useEffect(() => { setFilter("semua"); setQuery(""); setShown(PAGE); }, [name]);
   const items = detail.data?.items ?? [];
   const filtered = useMemo(() => items.filter((item) => (filter === "semua" || item.status === filter) && (!query.trim() || `${item.name} ${item.sector}`.toLowerCase().includes(query.trim().toLowerCase()))), [items, filter, query]);
-  if (detail.loading) return <div className="panel-loading"><Spinner /></div>;
-  if (detail.error || !detail.data) return <ErrorState title="Ringkasan kecamatan belum dapat dimuat" onRetry={detail.reload}>{detail.error}</ErrorState>;
+  const head = (summary?: Summary) => <header className="dd-head">
+    <div><h3>Kecamatan {plain(summary?.name ?? name)}</h3>{summary && <p>{summary.indicators.toLocaleString("id-ID")} indikator berdata{summary.attention_index !== null ? ` · indeks perhatian ${summary.attention_index.toLocaleString("id-ID")}%` : ""}</p>}</div>
+    <div className="dd-actions">{summary && <button type="button" className="button secondary compact" onClick={() => downloadCsv(summary.name, items)}>CSV</button>}<button type="button" className="icon-close" aria-label="Kembali ke daftar semua kecamatan" onClick={onClose}><X aria-hidden /></button></div>
+  </header>;
+  if (detail.loading) return <div className="dd">{head()}<div className="panel-loading"><Spinner /></div></div>;
+  if (detail.error || !detail.data) return <div className="dd">{head()}<ErrorState title="Rincian belum dapat dimuat" onRetry={detail.reload}>{detail.error}</ErrorState></div>;
   const { summary } = detail.data;
-  const attention = items.filter((item) => item.status === "belum_tercapai" || item.status === "perhatian").slice(0, 6);
-  const strong = items.filter((item) => item.status === "tercapai" || item.status === "unggul").slice(-4).reverse();
   const c = summary.counts;
-  return <div className="district-detail" aria-live="polite">
-    <header><div><h3>Kecamatan {plain(summary.name)}</h3><p className="muted">{summary.indicators.toLocaleString("id-ID")} indikator memiliki data kecamatan.{summary.attention_index !== null ? ` ${pct(summary.attention_index).replace("+", "")} dari indikator berarah berada di kuartil bawah atau belum mencapai target.` : ""}</p></div>
-      <div className="district-actions"><button type="button" className="button secondary" onClick={() => downloadCsv(summary.name, items)}>Unduh CSV</button><button type="button" className="button secondary" onClick={onClose}>Tutup</button></div></header>
-    <div className="district-chips" role="group" aria-label="Saring menurut status">
+  const allBank = items.every((item) => item.source_kind === "bank_data");
+  return <div className="dd">
+    {head(summary)}
+    <p className="dd-note">Diurut dari yang perlu perhatian. {allBank ? "Seluruhnya dari Bank Data (belum diverifikasi OPD dan BAPPERIDA)." : "Bank Data diberi tanda."}</p>
+    <div className="dd-chips" role="group" aria-label="Saring menurut status">
       {(["semua", "belum_tercapai", "perhatian", "sedang", "unggul", "tercapai", "tanpa_arah"] as const).map((key) => {
         const count = key === "semua" ? summary.indicators : c[key];
         if (key !== "semua" && !count) return null;
         return <button key={key} type="button" className={`chip${filter === key ? " active" : ""}`} aria-pressed={filter === key} onClick={() => { setFilter(key); setShown(PAGE); }}>{key === "semua" ? "Semua" : statusLabel[key]} <b>{count}</b></button>;
       })}
     </div>
-    {filter === "semua" && !query && <div className="district-highlights">
-      <section><h4>Perlu perhatian</h4>{attention.length ? <ul>{attention.map((item) => <li key={item.indicator_id}><AppLink to={indicatorPath(item.indicator_id)}>{plain(item.name)}</AppLink><small>{item.rank} dari {item.of} · {num(item.value)} {plain(item.unit)}</small></li>)}</ul> : <p className="muted">Tidak ada indikator di kuartil bawah.</p>}</section>
-      <section><h4>Unggulan</h4>{strong.length ? <ul>{strong.map((item) => <li key={item.indicator_id}><AppLink to={indicatorPath(item.indicator_id)}>{plain(item.name)}</AppLink><small>{item.rank} dari {item.of} · {num(item.value)} {plain(item.unit)}</small></li>)}</ul> : <p className="muted">Belum ada indikator unggulan.</p>}</section>
-    </div>}
-    <label className="search-field district-search"><span className="sr-only">Cari indikator</span><input type="search" value={query} onChange={(event) => { setQuery(event.target.value); setShown(PAGE); }} placeholder="Cari indikator atau sektor" /></label>
+    <label className="search-field dd-search"><span className="sr-only">Cari indikator</span><input type="search" value={query} onChange={(event) => { setQuery(event.target.value); setShown(PAGE); }} placeholder="Cari indikator atau sektor" /></label>
     {filtered.length === 0 ? <EmptyState title="Tidak ada indikator yang cocok">Ubah status atau kata pencarian.</EmptyState> : <>
-      <div className="table-scroll"><table className="all-table"><thead><tr><th>Indikator</th><th>Nilai terbaru</th><th>Peringkat</th><th>Tren</th><th>Status</th></tr></thead>
-        <tbody>{filtered.slice(0, shown).map((item) => <Row key={item.indicator_id} item={item} />)}</tbody></table></div>
-      {filtered.length > shown && <button type="button" className="button secondary" onClick={() => setShown((value) => value + PAGE)}>Tampilkan {Math.min(PAGE, filtered.length - shown)} lagi dari {filtered.length - shown} tersisa</button>}
+      <ul className="dd-list">{filtered.slice(0, shown).map((item) => <IndicatorRow key={item.indicator_id} item={item} showSource={!allBank && item.source_kind === "bank_data"} />)}</ul>
+      {filtered.length > shown && <button type="button" className="button secondary dd-more" onClick={() => setShown((value) => value + PAGE)}>Tampilkan {Math.min(PAGE, filtered.length - shown)} lagi ({filtered.length - shown} tersisa)</button>}
     </>}
   </div>;
 }
 
-/** Peta kecamatan berwarna menurut indeks perhatian; klik kecamatan membuka ringkasan status seluruh indikatornya. */
+/** Peta kiri, rincian kanan: klik kecamatan langsung menampilkan statusnya di samping peta (lembar bawah di ponsel). */
 export function DistrictSummaryPanel() {
   const list = useAsync(() => api<ListResponse>("/executive/districts"), []);
   const geography = useKapuasGeography();
   const [district, setDistrict] = useState<string | null>(() => { try { return new URLSearchParams(window.location.search).get("kecamatan"); } catch { return null; } });
   const select = (name: string | null) => { setDistrict(name); writeQuery(name); };
-  const [scrolled, setScrolled] = useState(false);
+  const narrow = useNarrow();
   useEffect(() => {
-    // Tiba dari tautan kecamatan (mis. halaman detail indikator): gulir ke peta sekali.
-    if (scrolled || !district || !list.data) return;
-    setScrolled(true);
-    document.getElementById("peta-kecamatan")?.scrollIntoView({ block: "start" });
-  }, [scrolled, district, list.data]);
+    if (!district) return undefined;
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") { setDistrict(null); writeQuery(null); } };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [district]);
   if (list.loading) return <div className="panel-loading"><Spinner /></div>;
   if (list.error || !list.data) return <ErrorState title="Ringkasan kecamatan belum dapat dimuat" onRetry={list.reload}>{list.error}</ErrorState>;
   const { districts, coverage } = list.data;
@@ -109,19 +120,24 @@ export function DistrictSummaryPanel() {
   const mapItems = districts.filter((item) => item.attention_index !== null).map((item) => ({ name: item.name, value: item.attention_index!, previous: null }));
   const ranked = [...districts].sort((a, b) => (b.attention_index ?? -1) - (a.attention_index ?? -1));
   const active = district ? districts.find((item) => normalizeName(item.name) === normalizeName(district)) ?? null : null;
-  return <>
-    <p className="muted district-note">Warna peta menunjukkan <strong>indeks perhatian</strong>: persentase indikator kecamatan yang berada di kuartil bawah 17 kecamatan, atau belum mencapai target bila ada target kecamatan. Warna lebih tua berarti lebih banyak indikator perlu perhatian. {coverage.with_target > 0 ? `${coverage.with_target} indikator sudah memiliki target kecamatan.` : "Belum ada target tingkat kecamatan, sehingga status berupa posisi relatif."} Sumber Bank Data belum diverifikasi OPD.</p>
-    <div className="district-layout">
-      <div>{geography.data ? <DistrictMap geography={geography.data} items={mapItems} unit="% perlu perhatian" selected={active?.name ?? null} onSelect={select} /> : <p className="muted">{geography.error ? "Peta wilayah belum tersedia." : "Memuat peta..."}</p>}</div>
-      <div className="district-rank">
-        <p className="district-callout">{active ? <><strong>{plain(active.name)}</strong>: {active.indicators.toLocaleString("id-ID")} indikator{active.attention_index !== null ? `, indeks perhatian ${active.attention_index.toLocaleString("id-ID")}%` : ""}.</> : <>Pilih kecamatan pada peta atau daftar untuk melihat status indikatornya.</>}</p>
-        <ol>{ranked.map((item) => <li key={item.name} className={active && normalizeName(active.name) === normalizeName(item.name) ? "active" : undefined}>
-          <button type="button" onClick={() => select(active && normalizeName(active.name) === normalizeName(item.name) ? null : item.name)}>
-            <span>{plain(item.name)}</span><span className="rank-bar" role="presentation"><i style={{ width: `${Math.max(3, item.attention_index ?? 0)}%` }} /></span><b>{item.attention_index === null ? "-" : `${item.attention_index.toLocaleString("id-ID")}%`}</b>
-          </button></li>)}</ol>
-      </div>
+  return <div className={`district-split${active ? " has-selection" : ""}`}>
+    <div className="district-map-col">
+      {geography.data ? <DistrictMap geography={geography.data} items={mapItems} unit="% perlu perhatian" selected={active?.name ?? null} onSelect={select} /> : <p className="muted">{geography.error ? "Peta wilayah belum tersedia." : "Memuat peta..."}</p>}
+      <p className="map-caption">Warna lebih tua berarti lebih banyak indikator yang perlu perhatian.</p>
+      <details className="district-howto"><summary>Cara membaca peta</summary>
+        <p>Indeks perhatian adalah persentase indikator kecamatan yang berada di seperempat terbawah dari 17 kecamatan, atau belum mencapai target bila ada target kecamatan. {coverage.with_target > 0 ? `${coverage.with_target} indikator sudah memiliki target kecamatan.` : "Belum ada target tingkat kecamatan, jadi statusnya berupa posisi relatif."} Sumber Bank Data belum diverifikasi OPD.</p></details>
     </div>
-    {active && <DistrictDetail name={active.name} onClose={() => select(null)} />}
-  </>;
+    {active && narrow ? createPortal(<div className="sheet-layer"><button type="button" className="sheet-backdrop" aria-label="Tutup rincian kecamatan" onClick={() => select(null)} /><aside className="district-pane sheet" role="dialog" aria-label={`Rincian kecamatan ${plain(active.name)}`}><DistrictDetail name={active.name} onClose={() => select(null)} /></aside></div>, document.body) : null}
+    <aside className="district-pane" aria-live="polite" aria-label="Rincian kecamatan">
+      {active && !narrow
+        ? <DistrictDetail name={active.name} onClose={() => select(null)} />
+        : <div className="district-rank">
+          <p className="district-callout">Klik kecamatan pada peta atau daftar untuk melihat status seluruh indikatornya.</p>
+          <ol>{ranked.map((item) => <li key={item.name}>
+            <button type="button" onClick={() => select(item.name)}>
+              <span>{plain(item.name)}</span><span className="rank-bar" role="presentation"><i style={{ width: `${Math.max(3, item.attention_index ?? 0)}%` }} /></span><b>{item.attention_index === null ? "-" : `${item.attention_index.toLocaleString("id-ID")}%`}</b>
+            </button></li>)}</ol>
+        </div>}
+    </aside>
+  </div>;
 }
-
