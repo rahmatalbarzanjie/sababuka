@@ -73,3 +73,32 @@ test(
     }
   },
 );
+
+test(
+  "token CSRF dapat dipulihkan untuk sesi yang sama (tab baru) dan token lama tidak berlaku lagi",
+  { skip: !databaseUrl },
+  async () => {
+    const db = createDatabase(databaseUrl!);
+    const app = await buildApp({ config: { ...testConfig, databaseUrl: databaseUrl! }, db, logger: false });
+    try {
+      const login = await app.inject({ method: "POST", url: "/api/v1/auth/login", payload: { identifier: email, password } });
+      assert.equal(login.statusCode, 200, login.body);
+      const cookie = (login.headers["set-cookie"] as string).split(";", 1)[0]!;
+      const oldToken = login.json().csrf_token as string;
+
+      const noAuth = await app.inject({ method: "POST", url: "/api/v1/auth/csrf", headers: { "x-sababuka-client": "web" } });
+      assert.equal(noAuth.statusCode, 401);
+      const noHeader = await app.inject({ method: "POST", url: "/api/v1/auth/csrf", headers: { cookie } });
+      assert.equal(noHeader.statusCode, 403);
+      const refreshed = await app.inject({ method: "POST", url: "/api/v1/auth/csrf", headers: { cookie, "x-sababuka-client": "web" } });
+      assert.equal(refreshed.statusCode, 200, refreshed.body);
+      const fresh = refreshed.json().csrf_token as string;
+      assert.notEqual(fresh, oldToken);
+
+      const withOld = await app.inject({ method: "POST", url: "/api/v1/auth/logout", headers: { cookie, "x-csrf-token": oldToken } });
+      assert.equal(withOld.statusCode, 403);
+      const withFresh = await app.inject({ method: "POST", url: "/api/v1/auth/logout", headers: { cookie, "x-csrf-token": fresh } });
+      assert.equal(withFresh.statusCode, 204);
+    } finally { await app.close(); await db.end(); }
+  },
+);

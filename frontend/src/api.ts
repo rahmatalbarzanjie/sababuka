@@ -59,6 +59,22 @@ export function getCsrfToken(): string | null {
   return sessionStorage.getItem(CSRF_KEY);
 }
 
+let csrfRefresh: Promise<string | null> | null = null;
+
+/** Meminta token CSRF baru untuk sesi ini (tab baru, atau token tab lain sudah menggantikan). Beberapa pemanggil berbagi satu permintaan. */
+export function refreshCsrfToken(): Promise<string | null> {
+  csrfRefresh ??= fetch(`${API_BASE}/auth/csrf`, { method: "POST", credentials: "include", headers: { "X-SABABUKA-Client": "web" } })
+    .then(async (response) => {
+      if (!response.ok) return null;
+      const body = await response.json() as { csrf_token?: string };
+      if (body.csrf_token) setCsrfToken(body.csrf_token);
+      return body.csrf_token ?? null;
+    })
+    .catch(() => null)
+    .finally(() => { csrfRefresh = null; });
+  return csrfRefresh;
+}
+
 export async function api<T>(
   path: string,
   options: RequestInit & { mutation?: boolean } = {},
@@ -70,14 +86,19 @@ export async function api<T>(
   if (previewOrganization) headers.set("X-SABABUKA-Preview-Organization", previewOrganization);
   if (options.body && !(options.body instanceof FormData) && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
   if (options.mutation) {
-    const token = getCsrfToken();
+    const token = getCsrfToken() ?? await refreshCsrfToken();
     if (token) headers.set("X-CSRF-Token", token);
   }
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers,
-    credentials: "include",
-  });
+  const send = () => fetch(`${API_BASE}${path}`, { ...options, headers, credentials: "include" });
+  let response = await send();
+  if (options.mutation && response.status === 403 && path !== "/auth/login") {
+    // Token usang (mis. sesi diperbarui dari tab lain): minta token baru lalu ulangi sekali.
+    const probe = await response.clone().json().catch(() => null) as ApiErrorBody | null;
+    if (probe?.error.message?.includes("CSRF")) {
+      const fresh = await refreshCsrfToken();
+      if (fresh) { headers.set("X-CSRF-Token", fresh); response = await send(); }
+    }
+  }
   if (!response.ok) {
     let body: ApiErrorBody | null = null;
     try {
