@@ -95,6 +95,13 @@ export function DistrictSummaryPanel() {
   const geography = useKapuasGeography();
   const [district, setDistrict] = useState<string | null>(() => { try { return new URLSearchParams(window.location.search).get("kecamatan"); } catch { return null; } });
   const select = (name: string | null) => { setDistrict(name); writeQuery(name); };
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    // Tiba dari tautan kecamatan (mis. halaman detail indikator): gulir ke peta sekali.
+    if (scrolled || !district || !list.data) return;
+    setScrolled(true);
+    document.getElementById("peta-kecamatan")?.scrollIntoView({ block: "start" });
+  }, [scrolled, district, list.data]);
   if (list.loading) return <div className="panel-loading"><Spinner /></div>;
   if (list.error || !list.data) return <ErrorState title="Ringkasan kecamatan belum dapat dimuat" onRetry={list.reload}>{list.error}</ErrorState>;
   const { districts, coverage } = list.data;

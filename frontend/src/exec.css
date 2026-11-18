@@ -261,3 +261,42 @@ html[data-theme="dark"] .card-head .chip-row .chip.active, html[data-theme="dark
 .bank-import .search-field { max-width: 460px; }
 .bank-import .panel-actions { align-items: center; flex-wrap: wrap; }
 .bank-import td small { display: block; color: var(--ui-muted); font-size: 12.5px; }
+
+/* Detail indikator */
+.indicator-detail .detail-head { margin: 4px 0 8px; align-items: center; }
+.indicator-detail .detail-head .button { display: inline-flex; gap: 6px; align-items: center; }
+.stale-note { margin: 0 0 12px; padding: 10px 14px; border-radius: var(--ui-radius-control); background: var(--exec-warn-soft, var(--ui-surface-subtle)); font-size: 14px; line-height: 1.5; }
+.section-nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.section-nav a { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border: 1px solid var(--ui-rule); border-radius: 999px; color: var(--ui-text); font-size: 14px; text-decoration: none; }
+.section-nav a:hover { background: var(--ui-active); }
+.indicator-detail section[id] { scroll-margin-top: 72px; }
+.detail-trend { max-width: none; }
+.detail-trend .detail-trend-box { width: 100%; min-height: 210px; }
+.detail-trend svg { display: block; width: 100%; height: auto; }
+.detail-trend .grid { stroke: var(--ui-rule); stroke-width: 1; stroke-dasharray: 3 4; }
+.detail-trend .axis { font-size: 12px; }
+.detail-trend .value { font-size: 12px; }
+.detail-trend .dot { stroke: var(--ui-surface); stroke-width: 2; pointer-events: none; }
+.detail-trend .hit { fill: transparent; cursor: pointer; }
+.detail-trend .hit:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 0; }
+.detail-trend figcaption { font-weight: 400; font-size: 13.5px; color: var(--ui-muted); margin-top: 6px; line-height: 1.5; }
+.detail-trend .chart-note { display: block; font-size: 12.5px; }
+.rank-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 0; }
+.rank-list li { display: grid; grid-template-columns: minmax(120px, 190px) minmax(80px, 1fr) 96px 64px; gap: 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--ui-rule); font-size: 14px; }
+.rank-list li:first-child { border-top: 0; }
+.rank-list li.rank-gap-after { border-bottom: 1px dashed var(--ui-rule); padding-bottom: 14px; margin-bottom: 6px; }
+.rank-list .rank-name a { font-weight: 600; display: inline-flex; align-items: center; min-height: 36px; }
+.rank-list .rank-bar { display: block; height: 10px; border-radius: 6px; background: var(--ui-surface-subtle); overflow: hidden; }
+.rank-list .rank-bar i { display: block; height: 100%; background: var(--ui-accent); border-radius: 6px; }
+.rank-list .rank-value { text-align: right; font-variant-numeric: tabular-nums; }
+.rank-list .rank-change { text-align: right; color: var(--ui-muted); font-variant-numeric: tabular-nums; }
+.legend-fold { padding: 0; }
+.legend-fold > summary { cursor: pointer; padding: 14px 16px; font-weight: 600; }
+.legend-fold .legend-grid { padding: 0 16px 16px; }
+@media (max-width: 640px) {
+  .rank-list .rank-name a { min-height: 44px; }
+  .rank-list li { grid-template-columns: 1fr auto; grid-template-areas: "name value" "bar bar" "change change"; gap: 4px 12px; padding: 10px 0; }
+  .rank-list .rank-name { grid-area: name; } .rank-list .rank-value { grid-area: value; }
+  .rank-list .rank-bar { grid-area: bar; } .rank-list .rank-change { grid-area: change; text-align: left; }
+  .brief-list > div { grid-template-columns: 1fr; gap: 4px; }
+}

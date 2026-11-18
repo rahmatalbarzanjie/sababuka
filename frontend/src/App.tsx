@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { AuthProvider, useAuth } from "./auth";
 import { LoadingScreen, Notice, PageLoading } from "./components";
 import { AdminLayout, NotFoundPage } from "./layout/AdminLayout";
+import { usePageTitleOverride } from "./pageTitle";
 import { navigate, usePathname } from "./router";
 
 const RolesPage = lazy(() => import("./pages/AccessPages").then((module) => ({ default: module.RolesPage })));
@@ -65,6 +66,7 @@ const pageMeta: Record<string, { title: string; subtitle: string; permission?: s
 function ProtectedApp() {
   const { user, loading } = useAuth();
   const pathname = usePathname();
+  const titleOverride = usePageTitleOverride();
   useEffect(() => {
     if (!loading && !user && !["/login", "/activate", "/register"].includes(pathname)) navigate("/login");
     if (!loading && user?.must_change_password && pathname !== "/security/setup") navigate("/security/setup");
@@ -88,7 +90,8 @@ function ProtectedApp() {
   if (!user || pathname === "/login") return <LoginPage />;
   const detailMatch = new RegExp("^/dashboard/indikator/([0-9a-fA-F-]{36})$", "u").exec(pathname);
   const baseMeta = pageMeta[detailMatch ? "/dashboard/indikator" : pathname] ?? { title: "Halaman tidak ditemukan", subtitle: "Alamat ini tidak tersedia atau sudah dihapus." };
-  const meta = pathname === "/publications" && user.roles.some((role) => role.code === "pimpinan")
+  const meta = detailMatch && titleOverride ? { ...baseMeta, ...titleOverride }
+    : pathname === "/publications" && user.roles.some((role) => role.code === "pimpinan")
     ? { ...baseMeta, title: "Rilis Data", subtitle: "Rilis resmi yang aktif dan masih layak ditampilkan untuk Bupati." }
     : baseMeta;
   const denied = meta.permission && !user.permissions.includes(meta.permission);
