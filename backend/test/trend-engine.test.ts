@@ -12,7 +12,7 @@ test("kemiringan OLS dan perubahan tahunan", () => {
   assert.equal(Math.round(result.change_pct!), 11);
   assert.equal(result.trend, "naik");
   assert.equal(result.assessment, "membaik");
-  assert.deepEqual(result.streak, { direction: "naik", length: 5 });
+  assert.deepEqual(result.streak, { direction: "naik", length: 5, since: 2018 });
 });
 
 test("arah indikator menentukan membaik atau memburuk", () => {

@@ -29,7 +29,7 @@ function Spotlight({ item, rank }: { item: Insight; rank: number }) {
   const tone = toneOf(item.assessment);
   const Icon = item.trend === "naik" ? ArrowUpRight : item.trend === "turun" ? ArrowDownRight : Minus;
   const a = item.analysis;
-  const streak = a.streak.direction && a.streak.length >= 2 ? `${a.streak.length} tahun` : null;
+  const streak = a.streak.direction && a.streak.length >= 2 ? `${a.streak.length} tahun${a.streak.since ? ` (sejak ${a.streak.since})` : ""}` : null;
   return <article className={`spotlight ${tone}`}>
     <header>
       <span className="spotlight-rank" aria-hidden>{rank}</span>
@@ -37,7 +37,7 @@ function Spotlight({ item, rank }: { item: Insight; rank: number }) {
       <span className="spotlight-badges">{a.anomaly?.is_anomaly && <Badge tone="warning">Perubahan tidak biasa</Badge>}<Badge tone={tone === "good" ? "success" : tone === "bad" ? "warning" : "neutral"}><Icon aria-hidden />{pct(item.change_pct)}</Badge></span>
     </header>
     <div className="spotlight-grid">
-      <TrendChart points={item.series} unit={plain(item.unit)} title={`Tren ${item.series[0]?.year ?? ""}-${item.latest_year}`} tone={tone} />
+      <TrendChart points={item.series} unit={plain(item.unit)} title={item.analysis.years > item.series.length ? `Tren ${item.series.length} tahun terakhir (${item.series[0]?.year ?? ""}-${item.latest_year})` : `Tren ${item.series[0]?.year ?? ""}-${item.latest_year}`} tone={tone} />
       <div className="spotlight-copy">
         <p className="spotlight-latest"><strong>{num(item.latest_value)}</strong> <span>{plain(item.unit)} · {item.latest_year}</span></p>
         <div className="stat-row">

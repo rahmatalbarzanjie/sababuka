@@ -119,7 +119,7 @@ export function IndicatorDetailPage({ id }: { id: string }) {
     {sections.length > 2 && <nav className="section-nav" aria-label="Isi halaman">{sections.map(([anchor, label]) => <a key={anchor} href={`#${anchor}`}>{label}</a>)}</nav>}
 
     {hasTrend && <section className="panel-card" id="grafik" aria-labelledby="grafik-judul">
-      <header className="card-head"><div><h2 id="grafik-judul">Grafik</h2><p>Tren {item.series[0]!.year} sampai {item.latest_year}{item.unit ? `, satuan ${plain(item.unit)}` : ""}.</p></div></header>
+      <header className="card-head"><div><h2 id="grafik-judul">Grafik</h2><p>Tren {item.series[0]!.year} sampai {item.latest_year} ({item.series.length} tahun){item.unit ? `, satuan ${plain(item.unit)}` : ""}.</p></div></header>
       <DetailTrend points={item.series} unit={plain(item.unit)} tone={tone} />
     </section>}
 
