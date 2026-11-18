@@ -300,3 +300,79 @@ html[data-theme="dark"] .card-head .chip-row .chip.active, html[data-theme="dark
   .rank-list .rank-bar { grid-area: bar; } .rank-list .rank-change { grid-area: change; text-align: left; }
   .brief-list > div { grid-template-columns: 1fr; gap: 4px; }
 }
+
+/* Dashboard bertab: satu pekerjaan per tab */
+.tabs-bar { display: flex; gap: 6px; overflow-x: auto; padding: 5px; margin: 0 0 4px; background: var(--ui-surface-subtle); border-radius: 14px; scrollbar-width: thin; }
+.tab { flex: 1 0 auto; display: inline-flex; gap: 8px; align-items: center; justify-content: center; min-height: 44px; padding: 0 18px; border: 0; border-radius: 10px; background: transparent; color: var(--ui-muted); font: inherit; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.tab:hover { color: var(--ui-text); }
+.tab.active { background: var(--ui-surface); color: var(--ui-text); box-shadow: 0 1px 4px rgba(10, 34, 65, .14); }
+.tab:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 2px; }
+.tab-count { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 22px; padding: 0 7px; border-radius: 999px; font-size: 12px; font-weight: 700; background: var(--ui-surface-subtle); color: var(--ui-muted); font-variant-numeric: tabular-nums; }
+.tab.active .tab-count.neutral { background: var(--ui-active); color: var(--ui-accent); }
+.tab-count.warning { background: var(--exec-bad-soft); color: var(--exec-bad); }
+.tab-panel { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+
+/* Peta kecamatan: peta di kiri, rincian di kanan */
+.district-split { display: grid; grid-template-columns: minmax(280px, .95fr) minmax(340px, 1.05fr); gap: 24px; align-items: start; }
+.district-map-col { position: sticky; top: 16px; min-width: 0; }
+.district-pane { position: sticky; top: 16px; min-width: 0; max-height: calc(100vh - 32px); overflow: auto; padding: 14px 16px; border: 1px solid var(--ui-rule); border-radius: 12px; background: var(--ui-surface); }
+.district-pane .district-rank button { grid-template-columns: minmax(96px, 120px) minmax(0, 1fr) 56px; }
+.map-caption { margin: 8px 0 0; font-size: 13px; color: var(--ui-muted); }
+.district-howto { margin-top: 6px; font-size: 13px; }
+.district-howto summary { cursor: pointer; color: var(--ui-accent); }
+.district-howto p { margin: 6px 0 0; color: var(--ui-muted); line-height: 1.55; }
+.sheet-layer { position: fixed; inset: 0; z-index: 60; }
+.sheet-backdrop { position: absolute; inset: 0; padding: 0; border: 0; background: rgba(8, 20, 35, .38); cursor: default; }
+.district-pane.sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 78vh; overflow: auto; padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)); border-radius: 16px 16px 0 0; box-shadow: 0 -10px 28px rgba(8, 20, 35, .22); }
+.dd { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.dd-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; position: sticky; top: -14px; z-index: 2; margin: -14px -16px 0; padding: 14px 16px 10px; background: var(--ui-surface); border-bottom: 1px solid var(--ui-rule); }
+.dd-head h3 { margin: 0; font-size: 17px; }
+.dd-head p { margin: 2px 0 0; font-size: 13px; color: var(--ui-muted); }
+.dd-actions { display: flex; align-items: center; gap: 8px; }
+.icon-close { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid var(--ui-rule); border-radius: 10px; background: transparent; color: var(--ui-text); cursor: pointer; }
+.icon-close svg { width: 18px; height: 18px; }
+.dd-note { margin: 0; font-size: 13px; color: var(--ui-muted); line-height: 1.5; }
+.dd-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.dd-chips .chip { display: inline-flex; gap: 6px; align-items: center; min-height: 34px; padding: 0 11px; border: 1px solid var(--ui-rule); border-radius: 999px; background: transparent; color: var(--ui-text); font: inherit; font-size: 13px; cursor: pointer; }
+.dd-chips .chip.active { background: var(--ui-accent, #123a66); border-color: transparent; color: #fff; }
+html[data-theme="dark"] .dd-chips .chip.active { color: #0b1b2b; }
+.dd-search { max-width: none; }
+.dd-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.dd-list li { display: grid; gap: 2px; padding: 10px 0; border-top: 1px solid var(--ui-rule); }
+.dd-list li:first-child { border-top: 0; }
+.dd-row-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.dd-row-top a { font-weight: 600; overflow-wrap: anywhere; }
+.dd-list small { font-size: 12.5px; color: var(--ui-muted); }
+.dd-row-detail { font-size: 13px; line-height: 1.5; }
+.dd-more { width: 100%; }
+@media (max-width: 959px) {
+  .district-split { grid-template-columns: 1fr; gap: 14px; }
+  .district-map-col { position: static; }
+  .district-pane { position: static; max-height: none; overflow: visible; }
+  .tab { padding: 0 14px; }
+}
+
+/* Capaian target: sektor dapat dilipat */
+.achv-list { display: grid; gap: 8px; }
+.achv-sector { padding: 0; border: 1px solid var(--ui-rule); border-radius: 12px; background: var(--ui-surface); }
+.achv-sector > summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 12px 14px; cursor: pointer; list-style: none; }
+.achv-sector > summary::-webkit-details-marker { display: none; }
+.achv-sector > summary::after { content: "+"; margin-left: auto; color: var(--ui-accent); font-weight: 700; }
+.achv-sector[open] > summary::after { content: "-"; }
+.achv-sector > summary h3 { margin: 0; font-size: 15px; }
+.achv-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.achv-sector > :not(summary) { margin-left: 14px; margin-right: 14px; }
+.achv-sector > :last-child { margin-bottom: 14px; }
+.achv-achieved { margin-top: 14px; }
+.achv-achieved > summary { cursor: pointer; font-weight: 600; color: var(--ui-accent); }
+.achv-achieved .achv-done { margin-top: 10px; }
+.achievement .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.achievement .chip-row .chip { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border: 1px solid var(--ui-rule); border-radius: 999px; background: transparent; color: var(--ui-text); font: inherit; cursor: pointer; }
+.achievement .chip-row .chip.active { background: var(--ui-accent, #123a66); border-color: transparent; color: #fff; }
+html[data-theme="dark"] .achievement .chip-row .chip.active { color: #0b1b2b; }
+.all-more { margin-top: 12px; align-self: flex-start; }
+
+/* Tautan di daftar: terbaca sebagai judul, bergaris bawah saat disorot */
+.dd-row-top a, .rank-list .rank-name a, .exec .all-table td > strong > a, .exec .achv-table td > strong > a { color: var(--ui-text); text-decoration: none; }
+.dd-row-top a:hover, .rank-list .rank-name a:hover, .exec .all-table td > strong > a:hover { color: var(--ui-accent); text-decoration: underline; }
+.achv-sector > :not(summary) { max-width: calc(100% - 28px); }

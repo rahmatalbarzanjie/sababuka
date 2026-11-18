@@ -21,7 +21,7 @@ const tone = (status: AchievementStatus) => status === "tercapai" ? "success" : 
 const order: Record<AchievementStatus, number> = { belum_tercapai: 0, belum_ada_data: 1, tanpa_target: 2, tanpa_arah: 3, tercapai: 4 };
 const signed = (value: number) => `${value > 0 ? "+" : ""}${num(value)}`;
 
-function SectorBlock({ sector, items }: { sector: string; items: AchievementItem[] }) {
+function SectorBlock({ sector, items, open }: { sector: string; items: AchievementItem[]; open: boolean }) {
   const sorted = [...items].sort((a, b) => order[a.status] - order[b.status] || a.name.localeCompare(b.name, "id"));
   const done = items.filter((item) => item.status === "tercapai").length;
   const behind = sorted.filter((item) => item.status === "belum_tercapai");
@@ -31,8 +31,8 @@ function SectorBlock({ sector, items }: { sector: string; items: AchievementItem
   const summary = behind.length
     ? `${done} dari ${items.length} indikator tercapai. ${behind.length} belum tercapai${worst && worst.latest_value !== null && worst.target_value !== null ? `; selisih terbesar pada ${plain(worst.name)}: ${num(worst.latest_value)} dari target ${num(worst.target_value)} (${worst.latest_year}).` : "."}${missing.length ? ` ${missing.length} belum ada realisasi.` : ""}`
     : `${done} dari ${items.length} indikator tercapai.${missing.length ? ` ${missing.length} belum ada realisasi yang terbit.` : ""}`;
-  return <section className="achv-sector" aria-label={plain(sector)}>
-    <header><h3>{plain(sector)}</h3><Badge tone={behind.length ? "warning" : missing.length ? "neutral" : "success"}>{done} dari {items.length} tercapai</Badge></header>
+  return <details className="achv-sector" open={open}>
+    <summary><h3>{plain(sector)}</h3><span className="achv-badges">{behind.length > 0 && <Badge tone="warning">{behind.length} belum tercapai</Badge>}{missing.length > 0 && <Badge tone="neutral">{missing.length} belum ada data</Badge>}<Badge tone="success">{done} tercapai</Badge></span></summary>
     <p className="achv-summary">{summary}</p>
     <div className="table-scroll"><table className="all-table achv-table"><thead><tr><th>Indikator</th><th>Realisasi</th><th>Target</th><th>Selisih</th><th>Status</th></tr></thead><tbody>
       {sorted.map((item) => <tr key={item.indicator_id}>
@@ -47,7 +47,7 @@ function SectorBlock({ sector, items }: { sector: string; items: AchievementItem
       <div><dt>Tindak lanjut</dt><dd><ul>{[...behind, ...missing].map((item) => <li key={item.indicator_id}><b>{plain(item.name)}.</b> {plain(item.follow_up)}</li>)}</ul></dd></div>
       <div><dt>OPD yang perlu diarahkan</dt><dd>{opds.length ? opds.join(", ") : "OPD penanggung jawab belum dipetakan."}</dd></div>
     </dl>}
-  </section>;
+  </details>;
 }
 
 /** Capaian terhadap target RPJMD: yang belum tercapai di depan agar Bupati dapat langsung mengarahkan OPD. */
@@ -63,7 +63,8 @@ function downloadCsv(items: AchievementItem[]) {
 }
 
 export function AchievementSection({ data }: { data: AchievementResponse }) {
-  const [showAll, setShowAll] = useState(false);
+  const [view, setView] = useState<"sektor" | "opd">("sektor");
+  const [allSectors, setAllSectors] = useState(false);
   const groups = useMemo(() => {
     const map = new Map<string, AchievementItem[]>();
     for (const item of data.items) map.set(item.sector, [...(map.get(item.sector) ?? []), item]);
@@ -80,25 +81,25 @@ export function AchievementSection({ data }: { data: AchievementResponse }) {
         (item.status === "belum_tercapai" ? row.behind : row.missing).push(plain(item.name)); map.set(opd, row);
       }
     }
-    return [...map.values()].sort((a, b) => b.behind.length - a.behind.length || b.missing.length - a.missing.length).slice(0, 8);
+    return [...map.values()].sort((a, b) => b.behind.length - a.behind.length || b.missing.length - a.missing.length);
   }, [data.items]);
-  const shown = showAll ? attention : attention.slice(0, 4);
   return <section className="panel-card achievement" aria-labelledby="capaian">
-    <header className="card-head"><div><h2 id="capaian">Capaian target RPJMD</h2><p>Realisasi terbit terbaru dibandingkan target tahun yang sama. Sektor dengan indikator belum tercapai ditampilkan lebih dulu.</p></div><button type="button" className="button secondary" onClick={() => downloadCsv(data.items)}>Unduh CSV</button></header>
-    {attention.length === 0 ? <p className="muted">Seluruh indikator bertarget sudah tercapai.</p> : <>
-      <h3 className="achv-heading">Belum tercapai atau belum ada data ({attention.length} sektor)</h3>
-      {shown.map((group) => <SectorBlock key={group.sector} sector={group.sector} items={group.items} />)}
-      {attention.length > 4 && <button type="button" className="button secondary" onClick={() => setShowAll((value) => !value)}>{showAll ? "Tampilkan lebih sedikit" : `Tampilkan ${attention.length - 4} sektor lainnya`}</button>}
-    </>}
-    {opdBoard.length > 0 && <>
-      <h3 className="achv-heading">OPD yang perlu diarahkan</h3>
-      <div className="table-scroll"><table className="all-table"><thead><tr><th>OPD</th><th>Belum tercapai</th><th>Belum ada data</th></tr></thead><tbody>
+    <header className="card-head"><div><h2 id="capaian">Capaian target RPJMD</h2><p>Realisasi terbit terbaru dibandingkan target tahun yang sama.</p></div><button type="button" className="button secondary" onClick={() => downloadCsv(data.items)}>Unduh CSV</button></header>
+    <div className="chip-row" role="group" aria-label="Kelompokkan capaian">
+      <button type="button" className={`chip${view === "sektor" ? " active" : ""}`} aria-pressed={view === "sektor"} onClick={() => setView("sektor")}>Per sektor</button>
+      <button type="button" className={`chip${view === "opd" ? " active" : ""}`} aria-pressed={view === "opd"} onClick={() => setView("opd")}>Per OPD</button>
+    </div>
+    {view === "sektor" ? (attention.length === 0 ? <p className="muted">Seluruh indikator bertarget sudah tercapai.</p> : <>
+      <h3 className="achv-heading">Perlu tindakan ({attention.length} sektor)</h3>
+      <div className="achv-list">{(allSectors ? attention : attention.slice(0, 8)).map((group, index) => <SectorBlock key={group.sector} sector={group.sector} items={group.items} open={index === 0} />)}</div>
+      {attention.length > 8 && <button type="button" className="button secondary" aria-expanded={allSectors} onClick={() => setAllSectors((value) => !value)}>{allSectors ? "Tampilkan 8 sektor teratas saja" : `Tampilkan ${attention.length - 8} sektor lainnya`}</button>}
+    </>) : <>
+      <h3 className="achv-heading">OPD yang perlu diarahkan ({opdBoard.length})</h3>
+      {opdBoard.length === 0 ? <p className="muted">Tidak ada OPD yang perlu diarahkan.</p> : <div className="table-scroll"><table className="all-table"><thead><tr><th>OPD</th><th>Belum tercapai</th><th>Belum ada data</th></tr></thead><tbody>
         {opdBoard.map((row) => <tr key={row.opd}><td><strong>{row.opd}</strong></td><td>{row.behind.length ? <><b>{row.behind.length}</b><small>{row.behind.join("; ")}</small></> : "-"}</td><td>{row.missing.length ? <><b>{row.missing.length}</b><small>{row.missing.join("; ")}</small></> : "-"}</td></tr>)}
-      </tbody></table></div>
+      </tbody></table></div>}
     </>}
-    {achieved.length > 0 && <>
-      <h3 className="achv-heading">Sudah tercapai ({achieved.length} sektor)</h3>
-      <ul className="achv-done">{achieved.map((group) => <li key={group.sector}><Badge tone="success">Tercapai</Badge><span><strong>{plain(group.sector)}</strong><small>{group.items.map((item) => `${plain(item.name)} ${item.latest_value === null ? "" : num(item.latest_value)}`.trim()).join("; ")}</small></span></li>)}</ul>
-    </>}
+    {view === "sektor" && achieved.length > 0 && <details className="achv-achieved"><summary>Sudah tercapai ({achieved.length} sektor)</summary>
+      <ul className="achv-done">{achieved.map((group) => <li key={group.sector}><Badge tone="success">Tercapai</Badge><span><strong>{plain(group.sector)}</strong><small>{group.items.map((item) => `${plain(item.name)} ${item.latest_value === null ? "" : num(item.latest_value)}`.trim()).join("; ")}</small></span></li>)}</ul></details>}
   </section>;
 }
