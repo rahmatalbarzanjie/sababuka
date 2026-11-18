@@ -71,8 +71,13 @@ export class AchievementService {
       const direction = row.direction ?? inferDirection(row.name);
       const latestYear = row.latest_year;
       const latestValue = row.latest_value === null ? null : Number(row.latest_value);
-      const opds = (opdMap.get(row.indicator_id) ?? []).sort((a, b) => Number(b.primary) - Number(a.primary)).map((entry) => entry.label);
-      const opdText = opds.length > 1 ? `${opds.slice(0, -1).join(", ")} dan ${opds[opds.length - 1]}` : opds[0] ?? "OPD penanggung jawab";
+      const entries = (opdMap.get(row.indicator_id) ?? []).sort((a, b) => Number(b.primary) - Number(a.primary));
+      const opds = entries.map((entry) => entry.label);
+      const joinNames = (names: string[]) => names.length > 1 ? `${names.slice(0, -1).join(", ")} dan ${names[names.length - 1]}` : names[0] ?? "";
+      const leadNames = entries.filter((entry) => entry.primary).map((entry) => entry.label);
+      const opdText = joinNames(leadNames.length > 0 ? leadNames : opds.slice(0, 1)) || "OPD penanggung jawab";
+      const supportNames = opds.filter((label) => !leadNames.includes(label));
+      const supportText = leadNames.length > 0 && supportNames.length > 0 ? ` Dukungan: ${joinNames(supportNames)}.` : "";
       const unit = plainDash(row.unit_symbol || row.unit_name || "");
       const base = { indicator_id: row.indicator_id, name: plainDash(row.name), sector: plainDash(row.category_name), unit, source_kind: row.origin_type === "rpjmd_master" ? "rpjmd" as const : "opd" as const, direction, opds };
       const referenceYear = Math.min(Math.max(currentYear, Math.min(...byYear.keys())), MAX_TARGET_YEAR);
@@ -91,7 +96,7 @@ export class AchievementService {
         status: achieved ? "tercapai" as const : "belum_tercapai" as const,
         follow_up: achieved
           ? `Target ${latestYear} tercapai (${fmt(latestValue)} dari target ${fmt(target)}). ${opdText} perlu menjaga capaian dan mendokumentasikan praktik yang berhasil.`
-          : `Selisih ${fmt(Math.abs(gap))}${unit ? ` ${unit}` : ""} dari target ${latestYear} (${fmt(latestValue)} dari ${fmt(target)}). ${opdText} perlu menyampaikan rencana percepatan beserta penyebab selisih kepada Bupati, dan BAPPERIDA memantau setiap triwulan.`,
+          : `Selisih ${fmt(Math.abs(gap))}${unit ? ` ${unit}` : ""} dari target ${latestYear} (${fmt(latestValue)} dari ${fmt(target)}). ${opdText} perlu menyampaikan rencana percepatan beserta penyebab selisih kepada Bupati, dan BAPPERIDA memantau setiap triwulan.${supportText}`,
       };
     });
     const count = (status: AchievementStatus) => items.filter((item) => item.status === status).length;
