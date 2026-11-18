@@ -18,7 +18,7 @@ const insights = [make("a", "Angka Melek Huruf", [90, 92, 94, 95, 96, 97], ["Din
 const agent = new AgentService({} as Database);
 
 test("alat tersedia lengkap dan prompt membatasi ruang lingkup Kapuas", () => {
-  assert.deepEqual(AGENT_TOOLS.map((tool) => tool.name).sort(), ["ambil_kecamatan", "ambil_tren", "cari_indikator", "indikator_opd", "perubahan_terbesar", "ringkasan_umum", "skor_opd"]);
+  assert.deepEqual(AGENT_TOOLS.map((tool) => tool.name).sort(), ["ambil_kecamatan", "ambil_tren", "capaian_target", "cari_indikator", "indikator_opd", "perubahan_terbesar", "ringkasan_umum", "skor_opd"]);
   assert.match(AGENT_SYSTEM_PROMPT, /HANYA hal yang berkaitan dengan Kabupaten Kapuas/);
 });
 
@@ -45,6 +45,16 @@ test("perubahan_terbesar, indikator_opd, ringkasan, dan alat tak dikenal", () =>
   assert.equal(opd.jumlah, 1);
   assert.equal((agent.execute("ringkasan_umum", {}, insights).result as { indikator_dianalisis: number }).indikator_dianalisis, 2);
   assert.ok("galat" in (agent.execute("hapus_semua", {}, insights).result as object));
+});
+
+test("capaian_target menyajikan status terhadap target tanpa menghitung ulang", () => {
+  const item = (name: string, status: string, latest: number | null, target: number, gapPct: number | null) => ({ indicator_id: name, name, sector: "S", unit: "%", source_kind: "rpjmd", latest_year: latest === null ? null : 2025, latest_value: latest, target_year: 2025, target_value: target, gap: latest === null ? null : latest - target, gap_pct: gapPct, status, opds: ["Dinsos"], follow_up: "x" });
+  const rows = [item("A", "belum_tercapai", 5.48, 5, -9.6), item("B", "tercapai", 7, 5, 40), item("C", "belum_ada_data", null, 5, null)] as never;
+  const result = agent.execute("capaian_target", {}, insights, rows).result as { tercapai: number; belum_tercapai: number; belum_ada_realisasi: number; indikator: Array<{ nama: string; selisih: string }> };
+  assert.deepEqual([result.tercapai, result.belum_tercapai, result.belum_ada_realisasi], [1, 1, 1]);
+  assert.deepEqual(result.indikator.map((entry) => entry.nama), ["A"]);
+  assert.equal(result.indikator[0]!.selisih, "0,48");
+  assert.match(AGENT_SYSTEM_PROMPT, /belum menyimpan tanggapan atau rencana OPD/);
 });
 
 test("angka di luar hasil alat terdeteksi", () => {

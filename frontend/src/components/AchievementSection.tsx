@@ -8,7 +8,7 @@ import { plain } from "../text";
 export type AchievementStatus = "tercapai" | "belum_tercapai" | "belum_ada_data" | "tanpa_arah" | "tanpa_target";
 export interface AchievementItem {
   indicator_id: string; name: string; sector: string; unit: string; source_kind: "rpjmd" | "opd";
-  latest_year: number | null; latest_value: number | null; target_year: number | null; target_value: number | null;
+  direction?: "increase" | "decrease" | null; latest_year: number | null; latest_value: number | null; target_year: number | null; target_value: number | null;
   gap: number | null; gap_pct: number | null; status: AchievementStatus; opds: string[]; follow_up: string;
 }
 export interface AchievementResponse {
@@ -17,6 +17,8 @@ export interface AchievementResponse {
   items: AchievementItem[];
 }
 
+export type AchievementFilter = "semua" | "tercapai" | "belum_tercapai" | "belum_ada_data";
+const filterLabel: Record<AchievementFilter, string> = { semua: "Semua", tercapai: "Tercapai", belum_tercapai: "Belum tercapai", belum_ada_data: "Belum ada realisasi" };
 const statusLabel: Record<AchievementStatus, string> = { tercapai: "Tercapai", belum_tercapai: "Belum tercapai", belum_ada_data: "Belum ada data", tanpa_arah: "Arah belum ditetapkan", tanpa_target: "Target belum ada" };
 const tone = (status: AchievementStatus) => status === "tercapai" ? "success" : status === "belum_tercapai" ? "danger" : "neutral";
 const order: Record<AchievementStatus, number> = { belum_tercapai: 0, belum_ada_data: 1, tanpa_target: 2, tanpa_arah: 3, tercapai: 4 };
@@ -33,7 +35,7 @@ function SectorBlock({ sector, items, open }: { sector: string; items: Achieveme
     ? `${done} dari ${items.length} indikator tercapai. ${behind.length} belum tercapai${worst && worst.latest_value !== null && worst.target_value !== null ? `; selisih terbesar pada ${plain(worst.name)}: ${num(worst.latest_value)} dari target ${num(worst.target_value)} (${worst.latest_year}).` : "."}${missing.length ? ` ${missing.length} belum ada realisasi.` : ""}`
     : `${done} dari ${items.length} indikator tercapai.${missing.length ? ` ${missing.length} belum ada realisasi yang terbit.` : ""}`;
   return <details className="achv-sector" open={open}>
-    <summary><h3>{plain(sector)}</h3><span className="achv-badges">{behind.length > 0 && <Badge tone="danger">{behind.length} belum tercapai</Badge>}{missing.length > 0 && <Badge tone="neutral">{missing.length} belum ada data</Badge>}<Badge tone="success">{done} tercapai</Badge></span></summary>
+    <summary><h3>{plain(sector)}</h3><span className="achv-badges">{behind.length > 0 && <Badge tone="danger">{behind.length} belum tercapai</Badge>}{missing.length > 0 && <Badge tone="neutral">{missing.length} belum ada data</Badge>}{done > 0 && <Badge tone="success">{done} tercapai</Badge>}</span></summary>
     <p className="achv-summary">{summary}</p>
     <div className="table-scroll"><table className="all-table achv-table"><thead><tr><th>Indikator</th><th>Realisasi</th><th>Target</th><th>Selisih</th><th>Status</th></tr></thead><tbody>
       {sorted.map((item) => <tr key={item.indicator_id}>
@@ -45,7 +47,7 @@ function SectorBlock({ sector, items, open }: { sector: string; items: Achieveme
       </tr>)}
     </tbody></table></div>
     {(behind.length > 0 || missing.length > 0) && <dl className="brief-list achv-brief">
-      <div><dt>Tindak lanjut</dt><dd><ul>{[...behind, ...missing].map((item) => <li key={item.indicator_id}><b>{plain(item.name)}.</b> {plain(item.follow_up)}</li>)}</ul></dd></div>
+      <div><dt>Arahan tindak lanjut (sistem, belum tanggapan OPD)</dt><dd><ul>{[...behind, ...missing].map((item) => <li key={item.indicator_id}><b>{plain(item.name)}.</b> {plain(item.follow_up)}</li>)}</ul></dd></div>
       <div><dt>OPD yang perlu diarahkan</dt><dd>{opds.length ? opds.join(", ") : "OPD penanggung jawab belum dipetakan."}</dd></div>
     </dl>}
   </details>;
@@ -63,19 +65,20 @@ function downloadCsv(items: AchievementItem[]) {
   URL.revokeObjectURL(url);
 }
 
-export function AchievementSection({ data }: { data: AchievementResponse }) {
+export function AchievementSection({ data, filter, onFilter }: { data: AchievementResponse; filter: AchievementFilter; onFilter(value: AchievementFilter): void }) {
   const [view, setView] = useState<"sektor" | "opd">("sektor");
   const [allSectors, setAllSectors] = useState(false);
+  const scoped = useMemo(() => filter === "semua" ? data.items : data.items.filter((item) => item.status === filter), [data.items, filter]);
   const groups = useMemo(() => {
     const map = new Map<string, AchievementItem[]>();
-    for (const item of data.items) map.set(item.sector, [...(map.get(item.sector) ?? []), item]);
+    for (const item of scoped) map.set(item.sector, [...(map.get(item.sector) ?? []), item]);
     return [...map.entries()].map(([sector, items]) => ({ sector, items, behind: items.filter((i) => i.status === "belum_tercapai").length, missing: items.filter((i) => i.status === "belum_ada_data").length }));
-  }, [data.items]);
-  const attention = groups.filter((g) => g.behind > 0 || g.missing > 0).sort((a, b) => b.behind - a.behind || b.missing - a.missing || a.sector.localeCompare(b.sector, "id"));
-  const achieved = groups.filter((g) => g.behind === 0 && g.missing === 0).sort((a, b) => a.sector.localeCompare(b.sector, "id"));
+  }, [scoped]);
+  const attention = groups.filter((g) => filter !== "semua" || g.behind > 0 || g.missing > 0).sort((a, b) => b.behind - a.behind || b.missing - a.missing || a.sector.localeCompare(b.sector, "id"));
+  const achieved = filter !== "semua" ? [] : groups.filter((g) => g.behind === 0 && g.missing === 0).sort((a, b) => a.sector.localeCompare(b.sector, "id"));
   const opdBoard = useMemo(() => {
     const map = new Map<string, { opd: string; behind: string[]; missing: string[] }>();
-    for (const item of data.items) {
+    for (const item of scoped) {
       if (item.status !== "belum_tercapai" && item.status !== "belum_ada_data") continue;
       for (const opd of item.opds.length ? item.opds : ["OPD belum dipetakan"]) {
         const row = map.get(opd) ?? { opd, behind: [], missing: [] };
@@ -83,16 +86,21 @@ export function AchievementSection({ data }: { data: AchievementResponse }) {
       }
     }
     return [...map.values()].sort((a, b) => b.behind.length - a.behind.length || b.missing.length - a.missing.length);
-  }, [data.items]);
+  }, [scoped]);
+  const effectiveView = filter === "tercapai" ? "sektor" : view;
   return <section className="panel-card achievement" aria-labelledby="capaian">
     <header className="card-head"><div><h2 id="capaian">Capaian target RPJMD</h2><p>Realisasi terbit terbaru dibandingkan target tahun yang sama.</p></div><button type="button" className="button secondary" onClick={() => downloadCsv(data.items)}>Unduh CSV</button></header>
-    <div className="chip-row" role="group" aria-label="Kelompokkan capaian">
+    <div className="chip-row" role="group" aria-label="Filter status capaian">{(Object.keys(filterLabel) as AchievementFilter[]).map((key) => {
+      const count = key === "semua" ? data.summary.total : data.summary[key];
+      return <button key={key} type="button" className={`chip${filter === key ? " active" : ""}`} aria-pressed={filter === key} onClick={() => onFilter(key)}>{filterLabel[key]} ({count})</button>;
+    })}</div>
+    {filter !== "tercapai" && <div className="chip-row" role="group" aria-label="Kelompokkan capaian">
       <button type="button" className={`chip${view === "sektor" ? " active" : ""}`} aria-pressed={view === "sektor"} onClick={() => setView("sektor")}>Per sektor</button>
       <button type="button" className={`chip${view === "opd" ? " active" : ""}`} aria-pressed={view === "opd"} onClick={() => setView("opd")}>Per OPD</button>
-    </div>
+    </div>}
     <InlineLegend label="Arti warna status" items={[{ tone: "success", name: "Tercapai", text: "realisasi memenuhi target tahun yang sama" }, { tone: "danger", name: "Belum tercapai", text: "realisasi di bawah target, perlu percepatan" }, { tone: "neutral", name: "Belum ada data", text: "realisasi belum diisi atau belum terbit" }]} />
-    {view === "sektor" ? (attention.length === 0 ? <p className="muted">Seluruh indikator bertarget sudah tercapai.</p> : <>
-      <h3 className="achv-heading">Perlu tindakan ({attention.length} sektor)</h3>
+    {effectiveView === "sektor" ? (attention.length === 0 ? <p className="muted">{filter === "semua" ? "Seluruh indikator bertarget sudah tercapai." : "Tidak ada indikator pada status ini."}</p> : <>
+      <h3 className="achv-heading">{filter === "semua" ? `Perlu tindakan (${attention.length} sektor)` : `${filterLabel[filter]}: ${scoped.length} indikator di ${attention.length} sektor`}</h3>
       <div className="achv-list">{(allSectors ? attention : attention.slice(0, 8)).map((group, index) => <SectorBlock key={group.sector} sector={group.sector} items={group.items} open={index === 0} />)}</div>
       {attention.length > 8 && <button type="button" className="button secondary" aria-expanded={allSectors} onClick={() => setAllSectors((value) => !value)}>{allSectors ? "Tampilkan 8 sektor teratas saja" : `Tampilkan ${attention.length - 8} sektor lainnya`}</button>}
     </>) : <>
@@ -101,7 +109,7 @@ export function AchievementSection({ data }: { data: AchievementResponse }) {
         {opdBoard.map((row) => <tr key={row.opd}><td><strong>{row.opd}</strong></td><td>{row.behind.length ? <><b>{row.behind.length}</b><small>{row.behind.join("; ")}</small></> : "-"}</td><td>{row.missing.length ? <><b>{row.missing.length}</b><small>{row.missing.join("; ")}</small></> : "-"}</td></tr>)}
       </tbody></table></div>}
     </>}
-    {view === "sektor" && achieved.length > 0 && <details className="achv-achieved"><summary>Sudah tercapai ({achieved.length} sektor)</summary>
+    {effectiveView === "sektor" && achieved.length > 0 && <details className="achv-achieved"><summary>Sudah tercapai ({achieved.length} sektor)</summary>
       <ul className="achv-done">{achieved.map((group) => <li key={group.sector}><Badge tone="success">Tercapai</Badge><span><strong>{plain(group.sector)}</strong><small>{group.items.map((item) => `${plain(item.name)} ${item.latest_value === null ? "" : num(item.latest_value)}`.trim()).join("; ")}</small></span></li>)}</ul></details>}
   </section>;
 }

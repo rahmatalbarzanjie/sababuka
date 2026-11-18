@@ -421,3 +421,44 @@ html[data-theme="dark"] .bank-import .chip.active { color: #0b1b2b; }
 .bank-import .panel-actions { padding: 0; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .bank-import .all-table td:last-child { text-align: right; white-space: nowrap; }
 .bank-import .all-table td:first-child small { max-width: 60ch; }
+
+/* Beranda: tiga angka utama yang dapat diklik ke daftar status */
+.exec-brief { grid-template-columns: 1fr; }
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.kpi { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 18px 20px; border: 1px solid var(--ui-rule); border-radius: 14px; background: var(--ui-surface); color: var(--ui-text); font: inherit; text-align: left; cursor: pointer; min-height: 44px; }
+.kpi:hover { border-color: var(--ui-accent); }
+.kpi:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 2px; }
+.kpi-n { font-size: 40px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.kpi-l { font-weight: 700; }
+.kpi-t { color: var(--ui-muted); font-size: 13px; line-height: 1.5; }
+.kpi-go { margin-top: 4px; font-weight: 600; font-size: 13px; color: var(--ui-accent); }
+.kpi.good { background: var(--exec-good-soft); } .kpi.good .kpi-n, .kpi.good .kpi-l { color: var(--exec-good); }
+.kpi.bad { background: var(--exec-bad-soft); } .kpi.bad .kpi-n, .kpi.bad .kpi-l { color: var(--exec-bad); }
+.kpi.neutral .kpi-n, .kpi.neutral .kpi-l { color: var(--ui-muted); }
+.link-button { border: 0; background: transparent; color: var(--ui-accent); font: inherit; font-weight: 600; cursor: pointer; padding: 8px 0; min-height: 44px; }
+.link-button:hover { text-decoration: underline; }
+.links-title { font-size: 18px; margin: 0 0 10px; }
+.links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.link-card { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; padding: 14px 16px; border: 1px solid var(--ui-rule); border-radius: 12px; background: var(--ui-surface); color: var(--ui-text); font: inherit; text-align: left; cursor: pointer; }
+.link-card b { color: var(--ui-accent); } .link-card span { color: var(--ui-muted); font-size: 13px; }
+.link-card:hover { border-color: var(--ui-accent); }
+@media (max-width: 760px) { .kpis, .links { grid-template-columns: 1fr; } }
+
+/* Lembar indikator: enam bagian bernomor */
+.step-no { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; margin-right: 10px; border-radius: 50%; background: var(--ui-accent); color: #fff; font-size: 13px; font-weight: 700; vertical-align: middle; }
+html[data-theme="dark"] .step-no { color: #0b1b2b; }
+.detail-buttons { display: inline-flex; flex-wrap: wrap; gap: 8px; }
+.detail-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.detail-stat { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 1px solid var(--ui-rule); border-radius: 10px; background: var(--ui-surface-subtle); }
+.detail-stat span { color: var(--ui-muted); font-size: 12.5px; } .detail-stat b { font-size: 22px; font-variant-numeric: tabular-nums; }
+.detail-stat b.small-b { font-size: 15px; } .detail-stat b.good { color: var(--exec-good); } .detail-stat b.bad { color: var(--exec-bad); }
+.empty-note { margin: 0; padding: 12px 14px; border: 1px dashed var(--ui-rule); border-radius: 10px; background: var(--ui-surface-subtle); color: var(--ui-muted); font-size: 13.5px; line-height: 1.55; }
+.detail-split { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); grid-template-areas: "map pick" "map rank"; gap: 14px 22px; align-items: start; }
+.detail-map { grid-area: map; min-width: 0; } .detail-pick { grid-area: pick; } .detail-rank { grid-area: rank; min-width: 0; }
+.detail-pick { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 10px; background: var(--ui-active); line-height: 1.5; }
+.detail-pick b { font-size: 18px; }
+.rank-pick { border: 0; background: transparent; padding: 0; color: var(--ui-accent); font: inherit; font-weight: 600; cursor: pointer; text-align: left; min-height: 36px; }
+.rank-pick:hover { text-decoration: underline; }
+.rank-list li.active { background: var(--ui-active); }
+@media (max-width: 900px) { .detail-split { grid-template-columns: 1fr; grid-template-areas: "pick" "map" "rank"; } }
+@media (max-width: 640px) { .detail-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
