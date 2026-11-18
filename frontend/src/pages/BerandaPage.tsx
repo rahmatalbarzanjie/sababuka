@@ -7,6 +7,7 @@ import { AppLink } from "../components/AppLink";
 import { DistrictMap, normalizeName, useKapuasGeography } from "../components/DistrictMap";
 import { DistrictSummaryPanel } from "../components/DistrictSummaryPanel";
 import { Legend } from "../components/Legend";
+import { LinkedSeries } from "../components/LinkedSeries";
 import { askAbout, askPath, indicatorPath, isVerified, num, pct, sector, statusOf, toneOf, type Assessment, type Insight } from "../insight";
 import { navigate } from "../router";
 import { Sparkline, TrendChart } from "../components/InsightVisuals";
@@ -51,7 +52,7 @@ function Spotlight({ item, rank }: { item: Insight; rank: number }) {
       <div><dt>OPD terkait</dt><dd>{item.opds.length ? item.opds.join(", ") : "OPD penanggung jawab belum dipetakan."}</dd></div>
     </dl>
     <div className="spotlight-actions"><AppLink to={indicatorPath(item.indicator_id)} className="button secondary">Lihat tabel dan grafik</AppLink><button type="button" className="button secondary" onClick={() => navigate(askPath(askAbout(item)))}><MessageCircle aria-hidden />Tanya Sababuka</button></div>
-    {item.links.length > 0 && <div className="spotlight-links"><b>Data pendukung dan pembanding (Bank Data, belum diverifikasi)</b><ul>{item.links.map((link) => <li key={`${link.relation}:${link.indicator_id}`}><Badge tone="neutral">{relationLabel[link.relation]}</Badge><span>{plain(link.name)}</span><strong>{num(link.latest_value)} {plain(link.unit)}</strong><small>{link.latest_year} · {pct(link.change_pct)}</small></li>)}</ul></div>}
+    <LinkedSeries links={item.links} baseYear={item.latest_year} />
     <footer>{item.opds.length > 0 && <span><Building2 aria-hidden />{item.opds.join(", ")}</span>}<small>Sumber: {plain(item.source_label)}{isVerified(item.source_kind) ? "" : " (Bank Data, belum diverifikasi)"}</small></footer>
   </article>;
 }
@@ -120,7 +121,7 @@ function AllIndicators({ insights }: { insights: Insight[] }) {
     </div>
     {rows.length === 0 ? <EmptyState title="Tidak ada indikator">Ubah filter atau kata kunci pencarian.</EmptyState> : <div className="table-scroll"><table className="all-table"><thead><tr><th>Indikator</th><th>Nilai terbaru</th><th>Tren</th><th>Perubahan</th><th>Status</th><th>OPD</th></tr></thead><tbody>
       {rows.map((item) => { const tone = toneOf(item.assessment); return <tr key={item.indicator_id}>
-        <td><strong><AppLink to={indicatorPath(item.indicator_id)}>{plain(item.name)}</AppLink></strong><small>{sector(item.category)} · Sumber: {plain(item.source_label)}</small></td>
+        <td><strong><AppLink to={indicatorPath(item.indicator_id)}>{plain(item.name)}</AppLink></strong><small>{sector(item.category)} · Sumber: {plain(item.source_label)}</small>{item.links.length > 0 && <details className="row-links"><summary>{item.links.length} data pendukung Bank Data</summary><LinkedSeries links={item.links} baseYear={item.latest_year} title={false} /></details>}</td>
         <td className="num"><strong>{num(item.latest_value)}</strong><small>{plain(item.unit)} · {item.latest_year}</small></td>
         <td>{item.series.length >= 2 ? <Sparkline points={item.series} tone={tone} /> : <small>Baru {item.series.length} tahun</small>}</td>
         <td className={`num ${tone}`}>{pct(item.change_pct)}</td>
