@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildReply, matchInsights, opdScoreboard, parseIntent, tokenize } from "../src/services/assistant-intents.js";
+import type { AchievementItem } from "../src/services/achievement-service.js";
 import type { Insight } from "../src/services/insight-service.js";
 import { analyzeDistricts, analyzeSeries, buildNarrative } from "../src/services/trend-engine.js";
 
@@ -42,7 +43,27 @@ test("jawaban indikator memuat tren, OPD, kecamatan, dan sumber", () => {
 
 test("indikator memburuk memunculkan tindak lanjut tanpa diminta", () => {
   const reply = buildReply("angka melek huruf", insights);
-  assert.match(reply.answer, /Tindak lanjut: Minta Dinas Pendidikan/);
+  assert.match(reply.answer, /\*\*Tindak lanjut\*\*\nMinta Dinas Pendidikan/);
+  assert.match(reply.answer, /^\*\*Kesimpulan\*\*\n/);
+});
+
+const capaian = (over: Partial<AchievementItem>): AchievementItem => ({ indicator_id: "x", name: "X", sector: "S", unit: "%", source_kind: "rpjmd", direction: "increase", opds: ["Dinas Pendidikan"], latest_year: 2025, latest_value: 90, target_year: 2025, target_value: 95, gap: -5, gap_pct: -5.3, status: "belum_tercapai", follow_up: "", ...over });
+
+test("jawaban indikator memuat capaian terhadap target bila indikator bertarget", () => {
+  const reply = buildReply("angka melek huruf", insights, [capaian({ indicator_id: "Angka Melek Huruf" })]);
+  assert.match(reply.answer, /\*\*Capaian terhadap target\*\*\nRealisasi 2025: 90 % dari target 95 %, belum tercapai/);
+});
+
+test("pertanyaan target tanpa indikator disebut memakai data capaian", () => {
+  const reply = buildReply("indikator mana yang belum mencapai target?", insights, [capaian({ name: "Indeks A" }), capaian({ name: "Indeks B", status: "tercapai", gap: 1, gap_pct: 1 })]);
+  assert.match(reply.answer, /1 tercapai, 1 belum tercapai/);
+  assert.match(reply.answer, /Indeks A/);
+});
+
+test("tanpa data kecamatan, jawaban tidak menyebut wilayah dan mencatat keterbatasannya", () => {
+  const reply = buildReply("produksi padi", insights);
+  assert.doesNotMatch(reply.answer, /Kecamatan/);
+  assert.match(reply.answer, /\*\*Keterbatasan data\*\*\nData per kecamatan untuk indikator ini belum tersedia/);
 });
 
 test("pertanyaan umum menghasilkan ringkasan prioritas", () => {

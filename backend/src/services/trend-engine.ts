@@ -161,7 +161,8 @@ export function buildNarrative(context: InsightContext): { headline: string; det
 
   let recommendation: string;
   if (analysis.assessment === "memburuk") {
-    const where = districts?.biggest_fall ? ` terutama di Kecamatan ${districts.biggest_fall.name}` : districts?.lowest[0] ? ` terutama di Kecamatan ${districts.lowest[0].name}` : "";
+    // Wilayah disebut hanya bila ada data kecamatan: penurunan terbesar untuk kemunduran, nilai terendah hanya sebagai penanda tingkat.
+    const where = districts?.biggest_fall ? ` terutama di Kecamatan ${districts.biggest_fall.name}` : districts?.lowest[0] ? `, dengan nilai terendah di Kecamatan ${districts.lowest[0].name}` : "";
     recommendation = `Minta ${opdText} menjelaskan penyebab kemunduran${where} dan menyiapkan langkah pemulihan dengan target tahun berikutnya.`;
   } else if (analysis.assessment === "membaik") {
     recommendation = `Pertahankan capaian: minta ${opdText} merinci program yang berhasil agar dapat direplikasi, dan periksa kecamatan yang tertinggal${districts?.lowest[0] ? ` (${districts.lowest[0].name})` : ""}.`;
