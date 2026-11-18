@@ -192,19 +192,19 @@ export async function governanceRoutes(app: FastifyInstance): Promise<void> {
     mutate(request, "indicator.verify");
     return service(request).updateIndicatorTechnicalMetadata(request.auth!, request.params.version_id, request.body, requestAuditContext(request));
   });
-  app.post<{ Params: { version_id: string; action: "submit" | "approve" | "verify" | "activate" | "retire" } }>(
+  app.post<{ Params: { version_id: string; action: "submit" | "approve" | "verify" | "activate" | "retire" | "return" }; Body?: { notes?: string | null } }>(
     "/indicator-versions/:version_id/actions/:action",
     {
       schema: { params: { type: "object", additionalProperties: false, required: ["version_id", "action"], properties: {
-        version_id: uuid, action: { type: "string", enum: ["submit", "approve", "verify", "activate", "retire"] },
-      } } },
+        version_id: uuid, action: { type: "string", enum: ["submit", "approve", "verify", "activate", "retire", "return"] },
+      } }, body: { type: "object", additionalProperties: false, properties: { notes: { type: ["string", "null"], maxLength: 2000 } } } },
     },
     async (request) => {
       const permission = request.params.action === "submit" ? "indicator.submit"
-        : request.params.action === "approve" ? "indicator.approve"
+        : request.params.action === "approve" || request.params.action === "return" ? "indicator.approve"
           : request.params.action === "verify" ? "indicator.verify" : "indicator.activate";
       mutate(request, permission);
-      return service(request).transitionIndicatorVersion(request.auth!, request.params.version_id, request.params.action, requestAuditContext(request));
+      return service(request).transitionIndicatorVersion(request.auth!, request.params.version_id, request.params.action, requestAuditContext(request), request.body?.notes ?? null);
     },
   );
   app.post<{ Params: { action: "submit" | "approve" | "verify" | "activate" | "retire" }; Body: { ids: string[] } }>(

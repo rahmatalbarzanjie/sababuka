@@ -618,7 +618,7 @@ export interface paths {
         put?: never;
         /**
          * Menjalankan transisi versi indikator
-         * @description Aksi `submit`, `approve`, `activate`, atau `retire`. Permission dan status
+         * @description Aksi `submit`, `approve`, `verify`, `activate`, `retire`, atau `return`. `return` (BAPPERIDA, izin `indicator.approve`) hanya dari status `in_review`: indikator kembali ke `draft` dengan `notes` wajib (min. 10 karakter), alasan ditampilkan ke pengaju dan dikirim sebagai notifikasi. Permission dan status
          *     asal diperiksa sesuai dokumen workflow MVP v1.
          */
         post: operations["transitionIndicatorVersion"];
@@ -3223,7 +3223,7 @@ export interface operations {
             };
             path: {
                 version_id: components["parameters"]["VersionId"];
-                action: "submit" | "approve" | "activate" | "retire";
+                action: "submit" | "approve" | "verify" | "activate" | "retire" | "return";
             };
             cookie?: never;
         };
