@@ -96,7 +96,7 @@ export function IndicatorDetailPage({ id }: { id: string }) {
   const spread = top && bottom && bottom.value > 0 ? top.value / bottom.value : null;
   const hasTrend = item.series.length >= 2;
   const shownRows = allYears ? rows : rows.slice(0, YEAR_ROWS);
-  const sections: Array<[string, string]> = [["capaian", "1 Capaian"], ["tren", "2 Tren"], ["tabulasi", "3 Tabulasi"], ["spasial", "4 Spasial"], ["sumber", "5 Sumber"], ["tindak-lanjut", "6 Tindak lanjut"]];
+  const sections: Array<[string, string]> = [["capaian", "1 Capaian"], ["tren", "2 Tren"], ["tabulasi", "3 Tabulasi"], ["spasial", "4 Spasial"], ["sumber", "5 Sumber"], ["tindak-lanjut", "6 Rekomendasi"]];
   const pickedItem = picked ? districts.find((entry) => normalizeName(entry.name) === normalizeName(picked)) : null;
   const pickedRank = pickedItem ? districts.indexOf(pickedItem) + 1 : 0;
   const pickedChange = pickedItem && pickedItem.previous ? ((pickedItem.value - pickedItem.previous) / Math.abs(pickedItem.previous)) * 100 : null;
@@ -187,9 +187,9 @@ export function IndicatorDetailPage({ id }: { id: string }) {
     </section>
 
     <section className="panel-card" id="tindak-lanjut" aria-labelledby="tindak-judul">
-      <header className="card-head"><div><h2 id="tindak-judul"><span className="step-no">6</span>Tindak lanjut OPD</h2></div><Badge tone="neutral">Belum ada tanggapan OPD</Badge></header>
-      {guidance ? <p><strong>Arahan sistem.</strong> {guidance}</p> : <p className="muted">Belum ada arahan tindak lanjut untuk indikator ini.</p>}
-      <p className="empty-note">Penyebab selisih dan rencana percepatan dari OPD belum tersimpan di sistem. Teks di atas adalah arahan baku yang dihitung dari data, bukan pernyataan OPD.</p>
+      <header className="card-head"><div><h2 id="tindak-judul"><span className="step-no">6</span>Rekomendasi kepada OPD</h2><p>Disusun otomatis dari selisih capaian dan tren indikator.</p></div></header>
+      {guidance ? <p>{guidance}</p> : <p className="muted">Belum ada rekomendasi untuk indikator ini.</p>}
+      {item.opds.length > 0 && <p className="muted">OPD penanggung jawab: {item.opds.join(", ")}.</p>}
     </section>
   </div>;
 }

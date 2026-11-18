@@ -18,7 +18,7 @@ function rings(feature: GeoFeature): number[][][] {
 }
 
 /** Warna berurutan: biru muda (nilai terendah) ke biru tua (nilai tertinggi). */
-function shade(ratio: number): string {
+export function shade(ratio: number): string {
   const from = [214, 232, 247]; const to = [19, 76, 135];
   const mix = from.map((start, index) => Math.round(start + (to[index]! - start) * ratio));
   return `rgb(${mix[0]}, ${mix[1]}, ${mix[2]})`;

@@ -47,7 +47,7 @@ function SectorBlock({ sector, items, open }: { sector: string; items: Achieveme
       </tr>)}
     </tbody></table></div>
     {(behind.length > 0 || missing.length > 0) && <dl className="brief-list achv-brief">
-      <div><dt>Arahan tindak lanjut (sistem, belum tanggapan OPD)</dt><dd><ul>{[...behind, ...missing].map((item) => <li key={item.indicator_id}><b>{plain(item.name)}.</b> {plain(item.follow_up)}</li>)}</ul></dd></div>
+      <div><dt>Rekomendasi kepada OPD</dt><dd><ul>{[...behind, ...missing].map((item) => <li key={item.indicator_id}><b>{plain(item.name)}.</b> {plain(item.follow_up)}</li>)}</ul></dd></div>
       <div><dt>OPD yang perlu diarahkan</dt><dd>{opds.length ? opds.join(", ") : "OPD penanggung jawab belum dipetakan."}</dd></div>
     </dl>}
   </details>;
