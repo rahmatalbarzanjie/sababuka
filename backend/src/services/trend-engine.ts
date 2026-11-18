@@ -19,7 +19,8 @@ export interface SeriesAnalysis {
   slope_pct_of_mean: number;
   trend: TrendLabel;
   assessment: Assessment;
-  streak: { direction: "naik" | "turun" | null; length: number };
+  /** Rangkaian naik atau turun berturut-turut; since adalah tahun awal rangkaian (tahun sebelum kenaikan pertama). */
+  streak: { direction: "naik" | "turun" | null; length: number; since: number | null };
   anomaly: { z_score: number; is_anomaly: boolean } | null;
   score: number;
 }
@@ -104,7 +105,7 @@ export function analyzeSeries(input: SeriesPoint[], direction: Direction = null)
     years: points.length, first_year: first.year, latest_year: latest.year, latest_value: latest.value,
     previous_year: previous.year, previous_value: previous.value, change, change_pct: changePct, cagr_pct: cagr,
     slope_per_year: slope, slope_pct_of_mean: slopePct, trend, assessment,
-    streak: { direction: streakDirection, length: streakLength }, anomaly, score: Math.round(score * 10) / 10,
+    streak: { direction: streakDirection, length: streakLength, since: streakLength > 0 ? points[points.length - 1 - streakLength]!.year : null }, anomaly, score: Math.round(score * 10) / 10,
   };
 }
 
@@ -150,7 +151,7 @@ export function buildNarrative(context: InsightContext): { headline: string; det
   const verb = conflicting ? "berfluktuasi" : analysis.trend === "naik" ? "meningkat" : analysis.trend === "turun" ? "menurun" : analysis.trend === "fluktuatif" ? "berfluktuasi" : "relatif stabil";
   const headline = `${name} ${verb}: ${idNumber(analysis.latest_value, 2)}${unitText} pada ${analysis.latest_year}${moved}.`;
   const parts: string[] = [];
-  if (analysis.streak.length >= 2 && analysis.streak.direction) parts.push(`${analysis.streak.direction === "naik" ? "Naik" : "Turun"} ${analysis.streak.length} tahun berturut-turut.`);
+  if (analysis.streak.length >= 2 && analysis.streak.direction) parts.push(`${analysis.streak.direction === "naik" ? "Naik" : "Turun"} ${analysis.streak.length} tahun berturut-turut${analysis.streak.since !== null ? ` (${analysis.streak.since}-${analysis.latest_year})` : ""}.`);
   if (analysis.cagr_pct !== null && analysis.years >= 4) parts.push(`Laju rata-rata ${formatPct(analysis.cagr_pct)} per tahun sejak ${analysis.first_year}.`);
   if (analysis.anomaly?.is_anomaly) parts.push("Perubahan terakhir tergolong tidak biasa dibanding riwayat sebelumnya.");
   if (districts?.biggest_fall && analysis.trend === "turun") parts.push(`Penurunan terbesar di Kecamatan ${districts.biggest_fall.name} (${formatPct(districts.biggest_fall.change_pct)}).`);

@@ -8,7 +8,7 @@ export interface Insight {
   limited?: boolean; source_url?: string | null;
   score: number; headline: string; detail: string; recommendation: string; opds: string[]; source_label: string; source_kind: string;
   series: Array<{ year: number; value: number }>;
-  analysis: { anomaly: { is_anomaly: boolean } | null; change_pct: number | null; previous_year: number | null; cagr_pct: number | null; years: number; first_year: number; streak: { direction: "naik" | "turun" | null; length: number } };
+  analysis: { anomaly: { is_anomaly: boolean } | null; change_pct: number | null; previous_year: number | null; cagr_pct: number | null; years: number; first_year: number; streak: { direction: "naik" | "turun" | null; length: number; since?: number | null } };
   district_latest: { year: number; items: DistrictValue[] } | null;
   links: Array<{ relation: "primary" | "supporting" | "comparison"; notes: string | null; indicator_id: string; name: string; unit: string; latest_year: number; latest_value: number; change_pct: number | null; trend: "naik" | "turun" | "stabil" | "fluktuatif"; source_label: string }>;
 }

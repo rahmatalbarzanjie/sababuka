@@ -121,7 +121,7 @@ export class InsightService {
       const lastPoint = ordered[ordered.length - 1];
       if (!lastPoint) continue;
       const analysis: NonNullable<typeof measured> = limited
-        ? { ...(measured ?? { years: ordered.length, first_year: ordered[0]!.year, latest_year: lastPoint.year, latest_value: lastPoint.value, previous_year: null, previous_value: null, change: null, change_pct: null, cagr_pct: null, slope_per_year: 0, slope_pct_of_mean: 0, trend: "stabil" as const, streak: { direction: null, length: 0 }, anomaly: null }), assessment: "netral", score: 0, anomaly: null }
+        ? { ...(measured ?? { years: ordered.length, first_year: ordered[0]!.year, latest_year: lastPoint.year, latest_value: lastPoint.value, previous_year: null, previous_value: null, change: null, change_pct: null, cagr_pct: null, slope_per_year: 0, slope_pct_of_mean: 0, trend: "stabil" as const, streak: { direction: null, length: 0, since: null }, anomaly: null }), assessment: "netral", score: 0, anomaly: null }
         : measured!;
 
       const latestYears = [...new Set([...districtSeries.values()].flatMap((series) => [...series.keys()]))].sort((a, b) => b - a);
@@ -143,7 +143,7 @@ export class InsightService {
         indicator_id: indicatorId, code: first.code, name: plainDash(first.name), category: plainDash(first.category_name), source_kind: sourceKind(first.origin_type, first.code),
         unit, latest_year: analysis.latest_year, latest_value: analysis.latest_value, change_pct: analysis.change_pct, trend: analysis.trend,
         assessment: analysis.assessment, score: analysis.score, ...narrative, opds, direction_inferred: !first.direction && direction !== null, source_label: plainDash(items.find((entry) => entry.source_name)?.source_name ?? "") || (sourceKind(first.origin_type, first.code) === "rpjmd" ? "RPJMD Kabupaten Kapuas" : "Sumber resmi"),
-        series: points.sort((a, b) => a.year - b.year).slice(-10), analysis, districts, district_latest: districtLatest, basis,
+        series: points.sort((a, b) => a.year - b.year).slice(query.indicatorId ? -40 : -10), analysis, districts, district_latest: districtLatest, basis,
       });
     }
 
