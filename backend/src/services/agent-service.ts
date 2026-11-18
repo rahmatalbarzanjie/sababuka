@@ -1,6 +1,7 @@
 import type { Database } from "../database.js";
 import type { AppConfig } from "../config.js";
 import { matchInsights, opdScoreboard, tokenize, type AssistantReply, type Visual } from "./assistant-intents.js";
+import { AchievementService, type AchievementItem } from "./achievement-service.js";
 import { InsightService, type Insight } from "./insight-service.js";
 import { LlmService, ungroundedNumbers, type ToolDefinition } from "./llm-service.js";
 
@@ -14,6 +15,7 @@ Cara kerja:
 5. Tulis seperti analis senior yang menyampaikan paparan singkat kepada Bupati: bahasa Indonesia baku, tenang, tegas, dan berbasis angka. Kalimat aktif dan pendek. Tanpa pembuka basa-basi ("Tentu", "Berikut"), tanpa emoji, tanpa kata sifat berlebihan, tanpa permintaan maaf. Jangan pernah memakai tanda pisah panjang (em dash) atau tanda pisah sedang (en dash); pakai tanda hubung biasa, koma, titik dua, atau titik.
 6. Setiap angka yang disebut wajib disertai asal sumbernya (RPJMD, usulan OPD, BPS Kapuas dalam Angka, atau Satu Data Kapuas) dan tahun datanya. Bila jawaban bersandar pada data berstatus "Bank Data (belum diverifikasi)", sebutkan dalam satu kalimat di bagian Catatan bahwa data itu belum diverifikasi OPD/BAPPERIDA. Peringkat OPD hanyalah arah perubahan indikator, bukan penilaian kinerja resmi.
 7. Jangan menyebut nama alat, "JSON", atau istilah teknis sistem. Jangan memakai tabel.
+8. Untuk pertanyaan tentang indikator yang sudah atau belum mencapai target, gunakan alat capaian target. Status tercapai atau belum tercapai (terhadap target) berbeda dari membaik atau memburuk (arah tren); sebut keduanya secara terpisah. Sistem belum menyimpan tanggapan atau rencana OPD, jadi jangan menyatakan OPD telah atau akan melakukan sesuatu.
 Format jawaban (gunakan hanya penanda ini: **tebal**, butir diawali "- ", daftar bernomor "1.", dan satu baris judul bagian berupa teks tebal sendirian):
 - Pertanyaan faktual sederhana: jawab langsung dalam 1-3 kalimat, tanpa judul bagian.
 - Pertanyaan analisis, tren, atau "apa yang perlu diperhatikan": gunakan bagian berikut, lewati yang tidak relevan:
@@ -32,6 +34,7 @@ export const AGENT_TOOLS: ToolDefinition[] = [
   { name: "skor_opd", description: "Peringkat OPD berdasarkan arah perubahan indikator yang menjadi tanggung jawabnya (jumlah membaik dan memburuk). Bukan penilaian kinerja resmi.", input_schema: { type: "object", properties: {} } },
   { name: "indikator_opd", description: "Daftar indikator di bawah tanggung jawab satu OPD, diurutkan dari yang paling perlu perhatian.", input_schema: { type: "object", properties: { nama_opd: { type: "string", description: "sebagian nama OPD, mis. 'Pendidikan'" }, batas: { type: "integer", minimum: 1, maximum: 15 } }, required: ["nama_opd"] } },
   { name: "perubahan_terbesar", description: "Indikator dengan perubahan paling menonjol: yang memburuk, membaik, naik, turun, atau anomali.", input_schema: { type: "object", properties: { jenis: { type: "string", enum: ["memburuk", "membaik", "naik", "turun", "anomali"] }, sumber: { type: "string", enum: ["rpjmd", "bps", "satudata"] }, batas: { type: "integer", minimum: 1, maximum: 10 } }, required: ["jenis"] } },
+  { name: "capaian_target", description: "Capaian indikator RPJMD terhadap target tahun yang sama: jumlah tercapai, belum tercapai, dan belum ada realisasi, beserta daftar indikatornya (realisasi, target, selisih, OPD). Gunakan untuk pertanyaan tentang indikator yang sudah atau belum mencapai target.", input_schema: { type: "object", properties: { status: { type: "string", enum: ["tercapai", "belum_tercapai", "belum_ada_data"] }, batas: { type: "integer", minimum: 1, maximum: 15 } } } },
   { name: "ringkasan_umum", description: "Gambaran umum: jumlah indikator yang dianalisis, berapa yang membaik/memburuk/anomali, dan indikator paling perlu perhatian.", input_schema: { type: "object", properties: {} } },
 ];
 
@@ -49,7 +52,7 @@ export interface AgentRun { answer: string; visuals: Visual[]; sources: Assistan
 export class AgentService {
   constructor(private readonly db: Database, private readonly config?: AppConfig) {}
 
-  execute(name: string, input: Record<string, unknown>, insights: Insight[]): { result: unknown; focus?: Insight; visual?: Visual } {
+  execute(name: string, input: Record<string, unknown>, insights: Insight[], achievement: AchievementItem[] = []): { result: unknown; focus?: Insight; visual?: Visual } {
     const text = (key: string) => String(input[key] ?? "").trim();
     const limit = (fallback: number, max: number) => Math.min(max, Math.max(1, Number(input.batas) || fallback));
     const byId = (id: string) => insights.find((item) => item.indicator_id === id);
@@ -97,6 +100,18 @@ export class AgentService {
         pool = pool.filter((item) => kind === "anomali" ? item.analysis.anomaly?.is_anomaly : kind === "memburuk" || kind === "membaik" ? item.assessment === kind : item.trend === kind);
         return { result: { jenis: kind, jumlah_total: pool.length, indikator: pool.sort((a, b) => b.score - a.score).slice(0, limit(5, 10)).map(brief) } };
       }
+      case "capaian_target": {
+        const status = text("status");
+        const count = (key: AchievementItem["status"]) => achievement.filter((item) => item.status === key).length;
+        const pool = status ? achievement.filter((item) => item.status === status) : achievement.filter((item) => item.status === "belum_tercapai");
+        const sorted = [...pool].sort((a, b) => Math.abs(b.gap_pct ?? 0) - Math.abs(a.gap_pct ?? 0)).slice(0, limit(8, 15));
+        return { result: {
+          catatan: "Status menilai realisasi terbit terbaru terhadap target RPJMD tahun yang sama. Berbeda dari penilaian tren (membaik atau memburuk).",
+          jumlah_indikator_bertarget: achievement.length, tercapai: count("tercapai"), belum_tercapai: count("belum_tercapai"), belum_ada_realisasi: count("belum_ada_data"),
+          daftar_status: status || "belum_tercapai",
+          indikator: sorted.map((item) => ({ nama: item.name, sektor: item.sector, opd: item.opds, satuan: item.unit, tahun_realisasi: item.latest_year, realisasi: item.latest_value === null ? null : num(item.latest_value), tahun_target: item.target_year, target: item.target_value === null ? null : num(item.target_value), selisih: item.gap === null ? null : num(item.gap), status: item.status })),
+        } };
+      }
       case "ringkasan_umum": {
         const attention = insights.filter((item) => item.assessment === "memburuk" || item.analysis.anomaly?.is_anomaly).sort((a, b) => b.score - a.score).slice(0, 5);
         return { result: { indikator_dianalisis: insights.length, membaik: insights.filter((item) => item.assessment === "membaik").length, memburuk: insights.filter((item) => item.assessment === "memburuk").length, anomali: insights.filter((item) => item.analysis.anomaly?.is_anomaly).length, paling_perlu_perhatian: attention.map(brief) } };
@@ -110,6 +125,7 @@ export class AgentService {
     const llm = new LlmService(this.db, this.config);
     if (!(await llm.available())) return null;
     const insights = await new InsightService(this.db).all();
+    const achievement = (await new AchievementService(this.db).list()).items;
     const messages: Array<{ role: "user" | "assistant"; content: unknown }> = [...history.slice(-6), { role: "user", content: question }];
     const evidence: string[] = [question];
     const visuals: Visual[] = []; const focus: Insight[] = []; const toolsUsed: string[] = [];
@@ -120,7 +136,7 @@ export class AgentService {
         const calls = reply.content.filter((block) => block.type === "tool_use");
         messages.push({ role: "assistant", content: reply.content });
         const results = calls.map((call) => {
-          const outcome = this.execute(String(call.name), (call.input ?? {}) as Record<string, unknown>, insights);
+          const outcome = this.execute(String(call.name), (call.input ?? {}) as Record<string, unknown>, insights, achievement);
           toolsUsed.push(String(call.name));
           if (outcome.visual && visuals.length < 3 && !visuals.some((visual) => visual.title === outcome.visual!.title)) visuals.push(outcome.visual);
           if (outcome.focus && !focus.includes(outcome.focus)) focus.push(outcome.focus);
