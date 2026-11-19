@@ -88,6 +88,17 @@ test("agen mengembalikan null bila model terus memakai angka di luar data", asyn
   process.env.ANTHROPIC_API_KEY = "sk-ant-test-key-1234567890";
   const db = { query: async () => ({ rows: [], rowCount: 0 }) } as unknown as Database;
   globalThis.fetch = (async () => new Response(JSON.stringify({ stop_reason: "end_turn", content: [{ type: "text", text: "Totalnya 4.321 jiwa." }] }), { status: 200 })) as typeof fetch;
-  try { assert.equal(await new AgentService(db).run("Berapa penduduk?", []), null); }
-  finally { globalThis.fetch = originalFetch; delete process.env.ANTHROPIC_API_KEY; }
+  try {
+    const service = new AgentService(db);
+    assert.equal(await service.run("Berapa penduduk?", []), null);
+    assert.equal(service.failure, "angka_tidak_terverifikasi");
+  } finally { globalThis.fetch = originalFetch; delete process.env.ANTHROPIC_API_KEY; }
+});
+
+test("agen mencatat alasan bila model tidak tersedia", async () => {
+  delete process.env.ANTHROPIC_API_KEY;
+  const db = { query: async () => ({ rows: [], rowCount: 0 }) } as unknown as Database;
+  const service = new AgentService(db);
+  assert.equal(await service.run("Berapa penduduk?", []), null);
+  assert.equal(service.failure, "llm_tidak_tersedia");
 });

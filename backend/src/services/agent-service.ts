@@ -49,7 +49,11 @@ const brief = (insight: Insight) => ({
 
 export interface AgentRun { answer: string; visuals: Visual[]; sources: AssistantReply["sources"]; toolsUsed: string[]; model: string }
 
+/** Alasan agen tidak menghasilkan jawaban; dicatat di audit agar kegagalan ke mesin aturan dapat ditelusuri. */
+export type AgentFailure = "llm_tidak_tersedia" | "jawaban_kosong" | "angka_tidak_terverifikasi" | "langkah_habis";
+
 export class AgentService {
+  failure: AgentFailure | null = null;
   constructor(private readonly db: Database, private readonly config?: AppConfig) {}
 
   execute(name: string, input: Record<string, unknown>, insights: Insight[], achievement: AchievementItem[] = []): { result: unknown; focus?: Insight; visual?: Visual } {
@@ -123,7 +127,8 @@ export class AgentService {
   /** Jalankan percakapan beralat. Mengembalikan null bila model tidak tersedia atau jawaban tidak lolos pemeriksaan angka. */
   async run(question: string, history: Array<{ role: "user" | "assistant"; content: string }>): Promise<AgentRun | null> {
     const llm = new LlmService(this.db, this.config);
-    if (!(await llm.available())) return null;
+    this.failure = null;
+    if (!(await llm.available())) { this.failure = "llm_tidak_tersedia"; return null; }
     const insights = await new InsightService(this.db).all();
     const achievement = (await new AchievementService(this.db).list()).items;
     const messages: Array<{ role: "user" | "assistant"; content: unknown }> = [...history.slice(-6), { role: "user", content: question }];
@@ -148,7 +153,7 @@ export class AgentService {
         continue;
       }
       const answer = reply.content.filter((block) => block.type === "text").map((block) => String(block.text ?? "")).join("").trim();
-      if (!answer) return null;
+      if (!answer) { this.failure = "jawaban_kosong"; return null; }
       const bad = ungroundedNumbers(answer, evidence.join(" "));
       if (bad.length && !corrected) {
         corrected = true;
@@ -156,9 +161,10 @@ export class AgentService {
         messages.push({ role: "user", content: `Angka berikut tidak ada pada hasil data: ${bad.join(", ")}. Tulis ulang jawaban hanya dengan angka yang tertulis pada hasil data (tanpa menghitung sendiri). Jika angka itu memang diperlukan tetapi tidak tersedia, katakan datanya tidak ada.` });
         continue;
       }
-      if (bad.length) return null;
+      if (bad.length) { this.failure = "angka_tidak_terverifikasi"; return null; }
       return { answer, visuals, toolsUsed, model: llm.modelName(), sources: focus.slice(0, 4).map((item) => ({ label: `${item.name} · ${item.latest_year}`, indicator: item.name, year: item.latest_year, source: item.source_label, indicator_id: item.indicator_id, source_url: item.source_url })) };
     }
+    this.failure = "langkah_habis";
     return null;
   }
 }

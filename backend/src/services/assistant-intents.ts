@@ -1,5 +1,6 @@
 import type { Insight } from "./insight-service.js";
 import { formatPct } from "./trend-engine.js";
+import type { AchievementItem } from "./achievement-service.js";
 
 const STOP = new Set(["apa", "apakah", "berapa", "bagaimana", "gimana", "dan", "atau", "yang", "dari", "untuk", "pada", "di", "ke", "tahun", "data", "capaian", "indikator", "tampilkan", "jelaskan", "nilai", "tolong", "dong", "saya", "kita", "kapuas", "kabupaten", "ini", "itu", "ada", "saja", "mana", "siapa", "sih", "lagi", "terbaru", "sekarang", "tren", "perkembangan", "kondisi", "rekomendasi", "saran", "kecamatan", "wilayah", "opd", "dinas", "bertanggung", "jawab", "penanggung", "dengan", "oleh", "akan", "bisa", "mohon", "lihat", "beri", "berikan"]);
 
@@ -7,7 +8,7 @@ export const tokenize = (value: string) => [...new Set(value.toLocaleLowerCase("
 
 export interface Intent {
   rankOpd: boolean; overview: boolean; district: boolean; opd: boolean; recommendation: boolean;
-  worsening: boolean; improving: boolean; year: number | null; tokens: string[];
+  worsening: boolean; improving: boolean; target: boolean; year: number | null; tokens: string[];
 }
 
 export function parseIntent(question: string): Intent {
@@ -22,6 +23,7 @@ export function parseIntent(question: string): Intent {
     recommendation: /rekomendasi|saran|tindak lanjut|harus|sebaiknya|langkah|solusi/u.test(text),
     worsening: /turun|menurun|memburuk|buruk|masalah|mundur|naik tajam/u.test(text),
     improving: /membaik|meningkat|bagus|berhasil|maju/u.test(text),
+    target: /target|tercapai|belum capai|capai(an)? (target|rpjmd)|realisasi/u.test(text),
     year: year ? Number(year[1]) : null,
     tokens,
   };
@@ -100,11 +102,35 @@ function opdReply(insights: Insight[]): AssistantReply {
   };
 }
 
-export function buildReply(question: string, insights: Insight[]): AssistantReply {
+const statusLabel: Record<AchievementItem["status"], string> = { tercapai: "tercapai", belum_tercapai: "belum tercapai", belum_ada_data: "belum ada realisasi", tanpa_target: "belum punya target tahun itu", tanpa_arah: "arah baik-buruk belum ditetapkan" };
+
+/** Satu kalimat capaian terhadap target tahun yang sama (kosong bila indikator tidak bertarget). */
+function targetLine(item: AchievementItem): string {
+  if (item.status === "belum_ada_data") return `Realisasi belum terbit; target ${item.target_year ?? "-"} ${item.target_value === null ? "belum ada" : num(item.target_value)}.`;
+  if (item.target_value === null || item.latest_value === null) return `Status capaian: ${statusLabel[item.status]}.`;
+  const unit = item.unit ? ` ${item.unit}` : "";
+  return `Realisasi ${item.latest_year}: ${num(item.latest_value)}${unit} dari target ${num(item.target_value)}${unit}, ${statusLabel[item.status]}${item.gap === null ? "" : ` (selisih ${num(Math.abs(item.gap))}${unit})`}.`;
+}
+
+function targetReply(achievement: AchievementItem[]): AssistantReply {
+  const count = (status: AchievementItem["status"]) => achievement.filter((item) => item.status === status).length;
+  const behind = achievement.filter((item) => item.status === "belum_tercapai").sort((a, b) => Math.abs(b.gap_pct ?? 0) - Math.abs(a.gap_pct ?? 0)).slice(0, 5);
+  if (!achievement.length) return { facts: null, answer: "Belum ada indikator RPJMD bertarget yang dapat dinilai.", visuals: [], suggestions: [], sources: [], sufficiency: "insufficient" };
+  const lines = behind.map((item) => `- ${item.name}: ${targetLine(item)} ${item.opds.length ? `OPD: ${item.opds.slice(0, 2).join(", ")}.` : ""}`.trim());
+  const answer = [
+    `**Kesimpulan**\nDari ${achievement.length} indikator bertarget, ${count("tercapai")} tercapai, ${count("belum_tercapai")} belum tercapai, dan ${count("belum_ada_data")} belum ada realisasi.`,
+    behind.length ? `**Belum tercapai dengan selisih terbesar**\n${lines.join("\n")}` : "",
+    "**Keterbatasan data**\nCapaian dinilai dari realisasi terbit terbaru terhadap target tahun yang sama; sebaran per kecamatan hanya tersedia untuk indikator yang memiliki data kecamatan.",
+  ].filter(Boolean).join("\n\n");
+  return { facts: { mode: "capaian_target", tercapai: count("tercapai"), belum_tercapai: count("belum_tercapai"), belum_ada_realisasi: count("belum_ada_data"), selisih_terbesar: behind.map((item) => ({ indikator: item.name, status: item.status, opd: item.opds })) }, answer, visuals: [], suggestions: behind.slice(0, 2).map((item) => `Apa rekomendasi untuk ${item.name}?`), sources: [], sufficiency: "partial" };
+}
+
+export function buildReply(question: string, insights: Insight[], achievement: AchievementItem[] = []): AssistantReply {
   const intent = parseIntent(question);
   if (intent.rankOpd) return opdReply(insights);
   const matches = intent.overview && !intent.tokens.length ? [] : matchInsights(intent.tokens, insights);
   const total = insights.length;
+  if (intent.target && !matches.length) return targetReply(achievement);
 
   if (!matches.length) {
     const wantsGood = intent.improving && !intent.worsening;
@@ -121,27 +147,37 @@ export function buildReply(question: string, insights: Insight[]): AssistantRepl
   }
 
   const top = matches[0]!.insight;
-  const parts: string[] = [];
+  const conclusion: string[] = []; const reading: string[] = []; const region: string[] = []; const limits: string[] = [];
+  const targetItem = achievement.find((item) => item.indicator_id === top.indicator_id);
   const visuals: Visual[] = [{ kind: "trend", title: top.name, unit: top.unit, indicator_id: top.indicator_id, points: top.series }];
   if (intent.year) {
     const at = top.series.find((point) => point.year === intent.year);
     const before = top.series.find((point) => point.year === intent.year! - 1);
-    parts.push(at ? `${top.name} pada ${intent.year}: ${num(at.value)}${top.unit ? ` ${top.unit}` : ""}${before && before.value !== 0 ? ` (${formatPct(((at.value - before.value) / Math.abs(before.value)) * 100)} dari ${intent.year - 1})` : ""}.` : `Tidak ada data ${top.name} untuk ${intent.year}. Data tersedia ${top.analysis.first_year}-${top.analysis.latest_year}.`);
+    conclusion.push(at ? `${top.name} pada ${intent.year}: ${num(at.value)}${top.unit ? ` ${top.unit}` : ""}${before && before.value !== 0 ? ` (${formatPct(((at.value - before.value) / Math.abs(before.value)) * 100)} dari ${intent.year - 1})` : ""}.` : `Tidak ada data ${top.name} untuk ${intent.year}. Data tersedia ${top.analysis.first_year}-${top.analysis.latest_year}.`);
   }
-  parts.push(top.headline);
-  if (top.detail) parts.push(top.detail);
-  if (top.opds.length) parts.push(`OPD penanggung jawab: ${top.opds.join(", ")}.`);
+  conclusion.push(top.headline);
+  if (top.detail) reading.push(top.detail);
   if (intent.district && top.districts) {
     const d = top.districts;
-    parts.push(`Per kecamatan (${top.latest_year}): tertinggi ${d.highest.map((item) => `${item.name} (${num(item.value)})`).join(", ")}; terendah ${d.lowest.map((item) => `${item.name} (${num(item.value)})`).join(", ")}.`);
+    region.push(`Per kecamatan (${top.latest_year}): tertinggi ${d.highest.map((item) => `${item.name} (${num(item.value)})`).join(", ")}; terendah ${d.lowest.map((item) => `${item.name} (${num(item.value)})`).join(", ")}.`);
     visuals.push({ kind: "districts", title: `${top.name} per kecamatan`, indicator_id: top.indicator_id, unit: top.unit, year: top.latest_year, items: [...d.highest, ...d.lowest.slice().reverse()].filter((item, index, all) => all.findIndex((other) => other.name === item.name) === index).map((item) => ({ name: item.name, value: item.value })) });
-  } else if (intent.district && !top.districts) parts.push("Data per kecamatan untuk indikator ini belum tersedia.");
-  if (intent.recommendation || top.assessment === "memburuk" || top.analysis.anomaly?.is_anomaly) parts.push(`Tindak lanjut: ${top.recommendation}`);
+  } else if (!top.districts) limits.push("Data per kecamatan untuk indikator ini belum tersedia, sehingga wilayah prioritas belum dapat ditentukan.");
+  if (!targetItem && top.source_kind === "rpjmd") limits.push("Indikator ini belum memiliki target tahunan yang dapat dinilai.");
+  const section = (title: string, lines: string[]) => lines.length ? `**${title}**\n${lines.join(" ")}` : "";
+  const parts = [
+    section("Kesimpulan", conclusion),
+    targetItem ? section("Capaian terhadap target", [targetLine(targetItem)]) : "",
+    section("Pembacaan", reading),
+    section("Wilayah", region),
+    top.opds.length ? section("OPD penanggung jawab", [top.opds.join(", ") + "."]) : "",
+    intent.recommendation || top.assessment === "memburuk" || top.analysis.anomaly?.is_anomaly || targetItem?.status === "belum_tercapai" ? section("Tindak lanjut", [targetItem?.status === "belum_tercapai" ? targetItem.follow_up : top.recommendation]) : "",
+    section("Keterbatasan data", limits),
+  ].filter(Boolean);
   const others = matches.slice(1);
   const suggestions = [
     top.districts && !intent.district ? `Bagaimana sebaran ${top.name} per kecamatan?` : null,
     !intent.recommendation ? `Apa rekomendasi untuk ${top.name}?` : null,
     ...others.map((item) => `Bagaimana tren ${item.insight.name}?`),
   ].filter((value): value is string => Boolean(value)).slice(0, 3);
-  return { facts: { mode: "indikator", tahun_ditanyakan: intent.year, indikator: matches.map((item) => factOf(item.insight)) }, answer: parts.join(" "), visuals, suggestions, sources: [sourceOf(top), ...others.map((item) => sourceOf(item.insight))], sufficiency: top.analysis.years >= 4 ? "sufficient" : "partial" };
+  return { facts: { mode: "indikator", tahun_ditanyakan: intent.year, indikator: matches.map((item) => factOf(item.insight)) }, answer: parts.join("\n\n"), visuals, suggestions, sources: [sourceOf(top), ...others.map((item) => sourceOf(item.insight))], sufficiency: top.analysis.years >= 4 ? "sufficient" : "partial" };
 }

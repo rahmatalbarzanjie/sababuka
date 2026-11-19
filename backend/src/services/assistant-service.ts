@@ -6,7 +6,8 @@ import { recordAudit, type AuditContext } from "./audit-service.js";
 import { buildReply } from "./assistant-intents.js";
 import { InsightService } from "./insight-service.js";
 import { LlmService } from "./llm-service.js";
-import { AgentService } from "./agent-service.js";
+import { AgentService, type AgentFailure } from "./agent-service.js";
+import { AchievementService } from "./achievement-service.js";
 import type { AppConfig } from "../config.js";
 
 const stopWords = new Set(["apa", "berapa", "bagaimana", "dan", "atau", "yang", "dari", "untuk", "pada", "di", "ke", "tahun", "data", "capaian", "indikator", "tampilkan", "jelaskan", "nilai"]);
@@ -38,9 +39,18 @@ export class AssistantService {
     const session = await this.db.query(`SELECT id FROM sababuka.assistant_sessions WHERE id = $1 AND user_id = $2 AND status = 'active'`, [sessionId, auth.user.id]);
     if (!session.rows[0]) throw new ApiError(404, "NOT_FOUND", "Sesi asisten tidak ditemukan atau sudah ditutup.");
     const history = await this.db.query<{ message_role: "user" | "assistant"; content: string }>(`SELECT message_role, content FROM sababuka.assistant_messages WHERE session_id = $1 AND message_role IN ('user','assistant') ORDER BY created_at DESC LIMIT 6`, [sessionId]);
+    const recent = history.rows.reverse().map((row) => ({ role: row.message_role, content: row.content }));
     let agent: Awaited<ReturnType<AgentService["run"]>> = null;
-    try { agent = await new AgentService(this.db, this.config).run(question, history.rows.reverse().map((row) => ({ role: row.message_role, content: row.content }))); } catch { agent = null; }
-    const insightReply = buildReply(question, await new InsightService(this.db).all());
+    let failure: AgentFailure | "galat_sistem" | null = null; let failureDetail: string | null = null; let attempts = 0;
+    // Satu percobaan ulang untuk kegagalan sementara; model yang memang tidak dikonfigurasi tidak diulang.
+    while (!agent && attempts < 2) {
+      attempts += 1;
+      const service = new AgentService(this.db, this.config);
+      try { agent = await service.run(question, recent); failure = agent ? null : service.failure; failureDetail = null; } catch (error) { agent = null; failure = "galat_sistem"; failureDetail = plainDash(error instanceof Error ? error.message : String(error)).slice(0, 200); }
+      if (failure === "llm_tidak_tersedia") break;
+    }
+    const achievement = (await new AchievementService(this.db).list()).items;
+    const insightReply = buildReply(question, await new InsightService(this.db).all(), achievement);
     if (agent) {
       insightReply.answer = plainDash(agent.answer); insightReply.visuals = agent.visuals; insightReply.sources = agent.sources.length ? agent.sources : insightReply.sources;
       insightReply.sufficiency = "sufficient"; insightReply.suggestions = [];
@@ -48,10 +58,12 @@ export class AssistantService {
     {
       const narrated = !agent && insightReply.facts ? await new LlmService(this.db, this.config).narrate(question, insightReply.facts, insightReply.answer) : null;
       if (narrated) insightReply.answer = narrated.text;
+      const degraded = !agent && failure !== null && failure !== "llm_tidak_tersedia";
+      if (degraded) insightReply.answer = `${insightReply.answer}\n\n**Catatan**\nJawaban ini disusun oleh mesin aturan karena analisis lengkap asisten sedang tidak tersedia. Ulangi pertanyaan beberapa saat lagi untuk analisis yang lebih lengkap.`;
       insightReply.answer = plainDash(insightReply.answer);
       const asked = await this.db.query<{ id: string }>(`INSERT INTO sababuka.assistant_messages (session_id, message_role, content, structured_data, request_id) VALUES ($1, 'user', $2, '{}'::jsonb, $3) RETURNING id::text`, [sessionId, question, audit.requestId]);
-      const replied = await this.db.query<{ id: string }>(`INSERT INTO sababuka.assistant_messages (session_id, message_role, content, model_name, structured_data, request_id) VALUES ($1, 'assistant', $2, $5, $3::jsonb, $4) RETURNING id::text`, [sessionId, insightReply.answer, JSON.stringify({ sufficiency: insightReply.sufficiency, retrieval: "trend_engine", narrated_by: agent?.model ?? narrated?.model ?? "rules", tools: agent?.toolsUsed ?? [], user_message_id: asked.rows[0]!.id, sources: insightReply.sources }), audit.requestId, agent?.model ?? narrated?.model ?? "sababuka-insight-v1"]);
-      await recordAudit(this.db, { ...audit, eventType: "assistant.answer_generated", entityType: "assistant_session", entityId: sessionId, metadata: { sufficiency: insightReply.sufficiency, citation_count: insightReply.sources.length, engine: "trend_engine" } });
+      const replied = await this.db.query<{ id: string }>(`INSERT INTO sababuka.assistant_messages (session_id, message_role, content, model_name, structured_data, request_id) VALUES ($1, 'assistant', $2, $5, $3::jsonb, $4) RETURNING id::text`, [sessionId, insightReply.answer, JSON.stringify({ sufficiency: insightReply.sufficiency, retrieval: "trend_engine", narrated_by: agent?.model ?? narrated?.model ?? "rules", answer_mode: agent ? "agent" : "aturan", agent_failure: failure, attempts, tools: agent?.toolsUsed ?? [], user_message_id: asked.rows[0]!.id, sources: insightReply.sources }), audit.requestId, agent?.model ?? narrated?.model ?? "sababuka-insight-v1"]);
+      await recordAudit(this.db, { ...audit, eventType: "assistant.answer_generated", entityType: "assistant_session", entityId: sessionId, metadata: { sufficiency: insightReply.sufficiency, citation_count: insightReply.sources.length, engine: agent ? "agent" : "trend_engine", agent_failure: failure, agent_failure_detail: failureDetail, attempts } });
       return { message_id: replied.rows[0]!.id, answer: insightReply.answer, citations: insightReply.sources.map((entry) => ({ publication_item_id: entry.label, label: entry.label, indicator: entry.indicator, period: String(entry.year), organization: "", source: entry.source, indicator_id: entry.indicator_id, source_url: entry.source_url })), sufficiency: insightReply.sufficiency, visuals: insightReply.visuals, suggestions: insightReply.suggestions };
     }
   }
