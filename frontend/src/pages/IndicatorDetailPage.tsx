@@ -190,7 +190,7 @@ export function IndicatorDetailPage({ id }: { id: string }) {
 
     <section className="panel-card" id="lintas-opd" aria-labelledby="lintas-judul">
       <header className="card-head"><div><h2 id="lintas-judul"><span className="step-no">6</span>Keterkaitan lintas OPD</h2><p>Indikator dan OPD lain pada isu atau fokus yang sama, dibandingkan hanya pada tahun yang sama.</p></div></header>
-      <CrossAnalysisSection cross={cross} />
+      <CrossAnalysisSection cross={cross} onChanged={data.reload} />
     </section>
 
     <section className="panel-card" id="tindak-lanjut" aria-labelledby="tindak-judul">

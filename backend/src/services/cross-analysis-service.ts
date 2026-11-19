@@ -11,9 +11,14 @@ export interface IndicatorContext {
 }
 
 export type RelationKind = "tautan_seri" | "isu_sama" | "fokus_sama";
+export type ReviewStatus = "confirmed" | "rejected";
+/** Kunci pasangan indikator tanpa urutan: dipakai untuk validasi BAPPERIDA. */
+export const pairKey = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
+/** Perbandingan pada tahun bersama terbaru kedua seri, dengan perubahan dari tahun sebelumnya bila tersedia di keduanya. */
+export interface JointComparison { year: number; mine: number; related: number; mine_change_pct: number | null; related_change_pct: number | null; movement: "searah" | "berlawanan" | "stabil" | null }
 export interface RelatedIndicator {
-  indicator_id: string; name: string; unit: string; relation: RelationKind; relation_label: string; validated: boolean;
-  latest_year: number; latest_value: number; same_year_value: number | null; year_match: boolean;
+  indicator_id: string; name: string; unit: string; relation: RelationKind; relation_label: string; validated: boolean; review: "confirmed" | null;
+  latest_year: number; latest_value: number; same_year_value: number | null; year_match: boolean; compare: JointComparison | null;
   status: AchievementItem["status"] | null; target_year: number | null; target_value: number | null;
   trend: Insight["trend"]; assessment: Insight["assessment"]; opds: string[];
   correlation: { rho: number; years: number; direction: "searah" | "berlawanan" } | null;
@@ -27,6 +32,7 @@ export interface CrossAnalysis {
   opd: { primary: string[]; support: string[]; support_text: string | null; basis: string | null };
   related: RelatedIndicator[];
   pending: PendingIndicator[];
+  rejected: Array<{ indicator_id: string; name: string }>;
   correlation: { eligible: number; total: number; min_years: number };
   districts: { available: boolean; year: number | null; year_matches: boolean; direction_known: boolean; priority: PriorityDistrict[] };
   recommendations: CrossRecommendation[];
@@ -77,11 +83,29 @@ const relationLabel: Record<RelationKind, string> = { tautan_seri: "Tautan Seri 
 const joinNames = (names: string[]) => names.length > 1 ? `${names.slice(0, -1).join(", ")} dan ${names[names.length - 1]}` : names[0] ?? "";
 const needsAttention = (item: { status: AchievementItem["status"] | null; assessment: Insight["assessment"] }) => item.status === "belum_tercapai" || item.assessment === "memburuk";
 
-export interface CrossInput { indicatorId: string; insights: Insight[]; achievement: AchievementItem[]; contexts: Map<string, IndicatorContext> }
+export interface CrossInput { indicatorId: string; insights: Insight[]; achievement: AchievementItem[]; contexts: Map<string, IndicatorContext>; reviews?: Map<string, ReviewStatus> }
+
+const STABLE_PCT = 0.5;
+const changePct = (series: Array<{ year: number; value: number }>, year: number): number | null => {
+  const now = series.find((point) => point.year === year); const before = series.find((point) => point.year === year - 1);
+  return now && before && before.value !== 0 ? ((now.value - before.value) / Math.abs(before.value)) * 100 : null;
+};
+
+/** Bandingkan dua seri pada tahun bersama terbaru, bukan pada tahun terbaru masing-masing. */
+export function jointComparison(a: Array<{ year: number; value: number }>, b: Array<{ year: number; value: number }>): JointComparison | null {
+  const byYear = new Map(b.map((point) => [point.year, point.value]));
+  const shared = a.filter((point) => byYear.has(point.year)).map((point) => point.year);
+  if (!shared.length) return null;
+  const year = Math.max(...shared);
+  const mine = changePct(a, year); const other = changePct(b, year);
+  const movement = mine === null || other === null ? null : Math.abs(mine) < STABLE_PCT && Math.abs(other) < STABLE_PCT ? "stabil" as const : Math.abs(mine) < STABLE_PCT || Math.abs(other) < STABLE_PCT ? null : Math.sign(mine) === Math.sign(other) ? "searah" as const : "berlawanan" as const;
+  return { year, mine: a.find((point) => point.year === year)!.value, related: byYear.get(year)!, mine_change_pct: mine === null ? null : Math.round(mine * 10) / 10, related_change_pct: other === null ? null : Math.round(other * 10) / 10, movement };
+}
 
 /** Analisis silang satu indikator: posisi terhadap target, indikator terkait, wilayah prioritas, dan rekomendasi per OPD. Murni dari data tersimpan. */
 export function buildCrossAnalysis(input: CrossInput): CrossAnalysis | null {
   const { indicatorId, insights, achievement, contexts } = input;
+  const reviews = input.reviews ?? new Map<string, ReviewStatus>();
   const me = insights.find((item) => item.indicator_id === indicatorId);
   if (!me) return null;
   const ctx = contexts.get(indicatorId) ?? null;
@@ -90,11 +114,13 @@ export function buildCrossAnalysis(input: CrossInput): CrossAnalysis | null {
   const linked = new Set(me.links.map((link) => link.indicator_id));
 
   const candidates = new Map<string, { insight: Insight; kind: RelationKind }>();
+  const rejected: Array<{ indicator_id: string; name: string }> = [];
   for (const link of me.links) { const found = insights.find((item) => item.indicator_id === link.indicator_id); if (found) candidates.set(found.indicator_id, { insight: found, kind: "tautan_seri" }); }
   if (ctx) for (const item of insights) {
     if (item.indicator_id === indicatorId || candidates.has(item.indicator_id)) continue;
     const other = contexts.get(item.indicator_id);
     if (!other) continue;
+    if (reviews.get(pairKey(indicatorId, item.indicator_id)) === "rejected") { rejected.push({ indicator_id: item.indicator_id, name: item.name }); continue; }
     if (other.issue_group === ctx.issue_group) candidates.set(item.indicator_id, { insight: item, kind: "isu_sama" });
     else if (ctx.focus_number !== null && other.focus_number === ctx.focus_number) candidates.set(item.indicator_id, { insight: item, kind: "fokus_sama" });
   }
@@ -102,10 +128,11 @@ export function buildCrossAnalysis(input: CrossInput): CrossAnalysis | null {
   const related: RelatedIndicator[] = [...candidates.values()].map(({ insight, kind }) => {
     const target = achievementById.get(insight.indicator_id) ?? null;
     const sameYear = insight.series.find((point) => point.year === me.latest_year)?.value ?? null;
+    const confirmed = reviews.get(pairKey(indicatorId, insight.indicator_id)) === "confirmed" && kind !== "tautan_seri";
     const corr = sharedYearCorrelation(me.series, insight.series);
     return {
-      indicator_id: insight.indicator_id, name: insight.name, unit: insight.unit, relation: kind, relation_label: relationLabel[kind], validated: linked.has(insight.indicator_id),
-      latest_year: insight.latest_year, latest_value: insight.latest_value, same_year_value: sameYear, year_match: insight.latest_year === me.latest_year,
+      indicator_id: insight.indicator_id, name: insight.name, unit: insight.unit, relation: kind, relation_label: confirmed ? "Divalidasi BAPPERIDA" : relationLabel[kind], validated: linked.has(insight.indicator_id) || confirmed, review: confirmed ? "confirmed" as const : null,
+      latest_year: insight.latest_year, latest_value: insight.latest_value, same_year_value: sameYear, year_match: insight.latest_year === me.latest_year, compare: jointComparison(me.series, insight.series),
       status: target?.status ?? null, target_year: target?.target_year ?? null, target_value: target?.target_value ?? null,
       trend: insight.trend, assessment: insight.assessment, opds: contexts.get(insight.indicator_id)?.primary_opds.length ? contexts.get(insight.indicator_id)!.primary_opds : insight.opds,
       correlation: corr ? { rho: corr.rho, years: corr.years, direction: corr.rho >= 0 ? "searah" as const : "berlawanan" as const } : null,
@@ -155,7 +182,8 @@ export function buildCrossAnalysis(input: CrossInput): CrossAnalysis | null {
   if (!ctx) limits.push("Indikator ini belum masuk matriks fokus RPJMD, sehingga indikator terkait hanya berasal dari Tautan Seri Data.");
   else if (!related.length) limits.push("Belum ada indikator terkait yang datanya tersedia.");
   if (related.some((item) => !item.validated)) limits.push("Keterkaitan berdasarkan kelompok isu dan fokus adalah usulan sistem, belum divalidasi BAPPERIDA.");
-  if (related.some((item) => !item.year_match)) limits.push("Sebagian indikator terkait tidak memiliki data pada tahun yang sama; nilainya tidak dibandingkan langsung.");
+  if (related.some((item) => !item.year_match && item.compare)) limits.push("Sebagian indikator terkait berakhir pada tahun berbeda; perbandingan memakai tahun bersama terbaru, bukan nilai terbarunya.");
+  if (related.some((item) => !item.compare)) limits.push("Sebagian indikator terkait tidak punya tahun yang sama dengan indikator ini, sehingga tidak dibandingkan.");
   if (eligible === 0 && related.length) limits.push(`Korelasi belum dapat dihitung: butuh minimal ${MIN_CORRELATION_YEARS} tahun data bersama.`);
   if (!districts.available) limits.push("Indikator ini belum memiliki data per kecamatan, sehingga wilayah prioritas belum dapat ditentukan.");
   else if (!districts.direction_known) limits.push("Arah baik-buruk indikator belum ditetapkan, sehingga wilayah prioritas belum dapat diurutkan.");
@@ -167,7 +195,7 @@ export function buildCrossAnalysis(input: CrossInput): CrossAnalysis | null {
     indicator: { indicator_id: me.indicator_id, name: me.name, unit: me.unit, source_kind: me.source_kind, focus_number: ctx?.focus_number ?? null, focus_name: ctx?.focus_name ?? null, issue_group: ctx?.issue_group ?? me.category, sheet_code: ctx?.sheet_code ?? null, rpjmd_level: ctx?.rpjmd_level ?? null, rpjmd_page: ctx?.rpjmd_page ?? null, official_source: ctx?.official_source ?? null },
     position: { status: mine?.status ?? null, latest_year: me.latest_year, latest_value: me.latest_value, target_year: mine?.target_year ?? null, target_value: mine?.target_value ?? null, gap: mine?.gap ?? null, trend: me.trend, assessment: me.assessment, direction },
     opd: { primary, support, support_text: ctx?.support_text ?? null, basis: ctx?.opd_basis ?? null },
-    related, pending, correlation: { eligible, total: related.length, min_years: MIN_CORRELATION_YEARS }, districts, recommendations, limits: limits.map(plainDash),
+    related, pending, rejected, correlation: { eligible, total: related.length, min_years: MIN_CORRELATION_YEARS }, districts, recommendations, limits: limits.map(plainDash),
   };
 }
 
@@ -182,9 +210,10 @@ export function formatCrossAnalysis(analysis: CrossAnalysis): string {
     : `${analysis.indicator.name}: ${num(position.latest_value)}${unit} pada ${position.latest_year}. Tren ${position.trend}; belum ada target tahunan yang dapat dinilai.`;
   const factors = related.slice(0, 5).map((item) => {
     const yearNote = item.year_match ? `${item.latest_year}` : `${item.latest_year}, tahun berbeda`;
+    const joint = item.compare && !item.year_match ? ` Pada ${item.compare.year} (tahun bersama): ${num(item.compare.mine)} dan ${num(item.compare.related)}${item.compare.movement ? `, bergerak ${item.compare.movement}` : ""}.` : item.compare?.movement ? ` Dari tahun sebelumnya bergerak ${item.compare.movement}.` : "";
     const target = item.status ? `, ${statusText[item.status]}` : "";
     const corr = item.correlation && Math.abs(item.correlation.rho) >= STRONG_CORRELATION ? `, korelasi ${num(item.correlation.rho)} (${item.correlation.direction}, ${item.correlation.years} tahun)` : "";
-    return `- ${item.name}: ${num(item.latest_value)}${item.unit ? ` ${item.unit}` : ""} (${yearNote})${target}, tren ${item.trend}${corr}. ${item.validated ? "Tautan BAPPERIDA" : "Usulan sistem"}.`;
+    return `- ${item.name}: ${num(item.latest_value)}${item.unit ? ` ${item.unit}` : ""} (${yearNote})${target}, tren ${item.trend}${corr}. ${item.review === "confirmed" ? "Divalidasi BAPPERIDA" : item.validated ? "Tautan BAPPERIDA" : "Usulan sistem"}.${joint}`;
   });
   const waiting = analysis.pending.slice(0, 4).map((entry) => `- ${entry.name}: realisasi belum terbit${entry.opds.length ? ` (${entry.opds.slice(0, 2).join(", ")})` : ""}, belum dapat dibandingkan.`);
   const region = districts.priority.length
@@ -236,8 +265,14 @@ export class CrossAnalysisService {
     return map;
   }
 
+  /** Validasi BAPPERIDA atas keterkaitan usulan sistem, per pasangan indikator. */
+  async reviews(): Promise<Map<string, ReviewStatus>> {
+    const rows = await this.db.query<QueryResultRow & { indicator_a: string; indicator_b: string; status: ReviewStatus }>(`SELECT indicator_a::text, indicator_b::text, status FROM sababuka.indicator_relation_reviews`);
+    return new Map(rows.rows.map((row) => [pairKey(row.indicator_a, row.indicator_b), row.status]));
+  }
+
   async analyze(indicatorId: string): Promise<CrossAnalysis | null> {
-    const [insights, achievement, contexts] = await Promise.all([new InsightService(this.db).all(), new AchievementService(this.db).list().then((result) => result.items), this.contexts()]);
-    return buildCrossAnalysis({ indicatorId, insights, achievement, contexts });
+    const [insights, achievement, contexts, reviews] = await Promise.all([new InsightService(this.db).all(), new AchievementService(this.db).list().then((result) => result.items), this.contexts(), this.reviews()]);
+    return buildCrossAnalysis({ indicatorId, insights, achievement, contexts, reviews });
   }
 }

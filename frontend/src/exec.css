@@ -493,3 +493,6 @@ html[data-theme="dark"] .step-no { color: #0b1b2b; }
 .cross-recs li { display: grid; gap: 2px; padding: 12px 0; border-top: 1px solid var(--ui-rule); line-height: 1.55; }
 .cross-recs li:first-child { border-top: 0; padding-top: 0; }
 .cross-recs small { color: var(--ui-muted); font-size: 12px; }
+.cross-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.cross-actions .button { min-height: 36px; padding: 0 10px; font-size: 13px; }
+.link-button { background: none; border: 0; padding: 0; color: var(--ui-link, inherit); text-decoration: underline; font: inherit; cursor: pointer; min-height: 24px; }

@@ -1,10 +1,12 @@
 import type { FastifyInstance } from "fastify";
 import type { QueryResultRow } from "pg";
-import { requirePermission } from "../plugins/authentication.js";
+import { requireCsrf, requirePermission } from "../plugins/authentication.js";
+import { requestAuditContext } from "../request-context.js";
 import { AchievementService } from "../services/achievement-service.js";
 import { BankDataCatalogService } from "../services/bank-data-catalog-service.js";
 import { CrossAnalysisService } from "../services/cross-analysis-service.js";
 import { FocusService } from "../services/focus-service.js";
+import { RelationReviewService, type ReviewAction } from "../services/relation-review-service.js";
 import { DistrictSummaryService } from "../services/district-summary-service.js";
 import { InsightService } from "../services/insight-service.js";
 
@@ -240,6 +242,18 @@ export async function executiveRoutes(app: FastifyInstance): Promise<void> {
     const analysis = await new CrossAnalysisService(app.db).analyze(request.params.id);
     if (!analysis) return reply.code(404).send({ error: { code: "NOT_FOUND", message: "Indikator tidak ditemukan atau belum memiliki data terbit." } });
     return analysis;
+  });
+
+  app.put<{ Params: { id: string; related_id: string }; Body: { status: ReviewAction; note?: string | null } }>("/executive/indicators/:id/relations/:related_id", {
+    schema: {
+      params: { type: "object", additionalProperties: false, required: ["id", "related_id"], properties: { id: uuid, related_id: uuid } },
+      body: { type: "object", additionalProperties: false, required: ["status"], properties: { status: { type: "string", enum: ["confirmed", "rejected", "reset"] }, note: { type: ["string", "null"], maxLength: 500 } } },
+    },
+  }, async (request) => {
+    requireCsrf(request);
+    requirePermission(request, "executive_dashboard.view");
+    requirePermission(request, "connector.map");
+    return new RelationReviewService(app.db).set(request.auth!, request.params.id, request.params.related_id, request.body.status, request.body.note ?? null, requestAuditContext(request));
   });
 
   app.get("/executive/districts", async (request) => {
