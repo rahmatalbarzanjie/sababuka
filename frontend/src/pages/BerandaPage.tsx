@@ -1,4 +1,4 @@
-import { AlertTriangle, Database, Search, ArrowDownRight, ArrowUpRight, Building2, CheckCircle2, MessageCircle, Minus, TrendingUp } from "lucide-react";
+import { AlertTriangle, Clock, Database, Search, ArrowDownRight, ArrowUpRight, Building2, CheckCircle2, MessageCircle, Minus, TrendingUp } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { Badge, EmptyState, ErrorState, PageLoading, useAsync } from "../components";
@@ -7,6 +7,7 @@ import { AppLink } from "../components/AppLink";
 import { DistrictMap, normalizeName, shade, useKapuasGeography } from "../components/DistrictMap";
 import { DistrictSummaryPanel } from "../components/DistrictSummaryPanel";
 import { FocusSection } from "../components/FocusSection";
+import { IndicatorCards } from "../components/IndicatorCards";
 import { InlineLegend } from "../components/InlineLegend";
 import { Tabs } from "../components/Tabs";
 import { LinkedSeries } from "../components/LinkedSeries";
@@ -100,10 +101,10 @@ function SectorHealth({ insights }: { insights: Insight[] }) {
 type StatusFilter = "semua" | Assessment;
 
 /** Seluruh indikator kinerja dalam satu tabel agar Bupati melihat gambaran lengkap, bukan hanya yang perlu perhatian. */
-function AllIndicators({ insights }: { insights: Insight[] }) {
+function AllIndicators({ insights, initialQuery = "" }: { insights: Insight[]; initialQuery?: string }) {
   const [status, setStatus] = useState<StatusFilter>("semua");
   const [sectorFilter, setSectorFilter] = useState("");
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
   const [limit, setLimit] = useState(12);
   const sectors = useMemo(() => [...new Set(insights.map((item) => sector(item.category)))].sort((a, b) => a.localeCompare(b, "id")), [insights]);
   const counts = useMemo(() => ({ semua: insights.length, membaik: insights.filter((i) => i.assessment === "membaik").length, memburuk: insights.filter((i) => i.assessment === "memburuk").length, netral: insights.filter((i) => i.assessment === "netral").length }), [insights]);
@@ -194,7 +195,10 @@ export function BerandaPage() {
     return () => window.removeEventListener("hashchange", sync);
   }, []);
   const [capFilter, setCapFilter] = useState<AchievementFilter>("semua");
+  const [search, setSearch] = useState("");
+  const [draft, setDraft] = useState("");
   const changeTab = (id: string) => { setTab(id as DashTab); try { window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${id}`); } catch { /* alamat bersifat tambahan */ } };
+  const submitSearch = (event: React.FormEvent) => { event.preventDefault(); setSearch(draft.trim()); changeTab("indikator"); window.setTimeout(() => document.querySelector(".tabs-bar")?.scrollIntoView({ block: "start", behavior: "smooth" }), 0); };
   const openCapaian = (filter: AchievementFilter) => { setCapFilter(filter); changeTab("capaian"); window.setTimeout(() => document.querySelector(".tabs-bar")?.scrollIntoView({ block: "start", behavior: "smooth" }), 0); };
   const data = useAsync(async () => {
     const [kinerja, konteks, capaian] = await Promise.all([api<InsightsResponse>("/executive/insights?layer=kinerja&limit=100"), api<InsightsResponse>("/executive/insights?layer=konteks&limit=100"), api<AchievementResponse>("/executive/achievement")]);
@@ -206,9 +210,10 @@ export function BerandaPage() {
   const cap = capaian.summary;
   const capAssessed = cap.tercapai + cap.belum_tercapai;
   const donePct = capAssessed > 0 ? Math.round((cap.tercapai / capAssessed) * 100) : 0;
+  const headLead = capAssessed > 0 && cap.tercapai > 0 ? `${cap.tercapai} dari ${capAssessed}` : "";
+  const headRest = capAssessed > 0 && cap.tercapai > 0 ? ` indikator yang sudah memiliki realisasi telah mencapai target RPJMD (${donePct}%).` : "";
   const headline = capAssessed === 0 ? "Belum ada indikator yang dapat dinilai terhadap target RPJMD" : cap.tercapai > 0 ? `${cap.tercapai} dari ${capAssessed} indikator yang sudah memiliki realisasi telah mencapai target RPJMD (${donePct}%).` : `Dari ${capAssessed} indikator yang sudah memiliki realisasi, belum ada yang mencapai target RPJMD.`;
   const behindItems = capaian.items.filter((item) => item.status === "belum_tercapai").sort((a, b) => Math.abs(b.gap_pct ?? 0) - Math.abs(a.gap_pct ?? 0));
-  const doneItems = capaian.items.filter((item) => item.status === "tercapai").sort((a, b) => a.name.localeCompare(b.name, "id"));
   const worst = behindItems[0];
   const contextMovers = konteks.filter((item) => item.change_pct !== null).sort((a, b) => Math.abs(b.change_pct ?? 0) - Math.abs(a.change_pct ?? 0)).slice(0, 6);
   const attention = insights.filter((item) => item.assessment === "memburuk" || item.analysis.anomaly?.is_anomaly);
@@ -228,46 +233,25 @@ export function BerandaPage() {
     { id: "peta", label: "Wilayah" },
     { id: "indikator", label: "Semua indikator", count: insights.length },
   ];
-  return <div className="exec">
-    <section className="exec-brief" aria-labelledby="ikhtisar">
-      <div>
-        <h2 id="ikhtisar">{headline}</h2>
+  return <div className="exec portal-exec">
+    <section className="portal-hero" aria-labelledby="ikhtisar">
+      <div className="portal-hero-copy">
+        <h2 id="ikhtisar">{headLead ? <><em>{headLead}</em>{headRest}</> : headline}</h2>
         <p>Pada tren terbaru, <strong>{summary.membaik}</strong> indikator membaik{summary.memburuk === 0 ? " dan tidak ada yang memburuk" : <>, <strong>{summary.memburuk}</strong> memburuk</>}. Perhatian tertuju pada <strong>{cap.belum_tercapai}</strong> indikator yang belum mencapai target dan <strong>{cap.belum_ada_data}</strong> indikator yang belum memiliki realisasi terbit. Dari <strong>{cap.total.toLocaleString("id-ID")}</strong> indikator bertarget, penilaian baru dapat dilakukan untuk <strong>{capAssessed}</strong> indikator.</p>
+        <form className="portal-search" role="search" onSubmit={submitSearch}><input type="search" value={draft} onChange={(event) => setDraft(event.target.value)} aria-label="Cari indikator" placeholder="Cari indikator, mis. kemiskinan" /><button type="submit">Cari</button></form>
       </div>
+      <aside className="portal-ask" aria-label="Ruang tanya"><b>Ruang tanya</b><p>Ada pertanyaan tentang indikator atau wilayah? Tanyakan kepada asisten, jawabannya memuat sumber dan tahun data.</p><button type="button" className="portal-cta" onClick={() => navigate("/assistant")}><MessageCircle aria-hidden />Tanya Sababuka</button></aside>
     </section>
 
-    <div className="kpis">
-      <button type="button" className="kpi good" onClick={() => openCapaian("tercapai")}><span className="kpi-n">{cap.tercapai}</span><span className="kpi-l">Tercapai</span><span className="kpi-t">Realisasi terbaru memenuhi target tahun yang sama.</span><span className="kpi-go">Lihat daftar tercapai</span></button>
-      <button type="button" className="kpi bad" onClick={() => openCapaian("belum_tercapai")}><span className="kpi-n">{cap.belum_tercapai}</span><span className="kpi-l">Belum tercapai</span><span className="kpi-t">{worst && worst.latest_value !== null && worst.target_value !== null ? `Selisih terjauh: ${plain(worst.name)}, ${num(worst.latest_value)} dari target ${num(worst.target_value)} (${worst.latest_year}).` : "Realisasi di bawah target."}</span><span className="kpi-go">Lihat daftar belum tercapai</span></button>
-      <button type="button" className="kpi neutral" onClick={() => openCapaian("belum_ada_data")}><span className="kpi-n">{cap.belum_ada_data}</span><span className="kpi-l">Belum ada realisasi</span><span className="kpi-t">Menunggu pengisian OPD atau belum terbit.</span><span className="kpi-go">Lihat OPD yang perlu mengisi</span></button>
+    <div className="portal-kpis" role="group" aria-label="Ringkasan capaian target">
+      <button type="button" className="portal-kpi good" onClick={() => openCapaian("tercapai")}><span className="portal-kpi-ic" aria-hidden><CheckCircle2 /></span><span className="portal-kpi-tx"><b>{cap.tercapai}</b><span>Tercapai</span><small>Realisasi terbaru memenuhi target tahun yang sama.</small></span></button>
+      <button type="button" className="portal-kpi bad" onClick={() => openCapaian("belum_tercapai")}><span className="portal-kpi-ic" aria-hidden><AlertTriangle /></span><span className="portal-kpi-tx"><b>{cap.belum_tercapai}</b><span>Belum tercapai</span><small>{worst && worst.latest_value !== null && worst.target_value !== null ? `Selisih terjauh: ${plain(worst.name)}, ${num(worst.latest_value)} dari target ${num(worst.target_value)} (${worst.latest_year}).` : "Realisasi di bawah target."}</small></span></button>
+      <button type="button" className="portal-kpi neutral" onClick={() => openCapaian("belum_ada_data")}><span className="portal-kpi-ic" aria-hidden><Clock /></span><span className="portal-kpi-tx"><b>{cap.belum_ada_data}</b><span>Belum ada realisasi</span><small>Menunggu pengisian OPD atau belum terbit.</small></span></button>
     </div>
 
     <Tabs tabs={tabs} value={tab} onChange={changeTab} label="Bagian dashboard">
       {tab === "ringkasan" && <>
-    <section className="panel-card" aria-labelledby="belum-tercapai">
-      <header className="card-head"><div><h2 id="belum-tercapai">Indikator yang belum mencapai target ({behindItems.length})</h2><p>Diurutkan menurut selisih terhadap target. Pilih indikator untuk melihat lembar lengkapnya.</p></div><button type="button" className="link-button" onClick={() => openCapaian("belum_tercapai")}>Buka seluruh daftar</button></header>
-      {behindItems.length === 0 ? <p className="muted">Tidak ada indikator yang belum mencapai target.</p> : <div className="table-scroll"><table className="all-table"><thead><tr><th>Indikator</th><th>Realisasi</th><th>Target</th><th>OPD</th><th>Status</th></tr></thead><tbody>
-        {behindItems.slice(0, 4).map((item) => <tr key={item.indicator_id}>
-          <td><strong><AppLink to={indicatorPath(item.indicator_id)}>{plain(item.name)}</AppLink></strong><small>{plain(item.sector)}</small></td>
-          <td className="num">{item.latest_value === null ? "-" : <><strong>{num(item.latest_value)}</strong><small>{plain(item.unit)} · {item.latest_year}</small></>}</td>
-          <td className="num">{item.target_value === null ? "-" : <><strong>{num(item.target_value)}</strong><small>target {item.target_year}</small></>}</td>
-          <td>{item.opds.join(", ") || "-"}</td>
-          <td><Badge tone="danger">Belum tercapai</Badge></td>
-        </tr>)}
-      </tbody></table></div>}
-      {behindItems.length > 4 && <p className="muted">{behindItems.length - 4} indikator lain ada pada daftar lengkap.</p>}
-    </section>
-    <section className="panel-card" aria-labelledby="sudah-tercapai">
-      <header className="card-head"><div><h2 id="sudah-tercapai">Sudah mencapai target ({doneItems.length})</h2><p>Capaian yang perlu dipertahankan.</p></div><button type="button" className="link-button" onClick={() => openCapaian("tercapai")}>Buka seluruh daftar</button></header>
-      {doneItems.length === 0 ? <p className="muted">Belum ada indikator yang mencapai target.</p> : <div className="table-scroll"><table className="all-table"><tbody>
-        {doneItems.slice(0, 3).map((item) => <tr key={item.indicator_id}>
-          <td><strong><AppLink to={indicatorPath(item.indicator_id)}>{plain(item.name)}</AppLink></strong></td>
-          <td className="num">{item.latest_value === null ? "-" : <><strong>{num(item.latest_value)}</strong><small>target {item.target_value === null ? "-" : num(item.target_value)} · {item.latest_year}</small></>}</td>
-          <td>{item.opds.join(", ") || "-"}</td>
-          <td><Badge tone="success">Tercapai</Badge></td>
-        </tr>)}
-      </tbody></table></div>}
-    </section>
+    <IndicatorCards items={capaian.items} onOpenAll={() => openCapaian("semua")} />
     <nav aria-labelledby="telusuri"><h2 id="telusuri" className="links-title">Telusuri lebih lanjut</h2>
       <div className="links">
         <button type="button" className="link-card" onClick={() => openCapaian("semua")}><b>Capaian per sektor dan OPD</b><span>Realisasi, target, selisih, dan arahan tindak lanjut.</span></button>
@@ -294,7 +278,7 @@ export function BerandaPage() {
       {tab === "fokus" && <FocusSection />}
       {tab === "peta" && <DistrictSection insights={[...insights, ...konteks]} />}
       {tab === "indikator" && <>
-        <AllIndicators insights={insights} />
+        <AllIndicators key={search} insights={insights} initialQuery={search} />
 
       </>}
     </Tabs>

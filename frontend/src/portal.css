@@ -1,0 +1,159 @@
+/*
+ * Tampilan portal untuk peran Bupati (kelas .workspace.portal).
+ * Arah: portal data pemerintah. Huruf Poppins, navy tua sebagai warna utama, oranye hanya untuk satu aksi utama,
+ * pita angka, chip filter, dan kartu berlabel. Tidak ada garis aksen sisi kartu; status memakai lencana dan ikon.
+ * Peran lain tidak terpengaruh karena seluruh aturan dibatasi pada .workspace.portal.
+ */
+.workspace.portal {
+  --portal-primary: #00365a;
+  --portal-primary-fg: #ffffff;
+  --portal-accent: #ffa62b;
+  --portal-accent-fg: #0c2237;
+  --portal-link: #0b5a94;
+  --portal-tint: #e7f0f9;
+  --ui-accent: var(--portal-link);
+  --ui-active: var(--portal-tint);
+  --ui-radius-panel: 14px;
+  font-family: "Poppins", "Source Sans 3", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+html[data-theme="dark"] .workspace.portal {
+  --portal-primary: #8fc6f4;
+  --portal-primary-fg: #06182a;
+  --portal-accent: #ffb347;
+  --portal-link: #8fc6f4;
+  --portal-tint: #173552;
+}
+.workspace.portal :where(button, input, select, textarea) { font-family: inherit; }
+
+/* kerangka: navigasi atas menggantikan sidebar karena Bupati hanya punya dua menu */
+.workspace.portal { --sidebar-width: 0px; }
+.workspace.portal .sidebar,
+.workspace.portal .mobile-overlay,
+.workspace.portal .mobile-trigger,
+.workspace.portal .topbar-context { display: none; }
+.workspace.portal .workspace-main { margin-left: 0; }
+.workspace.portal .topbar { height: auto; min-height: 68px; padding: 10px clamp(16px, 3vw, 40px); gap: 20px; background: var(--ui-surface); backdrop-filter: none; }
+.portal-brand { flex: none; }
+.portal-lockup { gap: 10px; min-width: 0; }
+.portal-lockup > .sababuka-mark { width: 30px; height: 40px; flex-basis: 30px; }
+.portal-lockup .sababuka-lockup-copy strong { font-size: 15px; letter-spacing: .08em; color: var(--ui-text); }
+.portal-lockup .sababuka-lockup-copy small { margin-top: 2px; font-size: 9px; color: var(--ui-muted); }
+.portal-nav { display: flex; gap: 4px; margin: 0 auto; }
+.portal-link { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: transparent; color: var(--ui-text); font-size: 14px; font-weight: 500; cursor: pointer; }
+.portal-link svg { width: 18px; height: 18px; flex: none; }
+.portal-link:hover { background: var(--ui-surface-subtle); }
+.portal-link.active { background: var(--portal-primary); color: var(--portal-primary-fg); }
+.workspace.portal .topbar-actions { margin-left: 0; }
+/* di beranda, judul tetap ada untuk pembaca layar tetapi hero menggantikan tampilannya; halaman lain memakai judul biasa */
+.workspace.portal .page-header h1 { font-weight: 700; letter-spacing: -.01em; }
+.workspace.portal-home .page-header { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.workspace.portal .page-shell { max-width: 1240px; padding-top: 28px; }
+
+/* hero */
+.portal-exec { gap: 26px; }
+.portal-hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); gap: 28px; align-items: center; }
+.portal-hero-copy { display: grid; gap: 14px; min-width: 0; }
+.portal-hero h2 { font-size: clamp(26px, 3.4vw, 38px); line-height: 1.2; font-weight: 700; letter-spacing: -.01em; color: var(--ui-text); text-wrap: balance; }
+.portal-hero h2 em { font-style: normal; color: var(--portal-link); }
+.portal-hero p { margin: 0; color: var(--ui-muted); line-height: 1.65; max-width: 68ch; }
+.portal-hero p strong { color: var(--ui-text); }
+.portal-search { display: flex; gap: 6px; max-width: 560px; padding: 6px 6px 6px 20px; border: 1px solid var(--ui-border); border-radius: 999px; background: var(--ui-surface); box-shadow: 0 6px 18px rgba(0, 54, 90, .08); }
+.portal-search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ui-text); font-size: 14px; outline: 0; }
+.portal-search:focus-within { border-color: var(--portal-link); }
+.portal-search button, .portal-cta { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 22px; border: 0; border-radius: 999px; background: var(--portal-accent); color: var(--portal-accent-fg); font-size: 14px; font-weight: 600; cursor: pointer; }
+.portal-search button:hover, .portal-cta:hover { filter: brightness(.96); }
+.portal-cta svg { width: 18px; height: 18px; }
+.portal-ask { display: grid; gap: 10px; padding: 22px; border: 1px solid var(--ui-border); border-radius: 18px; background: var(--ui-surface); }
+.portal-ask b { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ui-muted); }
+.portal-ask p { margin: 0; line-height: 1.6; color: var(--ui-text); }
+
+/* pita angka */
+.portal-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--ui-border); border-radius: 20px; background: var(--ui-surface); overflow: hidden; }
+.portal-kpi { display: flex; align-items: center; gap: 16px; padding: 20px 24px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; min-width: 0; }
+.portal-kpi + .portal-kpi { border-left: 1px solid var(--ui-border); }
+.portal-kpi:hover { background: var(--ui-surface-subtle); }
+.portal-kpi-ic { display: grid; place-items: center; flex: none; width: 48px; height: 48px; border-radius: 50%; }
+.portal-kpi-ic svg { width: 24px; height: 24px; }
+.portal-kpi.good .portal-kpi-ic { background: var(--exec-good-soft); color: var(--exec-good); }
+.portal-kpi.bad .portal-kpi-ic { background: var(--exec-bad-soft); color: var(--exec-bad); }
+.portal-kpi.neutral .portal-kpi-ic { background: var(--ui-surface-subtle); color: var(--ui-muted); }
+.portal-kpi-tx { display: grid; gap: 1px; min-width: 0; }
+.portal-kpi-tx b { font-size: 32px; font-weight: 700; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.portal-kpi-tx > span { font-size: 14px; font-weight: 600; }
+.portal-kpi-tx small { color: var(--ui-muted); font-size: 12px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* tab menjadi chip */
+.workspace.portal .tabs-bar { padding: 0; gap: 8px; background: transparent; }
+.workspace.portal .tab { flex: none; min-height: 44px; padding: 0 18px; border-radius: 12px; font-weight: 500; font-size: 14px; }
+.workspace.portal .tab:hover { background: var(--ui-surface-subtle); }
+.workspace.portal .tab.active { background: var(--portal-primary); color: var(--portal-primary-fg); box-shadow: none; }
+.workspace.portal .tab.active .tab-count.neutral { background: rgba(255, 255, 255, .22); color: inherit; }
+html[data-theme="dark"] .workspace.portal .tab.active .tab-count.neutral { background: rgba(6, 24, 42, .2); }
+
+/* kartu indikator */
+.portal-section { display: grid; gap: 14px; min-width: 0; }
+.portal-section-head { display: grid; gap: 4px; }
+.portal-section-head h2 { font-size: 20px; font-weight: 700; }
+.portal-section-head p { margin: 0; color: var(--ui-muted); font-size: 13px; line-height: 1.55; }
+.portal-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.portal-chip { min-height: 40px; max-width: 28ch; padding: 0 16px; border: 1px solid transparent; border-radius: 12px; background: transparent; color: var(--ui-text); font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.portal-chip:hover { background: var(--ui-surface-subtle); }
+.portal-chip.active { background: var(--portal-primary); color: var(--portal-primary-fg); }
+.portal-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+.portal-card { display: grid; gap: 10px; align-content: start; min-width: 0; padding: 18px; border: 1px solid var(--ui-border); border-radius: 14px; background: var(--ui-surface); color: var(--ui-text); text-decoration: none; transition: box-shadow .18s ease, border-color .18s ease; }
+.portal-card:hover { border-color: var(--portal-link); box-shadow: 0 10px 24px rgba(0, 54, 90, .12); }
+.portal-card h3 { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.35; min-height: 2.7em; }
+.portal-tags { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.portal-tag { min-width: 0; max-width: 100%; padding: 3px 9px; border-radius: 7px; background: var(--portal-tint); color: var(--portal-link); font-size: 11px; font-weight: 600; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.portal-tag.ok { background: var(--exec-good-soft); color: var(--exec-good); }
+.portal-tag.bad { background: var(--exec-bad-soft); color: var(--exec-bad); }
+.portal-tag.na { background: var(--ui-surface-subtle); color: var(--ui-muted); }
+.portal-value { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.portal-value b { font-size: 26px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.portal-value span { color: var(--ui-muted); font-size: 13px; }
+.portal-progress { display: block; height: 8px; border-radius: 999px; background: var(--ui-rule); overflow: hidden; }
+.portal-progress i { display: block; height: 100%; border-radius: 999px; background: var(--exec-neutral); }
+.portal-progress.ok i { background: var(--exec-good); }
+.portal-progress.bad i { background: var(--exec-bad); }
+.portal-card small { color: var(--ui-muted); font-size: 12px; line-height: 1.5; }
+.portal-more { justify-self: center; min-height: 44px; padding: 0 22px; border: 1px solid var(--ui-control); border-radius: 999px; background: var(--ui-surface); color: var(--ui-text); font-size: 14px; font-weight: 600; cursor: pointer; }
+.portal-more:hover { background: var(--ui-surface-subtle); }
+
+/* lapisan umum di dalam portal */
+.workspace.portal .panel-card, .workspace.portal .spotlight, .workspace.portal .sec { border-radius: 14px; }
+.workspace.portal .section-head h2, .workspace.portal .card-head h2 { font-weight: 700; }
+.workspace.portal .badge { border-radius: 8px; font-weight: 600; text-transform: none; }
+.workspace.portal .link-card { border-radius: 14px; }
+.workspace.portal .links-title { font-weight: 700; }
+.workspace.portal .all-table th { font-size: 12px; letter-spacing: .04em; font-weight: 600; }
+.workspace.portal .exec-footnote { line-height: 1.65; }
+
+/* ponsel: navigasi menjadi tab bawah seperti aplikasi */
+@media (max-width: 900px) {
+  .portal-hero { grid-template-columns: minmax(0, 1fr); }
+  .portal-kpis { grid-template-columns: minmax(0, 1fr); border-radius: 18px; }
+  .portal-kpi + .portal-kpi { border-left: 0; border-top: 1px solid var(--ui-border); }
+}
+@media (max-width: 760px) {
+  .workspace.portal .topbar { min-height: 60px; padding: 8px 14px; gap: 10px; }
+  .portal-lockup .sababuka-lockup-copy small { display: none; }
+  .portal-nav { position: fixed; z-index: 40; left: 0; right: 0; bottom: 0; margin: 0; gap: 0; padding: 6px 8px calc(8px + env(safe-area-inset-bottom, 0px)); display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--ui-surface); border-top: 1px solid var(--ui-border); }
+  .portal-link { flex-direction: column; gap: 2px; min-height: 56px; padding: 6px 4px; border-radius: 14px; font-size: 11px; background: transparent; color: var(--ui-muted); }
+  .portal-link svg { width: 24px; height: 24px; }
+  .portal-link.active { background: transparent; color: var(--portal-link); font-weight: 600; }
+  .portal-link.active svg { background: var(--portal-tint); border-radius: 999px; padding: 3px 14px; box-sizing: content-box; width: 22px; height: 22px; }
+  .workspace.portal .page-shell { padding: 20px 16px 96px; }
+  .workspace.portal .workspace-footer { padding-bottom: 88px; }
+  .workspace.portal .tabs-bar { flex-wrap: nowrap; overflow-x: auto; }
+  .portal-cards { grid-template-columns: minmax(0, 1fr); }
+  .portal-hero h2 { font-size: 26px; }
+  .portal-search { max-width: none; }
+}
+@media (prefers-reduced-motion: reduce) { .portal-card { transition: none; } }
+
+/* Tanya Sababuka di dalam portal */
+.workspace.portal .assistant-panel { border-radius: 18px; }
+.workspace.portal .assistant-suggestions button { border-radius: 999px; font-weight: 500; }
+.workspace.portal .chat-composer textarea { border-radius: 18px; }
+.workspace.portal .chat-composer button[type="submit"] { border: 0; border-radius: 999px; background: var(--portal-accent); color: var(--portal-accent-fg); font-weight: 600; }
+.workspace.portal .chat-composer button[type="submit"]:disabled { opacity: .55; }

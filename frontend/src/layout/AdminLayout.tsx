@@ -340,7 +340,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-  return <div className={`workspace ${collapsed ? "collapsed" : ""}`}>
+  return <div className={`workspace ${collapsed ? "collapsed" : ""}${isPimpinan ? " portal" : ""}${isPimpinan && pathname === "/dashboard" ? " portal-home" : ""}`}>
     <button className="skip-link" onClick={() => { mainRef.current?.focus({ preventScroll: true }); mainRef.current?.scrollIntoView({ block: "start" }); }}>Lewati navigasi ke konten utama</button>
     <aside ref={sidebarRef} className={`sidebar ${mobile ? "mobile-open" : ""}`} aria-label="Navigasi utama">
       <div className="sidebar-brand"><SababukaLockup className="sidebar-lockup" /><button className="mobile-close" aria-label="Tutup menu" onClick={() => setMobile(false)}><X /></button></div>
@@ -357,6 +357,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     <section className="workspace-main">
       <header className="topbar">
         <button ref={mobileTriggerRef} className="icon-button mobile-trigger" aria-label="Buka menu" aria-haspopup="true" aria-expanded={mobile} onClick={() => setMobile(true)}><Menu /></button>
+        {isPimpinan && <><div className="portal-brand"><SababukaLockup className="portal-lockup" /></div><nav className="portal-nav" aria-label="Menu Bupati">{navigationSections.flatMap((section) => section.entries).filter((entry) => entry.route_name && !entry.navigation_disabled && entry.code !== "my-account").map((entry) => { const Icon = iconByCode[entry.code] ?? Settings2; return <button key={entry.code} type="button" className={`portal-link${pathname === entry.route_name || (entry.code === "dashboard" && pathname.startsWith("/dashboard")) ? " active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} onClick={() => go(entry.route_name!)}><Icon aria-hidden /><span>{entry.label}</span></button>; })}</nav></>}
         <nav className="topbar-context" aria-label="Lokasi halaman" title={subtitle}><span>{areaLabel}</span><i aria-hidden>/</i><strong tabIndex={-1}>{title}</strong></nav>
         <div className="topbar-actions">
           {actions}
