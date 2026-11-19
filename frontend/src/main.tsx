@@ -16,6 +16,7 @@ import "./interactions.css";
 import "./beranda.css";
 import "./exec.css";
 import "./portal.css";
+import "./auth.css";
 import "./chat.css";
 import { initInteractions } from "./interactions";
 import { initializeTheme } from "./theme";

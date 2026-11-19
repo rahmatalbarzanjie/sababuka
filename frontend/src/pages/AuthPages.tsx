@@ -12,7 +12,7 @@ function AuthBrand() {
     <div className="auth-brand-stage">
       <KapuasDataIllustration />
       <div className="auth-copy">
-        <h2>Data bergerak, keputusan terjaga.</h2>
+        <h2>Data bergerak, <em>keputusan terjaga.</em></h2>
         <p>Satu ruang bersama untuk memahami kondisi daerah dan membantu setiap keputusan pembangunan Kapuas menjadi lebih tepat.</p>
       </div>
     </div>
@@ -117,7 +117,7 @@ export function LoginPage() {
     <section className="login-panel auth-panel">
       <form id="form-masuk" className="auth-card login-card" onSubmit={submit}>
         <div className="login-identity"><SababukaLockup className="login-lockup" /></div>
-        <div className="auth-card-heading"><h1>Masuk ke SABABUKA</h1></div>
+        <div className="auth-card-heading"><h1>Masuk ke SABABUKA</h1><p>Gunakan email atau username dan kata sandi akun Anda.</p></div>
         {error && <Notice tone="error">{error}</Notice>}
           <label className="field"><span>Email atau username</span><input autoFocus autoComplete="username" data-field="identifier" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="nama@kapuaskab.go.id" required /></label>
           <label className="field"><span>Kata sandi</span><div className="password-field"><input type={showPassword ? "text" : "password"} autoComplete="current-password" data-field="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Masukkan kata sandi" required minLength={8} /><button type="button" aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
