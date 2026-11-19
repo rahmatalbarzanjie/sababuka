@@ -153,8 +153,6 @@ html[data-theme="dark"] .workspace.portal .tab.active .tab-count.neutral { backg
   .portal-link.active svg { background: var(--portal-tint); border-radius: 999px; padding: 3px 14px; box-sizing: content-box; width: 22px; height: 22px; }
   .workspace.portal .page-shell { padding: 20px 16px 96px; }
   .workspace.portal .workspace-footer { padding-bottom: 88px; }
-  .a11y-fab { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); width: 48px; height: 48px; }
-  .a11y-panel { bottom: calc(146px + env(safe-area-inset-bottom, 0px)); }
 }
 @media (max-width: 760px) {
   .workspace.portal .tabs-bar { flex-wrap: nowrap; overflow-x: auto; }
@@ -240,25 +238,6 @@ html[data-theme="dark"] .workspace.portal .tab.active .tab-count.neutral { backg
 .workspace.portal .exec-columns.solo .exec-side { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
 @media (max-width: 900px) { .workspace.portal .exec-columns.solo .exec-side { grid-template-columns: minmax(0, 1fr); } }
 
-/* Menu aksesibilitas */
-.workspace.portal .page-shell { zoom: var(--portal-zoom, 1); }
-html[data-contrast="high"] .workspace.portal { --ui-border: #6b8296; --ui-rule: #9db0c0; --ui-muted: #2b3f52; --ui-control: #5b7185; }
-html[data-theme="dark"][data-contrast="high"] .workspace.portal { --ui-border: #8aa3b8; --ui-rule: #5f788d; --ui-muted: #d3e0ec; --ui-control: #9db4c7; }
-.a11y-fab { position: fixed; z-index: 45; left: max(16px, env(safe-area-inset-left, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); display: grid; place-items: center; width: 52px; height: 52px; border: 0; border-radius: 50%; background: var(--portal-primary); color: var(--portal-primary-fg); box-shadow: 0 6px 18px rgba(0, 0, 0, .25); cursor: pointer; }
-.a11y-fab svg { width: 26px; height: 26px; }
-.a11y-panel { position: fixed; z-index: 46; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(max(16px, env(safe-area-inset-bottom, 0px)) + 64px); width: min(320px, calc(100vw - 32px)); display: grid; gap: 16px; padding: 18px; border: 1px solid var(--ui-border); border-radius: 18px; background: var(--ui-surface); color: var(--ui-text); box-shadow: 0 14px 36px rgba(0, 0, 0, .28); }
-.a11y-panel header { display: flex; justify-content: space-between; align-items: center; }
-.a11y-panel h2 { margin: 0; font-size: 16px; font-weight: 700; }
-.a11y-close { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; }
-.a11y-close:hover { background: var(--ui-surface-subtle); }
-.a11y-group { display: grid; gap: 8px; }
-.a11y-group > b { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ui-muted); }
-.a11y-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 12px; background: var(--ui-surface-subtle); }
-.a11y-seg button { min-height: 44px; border: 0; border-radius: 9px; background: transparent; color: inherit; font-weight: 600; cursor: pointer; }
-.a11y-seg button[aria-pressed="true"] { background: var(--portal-primary); color: var(--portal-primary-fg); }
-.a11y-switch { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; }
-.a11y-switch button { min-height: 40px; padding: 0 16px; border: 1px solid var(--ui-control); border-radius: 999px; background: var(--ui-surface-subtle); color: inherit; font-weight: 600; cursor: pointer; }
-.a11y-switch button[aria-pressed="true"] { background: var(--portal-primary); color: var(--portal-primary-fg); border-color: transparent; }
 
 /* Tanya Sababuka: percakapan */
 .workspace.portal .chat-stream { background: var(--ui-surface-subtle); }
@@ -293,8 +272,6 @@ html.app-mode .portal-kpi-ic { width: 36px; height: 36px; }
 html.app-mode .portal-kpi-ic svg { width: 18px; height: 18px; }
 html.app-mode .portal-kpi-tx b { font-size: 26px; }
 html.app-mode .portal-kpi-tx small { display: none; }
-html.app-mode .a11y-fab { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); width: 48px; height: 48px; }
-html.app-mode .a11y-panel { bottom: calc(146px + env(safe-area-inset-bottom, 0px)); }
 html.app-mode .workspace.portal .section-nav { position: sticky; top: 56px; z-index: 5; overflow-x: auto; flex-wrap: nowrap; padding: 8px 0; background: var(--ui-ground); }
 html.app-mode .workspace.portal .section-nav a { flex: none; }
 html.app-mode .portal-cards { grid-template-columns: minmax(0, 1fr); }
@@ -345,8 +322,6 @@ html:not([data-theme="dark"]) .workspace.portal { --exec-good: #116a34; }
 
 /* tombol aksesibilitas di atas tab bawah (harus setelah aturan dasarnya) */
 @media (max-width: 900px) {
-  .a11y-fab { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); width: 48px; height: 48px; }
-  .a11y-panel { bottom: calc(146px + env(safe-area-inset-bottom, 0px)); }
 }
 .workspace.portal .search-field input { min-height: 44px; }
 

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, ApiClientError, clearRolePreview, jsonBody, setCsrfToken, setRolePreview } from "./api";
 import type { CurrentUser, MenuItem } from "./types";
+import { clearChat } from "./chatStore";
 
 interface LoginInput {
   identifier: string;
@@ -61,10 +62,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(session.user);
     const effectiveMenu = await api<{ data: MenuItem[] }>("/me/menu");
     setMenu(uniqueMenu(effectiveMenu.data));
+    clearChat();
     window.sessionStorage.setItem("sababuka.just_logged_in", "true");
   }, []);
 
   const logout = useCallback(async () => {
+    clearChat();
     try {
       clearRolePreview();
       await api<void>("/auth/logout", { method: "POST", mutation: true });
