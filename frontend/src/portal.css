@@ -452,3 +452,19 @@ html:not([data-theme="dark"]) .workspace.portal { --exec-good: #116a34; }
   .portal-view button, .portal-toggle button { min-height: 44px; }
   .portal-rank button { min-height: 44px; }
 }
+
+/* Garis tepi sejajar: bilah atas, isi halaman, dan kaki halaman memakai satu lebar kontainer (1240 px) agar tidak terlihat lari ke luar di layar lebar. */
+.workspace.portal { --portal-edge: max(clamp(16px, 3vw, 40px), calc((100vw - 1240px) / 2)); }
+.workspace.portal .topbar { padding-inline: var(--portal-edge); }
+.workspace.portal .page-shell { max-width: none; margin: 0; padding-inline: var(--portal-edge); }
+.workspace.portal .workspace-footer { padding-inline: var(--portal-edge); }
+.workspace.portal.portal-chat .page-header { max-width: 860px; margin-inline: auto; }
+@media (max-width: 900px) {
+  .workspace.portal .topbar { padding-inline: 14px; }
+  .workspace.portal .page-shell { padding-inline: 16px; }
+  .workspace.portal .workspace-footer { padding-inline: 16px; }
+}
+.workspace.portal .workspace-footer { width: 100%; max-width: none; margin: 0; }
+.portal-lockup .sababuka-lockup-copy small { display: none; }
+@media (max-width: 1280px) { .workspace.portal .profile-button > span:not(.avatar) { display: none; } .workspace.portal .profile-button { padding-right: 8px; } }
+.workspace.portal .portal-link { padding-inline: 14px; }

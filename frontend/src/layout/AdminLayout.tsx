@@ -357,7 +357,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-  return <div className={`workspace ${collapsed ? "collapsed" : ""}${isPimpinan ? " portal" : ""}${isPimpinan && pathname === "/dashboard" ? " portal-home" : ""}`}>
+  return <div className={`workspace ${collapsed ? "collapsed" : ""}${isPimpinan ? " portal" : ""}${isPimpinan && pathname === "/dashboard" ? " portal-home" : ""}${isPimpinan && pathname === "/assistant" ? " portal-chat" : ""}`}>
     <button className="skip-link" onClick={() => { mainRef.current?.focus({ preventScroll: true }); mainRef.current?.scrollIntoView({ block: "start" }); }}>Lewati navigasi ke konten utama</button>
     <aside ref={sidebarRef} className={`sidebar ${mobile ? "mobile-open" : ""}`} aria-label="Navigasi utama">
       <div className="sidebar-brand"><SababukaLockup className="sidebar-lockup" /><button className="mobile-close" aria-label="Tutup menu" onClick={() => setMobile(false)}><X /></button></div>
