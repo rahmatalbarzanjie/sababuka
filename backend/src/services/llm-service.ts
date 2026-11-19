@@ -4,9 +4,14 @@ import type { AppConfig } from "../config.js";
 import { decryptSecret, encryptSecret, maskSecret } from "../security/secrets.js";
 import type { AuthContext } from "../types/auth.js";
 import { recordAudit, type AuditContext } from "./audit-service.js";
+import { notifyRole } from "./notification-service.js";
 
 const SECRET_CODE = "ANTHROPIC_API_KEY";
 const API_URL = "https://api.anthropic.com/v1/messages";
+const HEALTH_KEY = "assistant.llm_health";
+const HEALTH_ENTITY = "00000000-0000-0000-0000-000000000a11";
+export type LlmHealthState = "ok" | "credit_exhausted" | "invalid_key" | "error";
+const classify = (message: string): LlmHealthState => /credit balance|billing|purchase credits/i.test(message) ? "credit_exhausted" : /invalid x-api-key|authentication|permission/i.test(message) ? "invalid_key" : "error";
 export const DEFAULT_MODEL = "claude-sonnet-5-5";
 
 const SYSTEM_PROMPT = `Anda adalah Sababuka, asisten data Bupati Kapuas. Jawab dalam bahasa Indonesia yang jelas, ringkas, dan hormat (maksimal 160 kata).
@@ -55,6 +60,24 @@ export class LlmService {
     return process.env.ANTHROPIC_API_KEY?.trim() || null;
   }
 
+  /** Catat kondisi pemakaian kunci dari panggilan nyata. Superadmin diberi tahu satu kali saat kondisi berubah menjadi bermasalah. */
+  private async noteHealth(state: LlmHealthState, message: string | null): Promise<void> {
+    try {
+      const previous = await this.db.query<{ value: { state?: string } }>(`SELECT value FROM sababuka.system_settings WHERE key = $1`, [HEALTH_KEY]);
+      const before = previous.rows[0]?.value?.state ?? null;
+      if (before === state && state === "ok") return;
+      await this.db.query(
+        `INSERT INTO sababuka.system_settings (key, value, description) VALUES ($1, $2::jsonb, 'Kondisi terakhir pemakaian kunci model AI')
+         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
+        [HEALTH_KEY, JSON.stringify({ state, message: message ? message.slice(0, 200) : null, at: new Date().toISOString(), since: before === state ? undefined : new Date().toISOString() })],
+      );
+      if (state !== "ok" && before !== state) {
+        const title = state === "credit_exhausted" ? "Kredit API model AI habis" : state === "invalid_key" ? "Kunci API model AI ditolak" : "Model AI gagal dipanggil";
+        await notifyRole(this.db, "superadmin", { type: "assistant.llm_health", title, message: "Tanya Sababuka memakai jawaban berbasis aturan sampai masalah ini diperbaiki. Buka Sistem, bagian Model AI.", entityType: "system_setting", entityId: HEALTH_ENTITY });
+      }
+    } catch { /* pemantauan tidak boleh menggagalkan jawaban */ }
+  }
+
   private model() { return process.env.LLM_MODEL?.trim() || DEFAULT_MODEL; }
   modelName() { return this.model(); }
   async available(): Promise<boolean> { return Boolean(await this.apiKey()); }
@@ -70,7 +93,8 @@ export class LlmService {
       signal: AbortSignal.timeout(40_000),
     });
     const payload = await response.json().catch(() => ({})) as { content?: ContentBlock[]; stop_reason?: string; error?: { message?: string } };
-    if (!response.ok) throw new Error(payload.error?.message?.replaceAll(key, "***").slice(0, 200) ?? `HTTP ${response.status}`);
+    if (!response.ok) { const text = payload.error?.message?.replaceAll(key, "***").slice(0, 200) ?? `HTTP ${response.status}`; await this.noteHealth(classify(text), text); throw new Error(text); }
+    await this.noteHealth("ok", null);
     return { content: payload.content ?? [], stop_reason: payload.stop_reason ?? "end_turn" };
   }
 
@@ -86,7 +110,14 @@ export class LlmService {
       last_tested_at: row?.last_tested_at ?? null,
       last_test_status: row?.last_test_status ?? (env ? "not_tested" : "not_configured"),
       last_test_error: row?.last_test_error ?? null,
+      health: await this.health(),
     };
+  }
+
+  async health(): Promise<{ state: LlmHealthState; message: string | null; at: string | null }> {
+    const result = await this.db.query<{ value: { state?: LlmHealthState; message?: string | null; at?: string } }>(`SELECT value FROM sababuka.system_settings WHERE key = $1`, [HEALTH_KEY]);
+    const value = result.rows[0]?.value;
+    return { state: value?.state ?? "ok", message: value?.message ?? null, at: value?.at ?? null };
   }
 
   private async call(key: string, system: string, user: string, maxTokens: number): Promise<string> {
@@ -97,7 +128,8 @@ export class LlmService {
       signal: AbortSignal.timeout(25_000),
     });
     const payload = await response.json().catch(() => ({})) as { content?: Array<{ type: string; text?: string }>; error?: { message?: string } };
-    if (!response.ok) throw new Error(payload.error?.message?.replaceAll(key, "***").slice(0, 200) ?? `HTTP ${response.status}`);
+    if (!response.ok) { const text = payload.error?.message?.replaceAll(key, "***").slice(0, 200) ?? `HTTP ${response.status}`; await this.noteHealth(classify(text), text); throw new Error(text); }
+    await this.noteHealth("ok", null);
     return (payload.content ?? []).filter((part) => part.type === "text").map((part) => part.text ?? "").join("").trim();
   }
 
