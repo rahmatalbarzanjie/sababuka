@@ -974,6 +974,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/executive/indicators/{id}/relations/{related_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Validasi keterkaitan indikator usulan sistem
+         * @description Membutuhkan `executive_dashboard.view` dan `connector.map` (BAPPERIDA dan Developer). `confirmed` mengakui keterkaitan,
+         *     `rejected` mengecualikannya dari analisis silang, `reset` mengembalikannya menjadi usulan sistem. Setiap perubahan dicatat di audit.
+         *     Tautan Seri Data tidak melalui jalur ini.
+         */
+        put: operations["reviewExecutiveIndicatorRelation"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/executive/districts": {
         parameters: {
             query?: never;
@@ -3842,6 +3864,42 @@ export interface operations {
             };
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    reviewExecutiveIndicatorRelation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+                related_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    status: "confirmed" | "rejected" | "reset";
+                    note?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Status validasi terbaru pasangan indikator */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
         };
     };
     listExecutiveDistricts: {

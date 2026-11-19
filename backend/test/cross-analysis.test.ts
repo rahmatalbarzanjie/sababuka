@@ -3,7 +3,7 @@ import test from "node:test";
 import type { AchievementItem } from "../src/services/achievement-service.js";
 import { AgentService } from "../src/services/agent-service.js";
 import type { Database } from "../src/database.js";
-import { buildCrossAnalysis, formatCrossAnalysis, sharedYearCorrelation, spearman, type IndicatorContext } from "../src/services/cross-analysis-service.js";
+import { buildCrossAnalysis, formatCrossAnalysis, jointComparison, pairKey, sharedYearCorrelation, spearman, type IndicatorContext, type ReviewStatus } from "../src/services/cross-analysis-service.js";
 import { buildFocusOverview } from "../src/services/focus-service.js";
 import type { Insight } from "../src/services/insight-service.js";
 import { analyzeDistricts, analyzeSeries, buildNarrative } from "../src/services/trend-engine.js";
@@ -62,7 +62,7 @@ test("analisis silang: tahun berbeda ditandai dan korelasi memerlukan 5 tahun be
   const shifted = [insights[0]!, make("pph", "Skor PPH", years([70, 72, 74, 76, 78, 80], 2019), ["DKPP"])];
   const mismatch = buildCrossAnalysis({ indicatorId: "ikp", insights: shifted, achievement, contexts })!;
   assert.equal(mismatch.related[0]!.year_match, false);
-  assert.ok(mismatch.limits.some((text) => /tahun yang sama/.test(text)));
+  assert.ok(mismatch.limits.some((text) => /tahun bersama terbaru/.test(text)));
 });
 
 test("analisis silang: kecamatan prioritas hanya bila ada data kecamatan dan arah jelas", () => {
@@ -118,4 +118,34 @@ test("analisis silang: indikator se-isu yang realisasinya belum terbit dicatat d
   assert.deepEqual(analysis.pending.map((entry) => entry.indicator_id), ["tunda"]);
   assert.ok(analysis.recommendations.some((entry) => /Percepat pelaporan realisasi tunda/.test(entry.action) && entry.opd === "Distan"));
   assert.match(formatCrossAnalysis(analysis), /tunda: realisasi belum terbit \(Distan\)/);
+});
+
+test("perbandingan tahun bersama: memakai tahun bersama terbaru dan arah gerak yang sama", () => {
+  const joint = jointComparison(years([10, 11, 12.5, 14]), years([50, 52, 54], 2019));
+  assert.equal(joint!.year, 2021);
+  assert.equal(joint!.movement, "searah");
+  assert.equal(jointComparison(years([1, 2]), years([1, 2], 2030)), null);
+  assert.equal(jointComparison(years([10, 10.01]), years([5, 5.01]))!.movement, "stabil");
+  assert.equal(jointComparison(years([10, 12]), years([8, 6]))!.movement, "berlawanan");
+});
+
+test("analisis silang: tahun terbaru berbeda tetap dibandingkan pada tahun bersama", () => {
+  const shifted = [insights[0]!, make("pph", "Skor PPH", years([70, 72, 74, 76, 78, 80], 2019), ["DKPP"])];
+  const analysis = buildCrossAnalysis({ indicatorId: "ikp", insights: shifted, achievement, contexts })!;
+  const pph = analysis.related[0]!;
+  assert.equal(pph.year_match, false);
+  assert.equal(pph.compare!.year, 2024);
+  assert.match(formatCrossAnalysis(analysis), /Pada 2024 \(tahun bersama\)/);
+});
+
+test("validasi BAPPERIDA: ditolak dikecualikan dan dicatat, disetujui diberi label validasi", () => {
+  const reviews = new Map<string, ReviewStatus>([[pairKey("ikp", "harga"), "rejected"], [pairKey("ikp", "pph"), "confirmed"]]);
+  const analysis = buildCrossAnalysis({ indicatorId: "ikp", insights, achievement, contexts, reviews })!;
+  assert.ok(!analysis.related.some((entry) => entry.indicator_id === "harga"));
+  assert.deepEqual(analysis.rejected.map((entry) => entry.indicator_id), ["harga"]);
+  const pph = analysis.related.find((entry) => entry.indicator_id === "pph")!;
+  assert.equal(pph.validated, true); assert.equal(pph.review, "confirmed"); assert.equal(pph.relation_label, "Divalidasi BAPPERIDA");
+  assert.match(formatCrossAnalysis(analysis), /Skor PPH.*Divalidasi BAPPERIDA/);
+  assert.ok(!analysis.recommendations.some((entry) => /Stabilitas Harga/.test(entry.action)));
+  assert.equal(pairKey("b", "a"), pairKey("a", "b"));
 });

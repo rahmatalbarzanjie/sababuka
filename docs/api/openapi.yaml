@@ -1200,6 +1200,44 @@ paths:
               schema: {type: object, additionalProperties: true}
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
+  /executive/indicators/{id}/relations/{related_id}:
+    put:
+      tags: [Executive]
+      operationId: reviewExecutiveIndicatorRelation
+      summary: Validasi keterkaitan indikator usulan sistem
+      description: |
+        Membutuhkan `executive_dashboard.view` dan `connector.map` (BAPPERIDA dan Developer). `confirmed` mengakui keterkaitan,
+        `rejected` mengecualikannya dari analisis silang, `reset` mengembalikannya menjadi usulan sistem. Setiap perubahan dicatat di audit.
+        Tautan Seri Data tidak melalui jalur ini.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {$ref: "#/components/schemas/Uuid"}
+        - name: related_id
+          in: path
+          required: true
+          schema: {$ref: "#/components/schemas/Uuid"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [status]
+              properties:
+                status: {type: string, enum: [confirmed, rejected, reset]}
+                note: {type: [string, "null"], maxLength: 500}
+      responses:
+        "200":
+          description: Status validasi terbaru pasangan indikator
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "422": {$ref: "#/components/responses/ValidationError"}
   /executive/districts:
     get:
       tags: [Executive]
