@@ -10,6 +10,7 @@ const RolesPage = lazy(() => import("./pages/AccessPages").then((module) => ({ d
 const MenusPage = lazy(() => import("./pages/AccessPages").then((module) => ({ default: module.MenusPage })));
 const InvitationPage = lazy(() => import("./pages/AuthPages").then((module) => ({ default: module.InvitationPage })));
 const LoginPage = lazy(() => import("./pages/AuthPages").then((module) => ({ default: module.LoginPage })));
+const LandingPage = lazy(() => import("./pages/LandingPage").then((module) => ({ default: module.LandingPage })));
 const PasswordSetupPage = lazy(() => import("./pages/AuthPages").then((module) => ({ default: module.PasswordSetupPage })));
 const RegistrationPage = lazy(() => import("./pages/AuthPages").then((module) => ({ default: module.RegistrationPage })));
 const DashboardPage = lazy(() => import("./pages/DashboardPage").then((module) => ({ default: module.DashboardPage })));
@@ -68,7 +69,7 @@ function ProtectedApp() {
   const titleOverride = usePageTitleOverride();
   useEffect(() => {
     if (!loading && user && pathname === "/analysis") navigate("/dashboard");
-    if (!loading && !user && !["/login", "/activate", "/register"].includes(pathname)) navigate("/login");
+    if (!loading && !user && !["/", "/login", "/activate", "/register"].includes(pathname)) navigate("/login");
     if (!loading && user?.must_change_password && pathname !== "/security/setup") navigate("/security/setup");
     if (!loading && user && ["/", "/login", "/register", "/design-lab/fresh"].includes(pathname)) {
       const landing = user.roles.some((role) => role.code === "superadmin") ? "/admin"
@@ -87,6 +88,7 @@ function ProtectedApp() {
   if (pathname === "/register") return <RegistrationPage />;
   if (pathname === "/security/setup") return user ? <PasswordSetupPage /> : <LoginPage />;
   if (loading) return <LoadingScreen />;
+  if (!user && pathname === "/") return <LandingPage />;
   if (!user || pathname === "/login") return <LoginPage />;
   const detailMatch = new RegExp("^/dashboard/indikator/([0-9a-fA-F-]{36})$", "u").exec(pathname);
   const baseMeta = pageMeta[detailMatch ? "/dashboard/indikator" : pathname] ?? { title: "Halaman tidak ditemukan", subtitle: "Alamat ini tidak tersedia atau sudah dihapus." };

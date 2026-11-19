@@ -19,6 +19,7 @@ import "./portal.css";
 import "./auth.css";
 import "./chat.css";
 import "./brand.css";
+import "./landing.css";
 import { initInteractions } from "./interactions";
 import { initializeTheme } from "./theme";
 
