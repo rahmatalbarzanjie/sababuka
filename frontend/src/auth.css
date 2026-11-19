@@ -100,3 +100,4 @@ html[data-theme="dark"] .registration-page .auth-card { box-shadow: 0 12px 36px 
 
 /* sisi merek disembunyikan di bawah 960 px, jadi logo tampil di dalam kartu masuk */
 @media (max-width: 960px) { .login-page.auth-layout .login-identity { display: flex; } }
+.auth-layout .auth-back-link, .registration-page .auth-back-link, .auth-layout .text-button, .registration-page .text-button { min-height: 44px; }

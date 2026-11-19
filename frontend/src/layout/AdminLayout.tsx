@@ -48,6 +48,7 @@ import { SababukaLockup, SababukaMark } from "../branding/SababukaBrand";
 import { applyTheme, readTheme, type ThemeMode } from "../theme";
 import { CommandPalette, type PaletteItem } from "./CommandPalette";
 import { A11yMenu } from "../components/A11yMenu";
+import { goDashboard, INDICATOR_GROUP, useDashTab } from "../portalNav";
 
 const iconByCode: Record<string, typeof LayoutDashboard> = {
   organizations: Building2,
@@ -131,6 +132,21 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
   const auditEntries = useMemo(() => menu.filter((item) => item.code === "audit" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const isPimpinan = user?.roles.some((role) => role.code === "pimpinan") ?? false;
   const assistantEntries = useMemo(() => menu.filter((item) => item.code === "assistant" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
+  const dashTab = useDashTab();
+  const portalItems = useMemo(() => {
+    if (!isPimpinan) return [] as Array<{ id: string; label: string; aria?: string; icon: typeof LayoutDashboard; active: boolean; run(): void }>;
+    const onDash = pathname === "/dashboard";
+    const items: Array<{ id: string; label: string; aria?: string; icon: typeof LayoutDashboard; active: boolean; run(): void }> = [];
+    if (primaryEntries.length > 0) {
+      items.push({ id: "ringkasan", label: "Beranda", icon: LayoutDashboard, active: onDash && dashTab === "ringkasan", run: () => goDashboard("ringkasan") });
+      items.push({ id: "capaian", label: "Capaian", icon: Target, active: onDash && dashTab === "capaian", run: () => goDashboard("capaian") });
+      items.push({ id: "peta", label: "Wilayah", icon: MapPinned, active: onDash && dashTab === "peta", run: () => goDashboard("peta") });
+      items.push({ id: "indikator", label: "Indikator", icon: ListChecks, active: onDash && INDICATOR_GROUP.includes(dashTab), run: () => goDashboard("indikator") });
+    }
+    if (assistantEntries.length > 0) items.push({ id: "assistant", label: "Tanya", aria: "Tanya Sababuka", icon: Bot, active: pathname === "/assistant", run: () => go("/assistant") });
+    return items;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPimpinan, pathname, dashTab, primaryEntries.length, assistantEntries.length]);
   const accountEntries = useMemo<MenuItem[]>(() => user && !user.simulation?.active ? [{ code: "my-account", label: "Akun saya", icon: "user", route_name: "/admin/profile", navigation_disabled: false, display_order: 9999, children: [] }] : [], [user, adminEntries]);
   const navigationSections = useMemo(() => [
     { code: "system", label: "Administrasi sistem", entries: systemEntries },
@@ -358,7 +374,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     <section className="workspace-main">
       <header className="topbar">
         <button ref={mobileTriggerRef} className="icon-button mobile-trigger" aria-label="Buka menu" aria-haspopup="true" aria-expanded={mobile} onClick={() => setMobile(true)}><Menu /></button>
-        {isPimpinan && <><div className="portal-brand"><SababukaLockup className="portal-lockup" /></div><nav className="portal-nav" aria-label="Menu Bupati">{navigationSections.flatMap((section) => section.entries).filter((entry) => entry.route_name && !entry.navigation_disabled && entry.code !== "my-account").map((entry) => { const Icon = iconByCode[entry.code] ?? Settings2; return <button key={entry.code} type="button" className={`portal-link${pathname === entry.route_name || (entry.code === "dashboard" && pathname.startsWith("/dashboard")) ? " active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} onClick={() => go(entry.route_name!)}><Icon aria-hidden /><span>{entry.label}</span></button>; })}</nav></>}
+        {isPimpinan && <><div className="portal-brand"><SababukaLockup className="portal-lockup" /></div><nav className="portal-nav" aria-label="Menu Bupati">{portalItems.map((item) => { const Icon = item.icon; return <button key={item.id} type="button" className={`portal-link${item.active ? " active" : ""}`} aria-current={item.active ? "page" : undefined} aria-label={item.aria} onClick={item.run}><Icon aria-hidden /><span>{item.label}</span></button>; })}</nav></>}
         <nav className="topbar-context" aria-label="Lokasi halaman" title={subtitle}><span>{areaLabel}</span><i aria-hidden>/</i><strong tabIndex={-1}>{title}</strong></nav>
         <div className="topbar-actions">
           {actions}

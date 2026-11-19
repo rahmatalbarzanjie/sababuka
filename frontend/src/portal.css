@@ -317,3 +317,35 @@ html:not([data-theme="dark"]) .workspace.portal { --exec-good: #116a34; }
 @media (max-width: 900px) { .workspace.portal .topbar-actions { margin-left: auto; } }
 @media (max-width: 900px), (pointer: coarse) { .workspace.portal .chip-row .chip { min-height: 44px; } }
 .workspace.portal .back-link { display: inline-flex; align-items: center; min-height: 44px; }
+
+/* Penyamaan dengan mockup: huruf judul, tanpa bingkai lama, pita angka berbentuk pil, kartu dengan sparkline */
+.workspace.portal :is(h1, h2, h3, h4, h5) { font-family: inherit; }
+.workspace.portal .page-shell { background: transparent; border: 0; border-radius: 0; box-shadow: none; max-width: 1240px; }
+.workspace.portal .workspace-main { background: var(--ui-ground); }
+.portal-kpis { border-radius: 999px; }
+.portal-kpi { padding: 16px 28px; min-height: 84px; }
+.portal-kpi:first-child { border-radius: 999px 0 0 999px; }
+.portal-kpi:last-child { border-radius: 0 999px 999px 0; }
+.portal-kpi-tx small { -webkit-line-clamp: 1; }
+.portal-spark { display: block; line-height: 0; }
+.portal-spark svg { width: 100%; max-width: 160px; height: 34px; }
+.portal-chips[aria-label="Bagian indikator"] { margin-bottom: 4px; }
+@media (max-width: 900px) {
+  .portal-kpis { border-radius: 24px; }
+  .portal-kpi:first-child, .portal-kpi:last-child { border-radius: 0; }
+}
+.portal-link span { white-space: nowrap; }
+.workspace.portal { --portal-bg: color-mix(in srgb, var(--portal-tint) 55%, var(--ui-ground)); }
+.workspace.portal, .workspace.portal .workspace-main { background: var(--portal-bg); }
+.workspace.portal .topbar { background: var(--ui-surface); }
+.portal-kpi-tx small { -webkit-line-clamp: 2; }
+.portal-kpi { padding: 14px 34px; }
+.portal-value .portal-spark { margin-left: auto; }
+.portal-value .portal-spark svg { width: 96px; max-width: 96px; height: 32px; }
+
+/* tombol aksesibilitas di atas tab bawah (harus setelah aturan dasarnya) */
+@media (max-width: 900px) {
+  .a11y-fab { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); width: 48px; height: 48px; }
+  .a11y-panel { bottom: calc(146px + env(safe-area-inset-bottom, 0px)); }
+}
+.workspace.portal .search-field input { min-height: 44px; }
