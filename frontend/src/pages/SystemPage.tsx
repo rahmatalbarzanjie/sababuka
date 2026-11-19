@@ -190,7 +190,7 @@ export function SecurityPage() {
   </section>;
 }
 
-interface LlmStatus { configured: boolean; storage: string; masked: string | null; model: string; master_key_configured: boolean; last_tested_at: string | null; last_test_status: string; last_test_error: string | null }
+interface LlmStatus { configured: boolean; storage: string; masked: string | null; model: string; master_key_configured: boolean; last_tested_at: string | null; last_test_status: string; health?: { state: "ok" | "credit_exhausted" | "invalid_key" | "error"; message: string | null; at: string | null }; last_test_error: string | null }
 
 function LlmPanel() {
   const status = useAsync(() => api<LlmStatus>("/assistant/llm"), []);
@@ -212,6 +212,7 @@ function LlmPanel() {
       <div className="detail-grid"><div><span>Status</span><strong>{status.data.configured ? "Terkonfigurasi" : "Belum dikonfigurasi"}</strong></div><div><span>Model</span><strong>{status.data.model}</strong></div><div><span>Penyimpanan</span><strong>{status.data.storage === "encrypted_database" ? "Terenkripsi" : status.data.storage === "environment" ? "Environment" : "-"}</strong></div><div><span>Uji terakhir</span><strong>{status.data.last_tested_at ? formatDate(status.data.last_tested_at) : "Belum pernah"}</strong></div></div>
       {status.data.masked && <p className="muted-text">Kunci tersimpan sebagai {status.data.masked}.</p>}
       {!status.data.master_key_configured && <Notice tone="warning">Master key belum diatur (CONNECTOR_ENCRYPTION_KEY). Menyimpan kunci akan ditolak sampai tersedia.</Notice>}
+      {status.data.health && status.data.health.state !== "ok" && <Notice tone="error">{status.data.health.state === "credit_exhausted" ? "Kredit API habis. Isi saldo di Plans & Billing akun Anthropic pemilik kunci ini; sementara itu Tanya Sababuka memakai jawaban berbasis aturan." : status.data.health.state === "invalid_key" ? "Kunci API ditolak. Simpan kunci yang baru." : "Pemanggilan model gagal."}{status.data.health.at ? ` Terakhir terjadi ${new Date(status.data.health.at).toLocaleString("id-ID")}.` : ""}{status.data.health.message ? ` Pesan penyedia: ${status.data.health.message}` : ""}</Notice>}
       {status.data.last_test_error && <Notice tone="error">Uji terakhir: {status.data.last_test_error}</Notice>}
       {message && <Notice tone={message.tone}>{message.text}</Notice>}
       <form className="form-stack" onSubmit={save}><label className="field"><span>Kunci API Anthropic</span><input type="password" autoComplete="off" value={key} onChange={(event) => setKey(event.target.value)} placeholder="sk-ant-…" minLength={20} required /><small>Kunci tidak pernah ditampilkan kembali. Dapatkan dari console.anthropic.com.</small></label>

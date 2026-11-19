@@ -294,7 +294,7 @@ html[data-theme="dark"] .card-head .chip-row .chip.active, html[data-theme="dark
 .detail-trend .axis { font-size: 12px; }
 .detail-trend .value { font-size: 12px; }
 .detail-trend .dot { stroke: var(--ui-surface); stroke-width: 2; pointer-events: none; }
-.detail-trend .hit { fill: transparent; cursor: pointer; }
+.detail-trend .hit, .insight-chart.detail-trend circle.hit { fill: transparent; cursor: pointer; }
 .detail-trend .hit:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 0; }
 .detail-trend figcaption { font-weight: 400; font-size: 13.5px; color: var(--ui-muted); margin-top: 6px; line-height: 1.5; }
 .detail-trend .chart-note { display: block; font-size: 12.5px; }

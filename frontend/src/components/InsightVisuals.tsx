@@ -19,17 +19,21 @@ export function Sparkline({ points, tone = "neutral" }: { points: TrendPoint[]; 
 
 export function TrendChart({ points, unit, title, tone = "neutral" }: { points: TrendPoint[]; unit: string; title: string; tone?: "good" | "bad" | "neutral" }) {
   if (points.length < 2) return null;
-  const width = 480; const height = 170; const left = 30; const right = 30; const top = 18; const bottom = 26;
+  const width = 480; const height = 184; const left = 30; const right = 30; const top = 20; const bottom = 34;
   const min = Math.min(...points.map((point) => point.value)); const max = Math.max(...points.map((point) => point.value));
   const span = max - min || 1;
   const x = (index: number) => left + (index / (points.length - 1)) * (width - left - right);
   const y = (value: number) => top + (1 - (value - min) / span) * (height - top - bottom);
   const path = points.map((point, index) => `${index ? "L" : "M"}${x(index).toFixed(1)},${y(point.value).toFixed(1)}`).join(" ");
   const area = `${path} L${x(points.length - 1).toFixed(1)},${height - bottom} L${x(0).toFixed(1)},${height - bottom} Z`;
+  const last = points.length - 1;
+  const step = Math.max(1, Math.ceil(28 * points.length / (width - left - right)));
+  const showValue = (index: number) => index === last || (index % step === 0 && last - index >= step);
+  const isLow = (index: number) => index > 0 && index < last && points[index]!.value < points[index - 1]!.value && points[index]!.value < points[index + 1]!.value;
   return <figure className={`insight-chart ${tone}`}><figcaption>{plain(title)}{unit ? ` (${plain(unit)})` : ""}</figcaption>
     <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`Grafik tren ${title}`}>
       <path d={area} className="area" /><path d={path} className="line" fill="none" strokeWidth="2.5" strokeLinejoin="round" />
-      {points.map((point, index) => <g key={point.year}><circle cx={x(index)} cy={y(point.value)} r="3.5" /><text x={x(index)} y={height - 8} textAnchor="middle" className="axis">{point.year}</text>{(index === 0 || index === points.length - 1 || points.length <= 6) && <text x={x(index)} y={y(point.value) - 8} textAnchor="middle" className="value">{fmt(point.value)}</text>}</g>)}
+      {points.map((point, index) => <g key={point.year}><circle cx={x(index)} cy={y(point.value)} r="3.5" /><text x={x(index)} y={height - 8} textAnchor="middle" className="axis">{point.year}</text>{showValue(index) && <text x={x(index)} y={isLow(index) ? y(point.value) + 15 : y(point.value) - 8} textAnchor="middle" className="value">{fmt(point.value)}</text>}</g>)}
     </svg></figure>;
 }
 
