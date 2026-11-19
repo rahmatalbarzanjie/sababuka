@@ -1,0 +1,34 @@
+/* Logo resmi SABABUKA BERSINAR (berkas PNG). Dimuat terakhir agar menggantikan ukuran lambang SVG lama. */
+.sababuka-mark { display: block; height: auto; object-fit: contain; flex: none; }
+.sababuka-lockup { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.sababuka-logo { display: block; height: 40px; width: auto; max-width: 100%; }
+.sababuka-logo.logo-dark { display: none; }
+html[data-theme="dark"] .sababuka-logo.logo-light { display: none; }
+html[data-theme="dark"] .sababuka-logo.logo-dark { display: block; }
+.sababuka-lockup-desc { color: var(--ui-muted, #4a6075); font-size: 12px; line-height: 1.3; }
+
+/* Ukuran per tempat */
+.sidebar-lockup .sababuka-logo { height: 38px; }
+.portal-lockup .sababuka-logo { height: 42px; }
+.login-lockup .sababuka-logo { height: 56px; }
+.login-simple .login-lockup .sababuka-logo { height: 52px; }
+.auth-lockup .sababuka-logo { height: 60px; }
+/* Latar navy pada panel merek halaman masuk: selalu varian gelap */
+.auth-lockup .sababuka-logo.logo-light { display: none; }
+.auth-lockup .sababuka-logo.logo-dark { display: block; }
+.auth-lockup .sababuka-lockup-desc { color: #c9deee; }
+@media (max-width: 480px) { .login-lockup .sababuka-logo, .login-simple .login-lockup .sababuka-logo { height: 44px; } .portal-lockup .sababuka-logo { height: 34px; } }
+html.app-mode .portal-lockup .sababuka-logo { height: 32px; }
+
+/* Lambang tunggal (jawaban chat, kaki halaman, pemuatan) */
+.sababuka-mark { width: 28px; }
+.chat-message > span .sababuka-mark { width: 22px; height: 22px; }
+.assistant-avatar .sababuka-mark { width: 40px; height: 40px; }
+.assistant-welcome > .assistant-welcome-mark { width: 64px; height: 64px; }
+.assistant-floating-icon .sababuka-mark { width: 30px; height: 30px; }
+.workspace-footer-identity .sababuka-mark { width: 34px; height: 34px; flex: 0 0 34px; }
+.loading-brand-mark { width: clamp(96px, 10vw, 128px); height: auto; filter: none; animation: sababuka-logo-pulse 1.8s ease-in-out infinite; }
+@keyframes sababuka-logo-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .72; transform: scale(.97); } }
+@media (prefers-reduced-motion: reduce) { .loading-brand-mark { animation: none; } }
+.login-lockup { align-items: center; margin-inline: auto; text-align: center; }
+.login-simple .login-lockup .sababuka-logo { height: 60px; }
