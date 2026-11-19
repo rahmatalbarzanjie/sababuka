@@ -13,6 +13,7 @@
     "api:types:check": "pnpm api:types && git ls-files --error-unmatch src/generated/api-schema.d.ts && git diff --exit-code -- src/generated/api-schema.d.ts"
   },
   "dependencies": {
+    "@fontsource/poppins": "^5.3.0",
     "@fontsource/source-sans-3": "^5.3.0",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",

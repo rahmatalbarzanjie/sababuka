@@ -1,0 +1,115 @@
+/*
+ * Halaman masuk dan pendaftaran bergaya portal: latar terang, Poppins, isian membulat,
+ * satu tombol oranye. Panggung navy hanya membingkai ilustrasi tugu karena warnanya dirancang untuk latar gelap.
+ */
+.auth-layout,
+.registration-page {
+  --auth-navy: #00365a;
+  --auth-accent: #ffa62b;
+  --auth-accent-fg: #0c2237;
+  --auth-link: #0b5a94;
+  --auth-stage: #0a2846;
+  font-family: "Poppins", "Source Sans 3", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--ui-ground);
+  color: var(--ui-text);
+}
+html[data-theme="dark"] .auth-layout, html[data-theme="dark"] .registration-page { --auth-accent: #ffb347; --auth-link: #8fc6f4; }
+.auth-layout :where(button, input, select, textarea), .registration-page :where(button, input, select, textarea) { font-family: inherit; }
+.login-page::before { background: var(--ui-ground); }
+.login-illustration { display: none; }
+
+/* sisi merek */
+.auth-layout .auth-brand,
+.login-page.auth-layout > .auth-brand,
+html[data-theme="dark"] .login-page.auth-layout > .auth-brand { background: var(--ui-surface-subtle); color: var(--ui-text); }
+.login-page.auth-layout > .auth-brand { grid-template-rows: auto minmax(0, 1fr) auto; }
+.auth-layout .auth-lockup .sababuka-lockup-copy strong { color: var(--ui-text); }
+.auth-layout .auth-lockup .sababuka-lockup-copy small { color: var(--ui-muted); }
+.auth-layout .auth-brand-stage { display: flex; flex-direction: column; gap: 28px; margin: auto 0; }
+.auth-layout .auth-brand-stage .auth-copy { order: -1; max-width: 560px; margin: 0; }
+.auth-layout .auth-brand-stage .auth-copy h2 { margin: 0 0 14px; font-size: clamp(30px, 3.4vw, 46px); font-weight: 700; line-height: 1.15; letter-spacing: -.01em; color: var(--ui-text); text-wrap: balance; }
+.auth-layout .auth-brand-stage .auth-copy h2 em { font-style: normal; color: var(--auth-link); }
+.auth-layout .auth-brand-stage .auth-copy p { margin: 0; color: var(--ui-muted); font-size: 15px; line-height: 1.7; max-width: 52ch; }
+.auth-layout .auth-brand-stage .kapuas-data-illustration { width: min(100%, 400px); margin: 0; padding: 22px 22px 16px; border-radius: 26px; background: var(--auth-stage); }
+.auth-layout .auth-foot { color: var(--ui-muted); font-size: 12px; line-height: 1.6; }
+.auth-layout .auth-foot strong { color: var(--ui-text); font-weight: 600; }
+
+/* sisi formulir */
+.auth-layout .auth-panel,
+.registration-page .auth-panel { background: var(--ui-ground); padding: clamp(20px, 4vw, 48px); }
+.auth-layout .auth-card,
+.registration-page .auth-card { border: 0; border-radius: 24px; background: var(--ui-surface); box-shadow: 0 12px 36px rgba(0, 54, 90, .14); }
+html[data-theme="dark"] .auth-layout .auth-card,
+html[data-theme="dark"] .registration-page .auth-card { box-shadow: 0 12px 36px rgba(0, 0, 0, .45); border: 1px solid var(--ui-border); }
+.auth-layout .auth-card.login-card,
+.registration-page .auth-card.login-card { width: min(100%, 460px); gap: 20px; padding: clamp(26px, 5vw, 40px); }
+.auth-layout .login-identity,
+.registration-page .login-identity { padding-bottom: 18px; border-bottom: 1px solid var(--ui-rule); }
+.auth-layout .login-lockup .sababuka-lockup-copy strong,
+.registration-page .login-lockup .sababuka-lockup-copy strong { color: var(--ui-text); }
+.auth-layout .auth-card-heading h1, .auth-layout .auth-card-heading h2,
+.registration-page .auth-card-heading h1, .auth-layout .auth-card-heading h2 { font-family: inherit; font-size: 26px; font-weight: 700; line-height: 1.25; letter-spacing: -.01em; margin: 0 0 6px; color: var(--ui-text); }
+.auth-layout .auth-card-heading p,
+.registration-page .auth-card-heading p { margin: 0; color: var(--ui-muted); font-size: 14px; line-height: 1.6; }
+.auth-layout .field,
+.registration-page .field { gap: 8px; font-size: 13px; font-weight: 500; color: var(--ui-text); }
+.auth-layout .field input, .auth-layout .field select, .auth-layout .field textarea,
+.registration-page .field input, .auth-layout .field select, .auth-layout .field textarea { min-height: 52px; padding: 0 18px; border: 1px solid var(--ui-control); border-radius: 14px; background: var(--ui-surface); color: var(--ui-text); font-size: 14px; }
+.auth-layout .field textarea,
+.registration-page .field textarea { padding: 14px 18px; min-height: 96px; }
+.auth-layout .field input:focus, .auth-layout .field select:focus, .auth-layout .field textarea:focus,
+.registration-page .field input:focus, .auth-layout .field select:focus, .auth-layout .field textarea:focus { border-color: var(--auth-link); box-shadow: 0 0 0 4px color-mix(in srgb, var(--auth-link) 18%, transparent); }
+.auth-layout .password-field input,
+.registration-page .password-field input { padding-right: 52px; }
+.auth-layout .password-field button,
+.registration-page .password-field button { border-radius: 50%; }
+.auth-layout .auth-card .button,
+.registration-page .auth-card .button { min-height: 52px; border-radius: 999px; font-size: 15px; font-weight: 600; }
+.auth-layout .auth-card .button.primary,
+.registration-page .auth-card .button.primary { border: 0; background: var(--auth-accent); color: var(--auth-accent-fg); box-shadow: none; }
+.auth-layout .auth-card .button.primary:hover:not(:disabled),
+.registration-page .auth-card .button.primary:hover:not(:disabled) { filter: brightness(.96); }
+.auth-layout .auth-card .button.primary:disabled,
+.registration-page .auth-card .button.primary:disabled { opacity: .65; }
+.auth-layout .auth-card .button.secondary,
+.registration-page .auth-card .button.secondary { min-height: 48px; border: 1px solid var(--ui-control); background: var(--ui-surface); color: var(--ui-text); }
+.auth-layout .login-credit,
+.registration-page .login-credit { color: var(--ui-muted); }
+
+@media (max-width: 960px) {
+  .auth-layout, .login-page.auth-layout { grid-template-columns: minmax(0, 1fr); }
+  .auth-layout .auth-brand { min-height: 0; padding: 28px 24px; }
+  /* kartu masuk sudah memuat logo sendiri; halaman lain hanya menampilkan baris logo */
+  .login-page.auth-layout > .auth-brand { display: none; }
+  .auth-layout .auth-brand { grid-template-rows: auto; }
+  .auth-layout .auth-brand-stage { display: none; }
+  .auth-layout .auth-foot { display: none; }
+  .auth-layout .auth-panel { padding: 20px 16px 36px; }
+}
+.auth-layout .auth-brand-stage { align-items: flex-start; padding: 0; }
+.auth-layout .auth-brand-stage .auth-copy h2 { font-family: inherit; }
+
+.registration-page { background: var(--ui-ground); min-height: 100svh; }
+.registration-page .auth-card.registration-card { width: min(100%, 640px); }
+.registration-page .context-label { color: var(--ui-muted); font-weight: 500; }
+.registration-page .auth-card-heading :is(h1, h2) { font-family: inherit; font-size: 26px; font-weight: 700; line-height: 1.25; letter-spacing: -.01em; margin: 0 0 6px; color: var(--ui-text); }
+.registration-page .auth-card-heading p { margin: 0; color: var(--ui-muted); font-size: 14px; line-height: 1.6; }
+
+/* teks kaki memenuhi kontras AA, menimpa warna lama di ui-system.css */
+.login-page.auth-layout .auth-foot, .auth-layout .auth-foot { color: var(--ui-muted); }
+
+/* sisi merek disembunyikan di bawah 960 px, jadi logo tampil di dalam kartu masuk */
+@media (max-width: 960px) { .login-page.auth-layout .login-identity { display: flex; } }
+.auth-layout .auth-back-link, .registration-page .auth-back-link, .auth-layout .text-button, .registration-page .text-button { min-height: 44px; }
+
+/* Halaman masuk sederhana: hanya kartu masuk di tengah, tanpa sisi merek dan ilustrasi. */
+.login-page.auth-layout.login-simple { display: grid; place-items: center; grid-template-columns: minmax(0, 1fr); min-height: 100svh; padding: 24px 16px; background: var(--ui-surface-subtle); overflow: auto; }
+.login-page.auth-layout.login-simple::before { display: none; }
+.login-simple .login-panel, .login-simple .auth-panel { width: 100%; min-height: 0; padding: 0; background: transparent; display: grid; place-items: center; }
+.login-page.auth-layout.login-simple .login-identity { display: flex; justify-content: center; padding-bottom: 20px; }
+.login-simple .login-lockup > .sababuka-mark { width: 40px; height: 54px; flex-basis: 40px; }
+.login-page.auth-layout.login-simple .login-credit { display: block; }
+.login-simple .auth-card-heading { text-align: center; }
+.login-simple .auth-card.login-card { width: min(100%, 440px); }
+.login-page.auth-layout.login-simple .auth-panel.login-panel, html[data-theme="dark"] .login-page.auth-layout.login-simple .auth-panel.login-panel { background: transparent; border: 0; box-shadow: none; }
+.login-page.auth-layout.login-simple .auth-panel.login-panel { padding: 0; min-height: 0; width: 100%; max-width: 100%; }

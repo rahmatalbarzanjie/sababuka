@@ -47,6 +47,8 @@ import { formatTanggal, Modal } from "../components";
 import { SababukaLockup, SababukaMark } from "../branding/SababukaBrand";
 import { applyTheme, readTheme, type ThemeMode } from "../theme";
 import { CommandPalette, type PaletteItem } from "./CommandPalette";
+import { A11yMenu } from "../components/A11yMenu";
+import { goDashboard, INDICATOR_GROUP, useDashTab } from "../portalNav";
 
 const iconByCode: Record<string, typeof LayoutDashboard> = {
   organizations: Building2,
@@ -130,6 +132,21 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
   const auditEntries = useMemo(() => menu.filter((item) => item.code === "audit" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const isPimpinan = user?.roles.some((role) => role.code === "pimpinan") ?? false;
   const assistantEntries = useMemo(() => menu.filter((item) => item.code === "assistant" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
+  const dashTab = useDashTab();
+  const portalItems = useMemo(() => {
+    if (!isPimpinan) return [] as Array<{ id: string; label: string; aria?: string; icon: typeof LayoutDashboard; active: boolean; run(): void }>;
+    const onDash = pathname === "/dashboard";
+    const items: Array<{ id: string; label: string; aria?: string; icon: typeof LayoutDashboard; active: boolean; run(): void }> = [];
+    if (primaryEntries.length > 0) {
+      items.push({ id: "ringkasan", label: "Beranda", icon: LayoutDashboard, active: onDash && dashTab === "ringkasan", run: () => goDashboard("ringkasan") });
+      items.push({ id: "capaian", label: "Capaian", icon: Target, active: onDash && dashTab === "capaian", run: () => goDashboard("capaian") });
+      items.push({ id: "peta", label: "Wilayah", icon: MapPinned, active: onDash && dashTab === "peta", run: () => goDashboard("peta") });
+      items.push({ id: "indikator", label: "Indikator", icon: ListChecks, active: onDash && INDICATOR_GROUP.includes(dashTab), run: () => goDashboard("indikator") });
+    }
+    if (assistantEntries.length > 0) items.push({ id: "assistant", label: "Tanya", aria: "Tanya Sababuka", icon: Bot, active: pathname === "/assistant", run: () => go("/assistant") });
+    return items;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPimpinan, pathname, dashTab, primaryEntries.length, assistantEntries.length]);
   const accountEntries = useMemo<MenuItem[]>(() => user && !user.simulation?.active ? [{ code: "my-account", label: "Akun saya", icon: "user", route_name: "/admin/profile", navigation_disabled: false, display_order: 9999, children: [] }] : [], [user, adminEntries]);
   const navigationSections = useMemo(() => [
     { code: "system", label: "Administrasi sistem", entries: systemEntries },
@@ -340,7 +357,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-  return <div className={`workspace ${collapsed ? "collapsed" : ""}`}>
+  return <div className={`workspace ${collapsed ? "collapsed" : ""}${isPimpinan ? " portal" : ""}${isPimpinan && pathname === "/dashboard" ? " portal-home" : ""}${isPimpinan && pathname === "/assistant" ? " portal-chat" : ""}`}>
     <button className="skip-link" onClick={() => { mainRef.current?.focus({ preventScroll: true }); mainRef.current?.scrollIntoView({ block: "start" }); }}>Lewati navigasi ke konten utama</button>
     <aside ref={sidebarRef} className={`sidebar ${mobile ? "mobile-open" : ""}`} aria-label="Navigasi utama">
       <div className="sidebar-brand"><SababukaLockup className="sidebar-lockup" /><button className="mobile-close" aria-label="Tutup menu" onClick={() => setMobile(false)}><X /></button></div>
@@ -357,6 +374,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     <section className="workspace-main">
       <header className="topbar">
         <button ref={mobileTriggerRef} className="icon-button mobile-trigger" aria-label="Buka menu" aria-haspopup="true" aria-expanded={mobile} onClick={() => setMobile(true)}><Menu /></button>
+        {isPimpinan && <><div className="portal-brand"><SababukaLockup className="portal-lockup" /></div><nav className="portal-nav" aria-label="Menu Bupati">{portalItems.map((item) => { const Icon = item.icon; return <button key={item.id} type="button" className={`portal-link${item.active ? " active" : ""}`} aria-current={item.active ? "page" : undefined} aria-label={item.aria} onClick={item.run}><Icon aria-hidden /><span>{item.label}</span></button>; })}</nav></>}
         <nav className="topbar-context" aria-label="Lokasi halaman" title={subtitle}><span>{areaLabel}</span><i aria-hidden>/</i><strong tabIndex={-1}>{title}</strong></nav>
         <div className="topbar-actions">
           {actions}
@@ -400,6 +418,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
         </div>
       </footer>
     </section>
+    {isPimpinan && <A11yMenu dark={theme === "dark"} onToggleDark={() => setTheme((value) => value === "dark" ? "light" : "dark")} />}
     {paletteOpen && <CommandPalette items={paletteItems} onClose={() => setPaletteOpen(false)} />}
     {helpOpen && <><button className="help-overlay" aria-label="Tutup bantuan" onClick={() => setHelpOpen(false)} /><aside ref={helpRef} tabIndex={-1} className="help-drawer" role="dialog" aria-modal="true" aria-labelledby="help-drawer-title"><header><div><h2 id="help-drawer-title">{help.title}</h2></div><button type="button" className="icon-button" aria-label="Tutup bantuan" onClick={() => setHelpOpen(false)}><X /></button></header><p>{help.intro}</p><ol>{help.steps.map((step) => <li key={step}><span>{help.steps.indexOf(step) + 1}</span><p>{step}</p></li>)}</ol><section><strong>Istilah penting</strong><dl><div><dt>Target</dt><dd>Sasaran RPJMD untuk tahun pelaporan.</dd></div><div><dt>Realisasi</dt><dd>Nilai yang benar-benar dicapai OPD.</dd></div><div><dt>Dipublikasikan</dt><dd>Sudah diperiksa, dikurasi, dan boleh dilihat Bupati.</dd></div></dl></section><footer><small>Jika tugas atau data tidak sesuai, catat nama indikator, periode, dan OPD lalu hubungi Pengelola Sistem.</small><button type="button" className="button primary" onClick={() => setHelpOpen(false)}>Saya mengerti</button></footer></aside></>}
     {announcement?.enabled && <Modal title={announcement.title ?? "Pemberitahuan"} onClose={() => setAnnouncement(null)}><article className="login-announcement"><span className="announcement-icon"><Megaphone /></span>{announcement.image_url && <img src={announcement.image_url} alt="Ilustrasi pemberitahuan" />}<p>{announcement.message}</p><footer className="modal-actions">{announcement.action_url && <a className="button secondary" href={announcement.action_url} target={announcement.action_url.startsWith("http") ? "_blank" : undefined} rel="noreferrer">{announcement.action_label ?? "Buka informasi"}</a>}<button type="button" className="button primary" onClick={() => setAnnouncement(null)}>Tutup</button></footer></article></Modal>}
