@@ -151,7 +151,7 @@ export function PasswordSetupPage() {
   }
 
   return <main className="auth-layout"><AuthBrand /><section className="auth-panel"><form className="auth-card" onSubmit={submit}>
-    <div className="auth-card-heading"><span className="context-label">Langkah pertama</span><h2>Ganti kata sandi</h2><p>Akun demo ini memakai kata sandi awal. Buat kata sandi pribadi sebelum melanjutkan.</p></div>
+    <div className="auth-card-heading"><span className="context-label">Langkah pertama</span><h1>Ganti kata sandi</h1><p>Akun demo ini memakai kata sandi awal. Buat kata sandi pribadi sebelum melanjutkan.</p></div>
     {error && <Notice tone="error">{error}</Notice>}
     <label className="field"><span>Kata sandi awal</span><input type="password" autoFocus autoComplete="current-password" data-field="current_password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} required minLength={8} /></label>
     <label className="field"><span>Kata sandi baru</span><input type="password" autoComplete="new-password" data-field="new_password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required minLength={12} /><small>Minimal 12 karakter.</small></label>
@@ -213,11 +213,11 @@ export function RegistrationPage() {
         {complete ? <>
           <div className="login-identity"><SababukaLockup className="login-lockup" /></div>
           <div className="success-symbol"><Check /></div>
-          <div className="auth-card-heading centered"><span className="context-label">Pendaftaran terkirim</span><h2>Menunggu persetujuan</h2><p>Pengelola Sistem akan memeriksa identitas PIC, instansi, dan paket peran yang sesuai.</p></div>
+          <div className="auth-card-heading centered"><span className="context-label">Pendaftaran terkirim</span><h1>Menunggu persetujuan</h1><p>Pengelola Sistem akan memeriksa identitas PIC, instansi, dan paket peran yang sesuai.</p></div>
           <button className="button primary full" onClick={() => navigate("/login")}>Kembali ke halaman masuk</button>
         </> : <form className="registration-form" onSubmit={submit}>
           <div className="login-identity"><SababukaLockup className="login-lockup" /></div>
-          <div className="auth-card-heading"><span className="context-label">Pendaftaran akun</span><h2>Daftar sebagai PIC instansi</h2><p>Untuk OPD dan instansi vertikal yang telah terdaftar. Hak akses diberikan setelah identitas dan kedudukan instansi diperiksa.</p></div>
+          <div className="auth-card-heading"><span className="context-label">Pendaftaran akun</span><h1>Daftar sebagai PIC instansi</h1><p>Untuk OPD dan instansi vertikal yang telah terdaftar. Hak akses diberikan setelah identitas dan kedudukan instansi diperiksa.</p></div>
           {error && <Notice tone="error">{error}</Notice>}
           <div className="registration-form-grid">
             <label className="field"><span>Nama lengkap PIC</span><input autoFocus data-field="full_name" value={fullName} onChange={(event) => setFullName(event.target.value)} autoComplete="name" placeholder="Nama lengkap" required /></label>
@@ -276,10 +276,10 @@ export function InvitationPage() {
     <section className="auth-panel">
       <div className="auth-card activation-card">
         {busy && !info ? <Spinner label="Memeriksa undangan" /> : error && !info ? <><Notice tone="error">{error}</Notice><button className="button secondary full" onClick={() => navigate("/login")}>Kembali ke login</button></> : activationStatus ? <>
-          <div className="success-symbol"><Check /></div><div className="auth-card-heading"><span className="context-label">{activationStatus === "pending_approval" ? "Menunggu verifikasi" : isReset ? "Kata sandi diperbarui" : "Akun aktif"}</span><h2>{activationStatus === "pending_approval" ? "Kata sandi tersimpan" : isReset ? "Kata sandi Anda sudah diperbarui" : "Akun Anda sudah aktif"}</h2><p>{activationStatus === "pending_approval" ? "Developer akan memeriksa identitas dan OPD sebelum akun dapat digunakan." : isReset ? "Masuk menggunakan email dan kata sandi yang baru saja Anda simpan." : "Masuk menggunakan email dan kata sandi yang baru Anda buat."}</p></div>
+          <div className="success-symbol"><Check /></div><div className="auth-card-heading"><span className="context-label">{activationStatus === "pending_approval" ? "Menunggu verifikasi" : isReset ? "Kata sandi diperbarui" : "Akun aktif"}</span><h1>{activationStatus === "pending_approval" ? "Kata sandi tersimpan" : isReset ? "Kata sandi Anda sudah diperbarui" : "Akun Anda sudah aktif"}</h1><p>{activationStatus === "pending_approval" ? "Developer akan memeriksa identitas dan OPD sebelum akun dapat digunakan." : isReset ? "Masuk menggunakan email dan kata sandi yang baru saja Anda simpan." : "Masuk menggunakan email dan kata sandi yang baru Anda buat."}</p></div>
           <button className="button primary full" onClick={() => navigate("/login")}>Lanjut ke login <ArrowRight size={17} /></button>
         </> : info ? <form onSubmit={activate}>
-          <div className="auth-card-heading"><span className="context-label">{isReset ? "Atur ulang kata sandi" : "Undangan pengguna"}</span><h2>{isReset ? "Halo" : "Selamat datang"}, {info.full_name}</h2><p>{info.email}</p>{isReset && <p>Anda boleh memakai kembali kata sandi yang sama seperti sebelumnya.</p>}</div>
+          <div className="auth-card-heading"><span className="context-label">{isReset ? "Atur ulang kata sandi" : "Undangan pengguna"}</span><h1>{isReset ? "Halo" : "Selamat datang"}, {info.full_name}</h1><p>{info.email}</p>{isReset && <p>Anda boleh memakai kembali kata sandi yang sama seperti sebelumnya.</p>}</div>
           {error && <Notice tone="error">{error}</Notice>}
           <label className="field"><span>Kata sandi baru</span><div className="password-field"><input type={showPassword ? "text" : "password"} autoComplete="new-password" minLength={12} data-field="password" value={password} onChange={(event) => setPassword(event.target.value)} required /><button type="button" aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff /> : <Eye />}</button></div><small>Minimal 12 karakter.</small></label>
           <label className="field"><span>Ulangi kata sandi</span><input type={showPassword ? "text" : "password"} autoComplete="new-password" minLength={12} data-field="confirm_password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required /></label>

@@ -8,6 +8,7 @@
   --auth-accent: #ffa62b;
   --auth-accent-fg: #0c2237;
   --auth-link: #0b5a94;
+  --auth-stage: #0a2846;
   font-family: "Poppins", "Source Sans 3", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   background: var(--ui-ground);
   color: var(--ui-text);
@@ -29,7 +30,7 @@ html[data-theme="dark"] .login-page.auth-layout > .auth-brand { background: var(
 .auth-layout .auth-brand-stage .auth-copy h2 { margin: 0 0 14px; font-size: clamp(30px, 3.4vw, 46px); font-weight: 700; line-height: 1.15; letter-spacing: -.01em; color: var(--ui-text); text-wrap: balance; }
 .auth-layout .auth-brand-stage .auth-copy h2 em { font-style: normal; color: var(--auth-link); }
 .auth-layout .auth-brand-stage .auth-copy p { margin: 0; color: var(--ui-muted); font-size: 15px; line-height: 1.7; max-width: 52ch; }
-.auth-layout .auth-brand-stage .kapuas-data-illustration { width: min(100%, 400px); margin: 0; padding: 22px 22px 16px; border-radius: 26px; background: #0a2846; }
+.auth-layout .auth-brand-stage .kapuas-data-illustration { width: min(100%, 400px); margin: 0; padding: 22px 22px 16px; border-radius: 26px; background: var(--auth-stage); }
 .auth-layout .auth-foot { color: var(--ui-muted); font-size: 12px; line-height: 1.6; }
 .auth-layout .auth-foot strong { color: var(--ui-text); font-weight: 600; }
 
@@ -76,10 +77,12 @@ html[data-theme="dark"] .registration-page .auth-card { box-shadow: 0 12px 36px 
 .registration-page .login-credit { color: var(--ui-muted); }
 
 @media (max-width: 960px) {
-  .auth-layout { grid-template-columns: minmax(0, 1fr); }
+  .auth-layout, .login-page.auth-layout { grid-template-columns: minmax(0, 1fr); }
   .auth-layout .auth-brand { min-height: 0; padding: 28px 24px; }
-  .auth-layout .auth-brand-stage { margin: 24px 0 0; }
-  .auth-layout .auth-brand-stage .kapuas-data-illustration { display: none; }
+  /* kartu masuk sudah memuat logo sendiri; halaman lain hanya menampilkan baris logo */
+  .login-page.auth-layout > .auth-brand { display: none; }
+  .auth-layout .auth-brand { grid-template-rows: auto; }
+  .auth-layout .auth-brand-stage { display: none; }
   .auth-layout .auth-foot { display: none; }
   .auth-layout .auth-panel { padding: 20px 16px 36px; }
 }
@@ -91,3 +94,9 @@ html[data-theme="dark"] .registration-page .auth-card { box-shadow: 0 12px 36px 
 .registration-page .context-label { color: var(--ui-muted); font-weight: 500; }
 .registration-page .auth-card-heading :is(h1, h2) { font-family: inherit; font-size: 26px; font-weight: 700; line-height: 1.25; letter-spacing: -.01em; margin: 0 0 6px; color: var(--ui-text); }
 .registration-page .auth-card-heading p { margin: 0; color: var(--ui-muted); font-size: 14px; line-height: 1.6; }
+
+/* teks kaki memenuhi kontras AA, menimpa warna lama di ui-system.css */
+.login-page.auth-layout .auth-foot, .auth-layout .auth-foot { color: var(--ui-muted); }
+
+/* sisi merek disembunyikan di bawah 960 px, jadi logo tampil di dalam kartu masuk */
+@media (max-width: 960px) { .login-page.auth-layout .login-identity { display: flex; } }

@@ -599,7 +599,9 @@ body { min-width: 320px; background: var(--ui-ground); color: var(--ui-text); fo
 .search-field,
 .search-box { min-height: 40px; border-color: var(--ui-control); font-size: 14px; }
 input::placeholder,
-textarea::placeholder { color: #667b90; opacity: 1; }
+textarea::placeholder { color: #5a6e82; opacity: 1; }
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder { color: var(--ui-muted); }
 
 .toolbar { gap: 12px; margin-bottom: 16px; }
 .table-filters { gap: 10px; }
