@@ -21,7 +21,7 @@ export function DetailTrend({ points, unit, tone = "neutral" }: { points: TrendP
   }, []);
   if (points.length < 2) return null;
   const narrow = width > 0 && width < 480;
-  const height = narrow ? 210 : 250; const left = 52; const right = 20; const top = 24; const bottom = 34;
+  const height = narrow ? 210 : 250; const left = 52; const right = 24; const top = 26; const bottom = 42;
   const min = Math.min(...points.map((point) => point.value)); const max = Math.max(...points.map((point) => point.value));
   const span = max - min || 1;
   const x = (index: number) => left + (index / (points.length - 1)) * Math.max(1, width - left - right);
@@ -30,7 +30,10 @@ export function DetailTrend({ points, unit, tone = "neutral" }: { points: TrendP
   const area = `${path} L${x(points.length - 1).toFixed(1)},${height - bottom} L${x(0).toFixed(1)},${height - bottom} Z`;
   const ticks = [max, (max + min) / 2, min];
   const yearStep = points.length > (narrow ? 5 : 9) ? Math.ceil(points.length / (narrow ? 5 : 9)) : 1;
-  const labelAll = points.length <= (narrow ? 4 : 8);
+  const last = points.length - 1;
+  const valueStep = Math.max(1, Math.ceil(36 * points.length / Math.max(1, width - left - right)));
+  const showValue = (index: number) => index === last || (index % valueStep === 0 && last - index >= valueStep);
+  const isLow = (index: number) => index > 0 && index < last && points[index]!.value < points[index - 1]!.value && points[index]!.value < points[index + 1]!.value;
   return <figure className={`insight-chart detail-trend ${tone}`}>
     <div ref={box} className="detail-trend-box">
       {width > 0 && <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="group" aria-label={`Grafik tren ${points[0]!.year} sampai ${points[points.length - 1]!.year}, satuan ${plain(unit)}`}>
@@ -38,7 +41,7 @@ export function DetailTrend({ points, unit, tone = "neutral" }: { points: TrendP
         <path d={area} className="area" /><path d={path} className="line" fill="none" strokeWidth="2.5" strokeLinejoin="round" />
         {points.map((point, index) => <g key={point.year}>
           {(index % yearStep === 0 || index === points.length - 1) && <text x={x(index)} y={height - 10} textAnchor="middle" className="axis">{point.year}</text>}
-          {(labelAll || index === points.length - 1 || index === 0) && <text x={x(index)} y={y(point.value) - 9} textAnchor={index === 0 ? "start" : index === points.length - 1 ? "end" : "middle"} className="value">{compact(point.value)}</text>}
+          {showValue(index) && <text x={x(index)} y={isLow(index) ? y(point.value) + 20 : y(point.value) - 11} textAnchor={index === 0 ? "start" : index === last ? "end" : "middle"} className="value">{compact(point.value)}</text>}
           <circle cx={x(index)} cy={y(point.value)} r={active === index ? 6 : 4} className="dot" />
           <circle cx={x(index)} cy={y(point.value)} r={18} className="hit" tabIndex={0} role="img" aria-label={`${point.year}: ${full(point.value)} ${plain(unit)}`}
             onMouseEnter={() => setActive(index)} onMouseLeave={() => setActive(null)} onFocus={() => setActive(index)} onBlur={() => setActive(null)} onClick={() => setActive(index === active ? null : index)}><title>{`${point.year}: ${full(point.value)} ${plain(unit)}`}</title></circle>

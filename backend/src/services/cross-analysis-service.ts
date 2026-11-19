@@ -162,9 +162,10 @@ export function buildCrossAnalysis(input: CrossInput): CrossAnalysis | null {
   if (support.length) recommendations.push({ opd: joinNames(support), action: `Sampaikan data dan program pendukung yang berpengaruh pada ${me.name} kepada ${leadText}.`, basis: "OPD pendukung menurut matriks RPJMD" });
   const shared = related.filter((item) => needsAttention(item) && item.relation !== "fokus_sama").slice(0, 3);
   for (const item of shared) {
-    const owner = joinNames(item.opds.slice(0, 2)) || "OPD terkait";
+    const others = item.opds.filter((name) => !primary.includes(name)).slice(0, 2);
+    const owner = joinNames(others);
     const reason = item.status === "belum_tercapai" ? "belum mencapai target" : "menunjukkan tren memburuk";
-    recommendations.push({ opd: `${leadText} dan ${owner}`, action: `Koordinasikan penanganan karena ${item.name} ${reason} pada isu yang sama.`, basis: item.validated ? "Tautan Seri Data" : "Kelompok isu yang sama (usulan sistem)" });
+    recommendations.push({ opd: owner ? `${leadText} dan ${owner}` : leadText, action: `Koordinasikan penanganan karena ${item.name} ${reason} pada isu yang sama.`, basis: item.validated ? "Tautan Seri Data" : "Kelompok isu yang sama (usulan sistem)" });
   }
   if (priority.length) recommendations.push({ opd: leadText, action: `Fokuskan intervensi pada ${joinNames(priority.map((item) => `Kecamatan ${item.name}`))} (nilai paling jauh dari arah yang diharapkan, ${districts.year}).`, basis: "Nilai per kecamatan" });
   const strong = related.filter((item) => item.correlation && Math.abs(item.correlation.rho) >= STRONG_CORRELATION).slice(0, 2);
