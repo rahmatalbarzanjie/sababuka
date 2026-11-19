@@ -26,9 +26,10 @@ html.app-mode .portal-lockup .sababuka-logo { height: 32px; }
 .assistant-avatar .sababuka-mark { width: 40px; height: 40px; }
 .assistant-welcome > .assistant-welcome-mark { width: 64px; height: 64px; }
 .assistant-floating-icon .sababuka-mark { width: 30px; height: 30px; }
-.workspace-footer-identity .sababuka-mark { width: 34px; height: 34px; flex: 0 0 34px; }
+.workspace-footer-identity .footer-logo { display: block; height: 44px; width: auto; flex: none; }
 .loading-brand-mark { width: clamp(96px, 10vw, 128px); height: auto; filter: none; animation: sababuka-logo-pulse 1.8s ease-in-out infinite; }
 @keyframes sababuka-logo-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .72; transform: scale(.97); } }
 @media (prefers-reduced-motion: reduce) { .loading-brand-mark { animation: none; } }
 .login-lockup { align-items: center; margin-inline: auto; text-align: center; }
 .login-simple .login-lockup .sababuka-logo { height: 60px; }
+.workspace-footer-identity > span { text-align: left; }

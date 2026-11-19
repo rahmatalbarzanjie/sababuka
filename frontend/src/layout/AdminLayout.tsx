@@ -44,7 +44,7 @@ import { api } from "../api";
 import { installServerFieldMarking } from "../fieldErrors";
 import { notificationDestination } from "../notification-routing";
 import { formatTanggal, Modal } from "../components";
-import { SababukaLockup, SababukaMark } from "../branding/SababukaBrand";
+import { SababukaLockup } from "../branding/SababukaBrand";
 import { applyTheme, readTheme, type ThemeMode } from "../theme";
 import { CommandPalette, type PaletteItem } from "./CommandPalette";
 import { goDashboard, INDICATOR_GROUP, useDashTab } from "../portalNav";
@@ -407,8 +407,8 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
       </main>
       <footer className="workspace-footer">
         <div className="workspace-footer-identity">
-          <SababukaMark label="Logo SABABUKA" />
-          <span><strong>SABABUKA BERSINAR</strong><small>Sistem Analisis Big Data Kabupaten Kapuas</small></span>
+          <img className="footer-logo" src="/brand/logo-kapuas-96.png" srcSet="/brand/logo-kapuas-96.png 1x, /brand/logo-kapuas-192.png 2x" width={63} height={48} alt="Lambang Kabupaten Kapuas" decoding="async" />
+          <span><strong>Pemerintah Kabupaten Kapuas</strong><small>Kalimantan Tengah</small></span>
         </div>
         <div className="workspace-footer-governance">
           <span>Informasi mengikuti kewenangan, proses verifikasi, dan jejak audit.</span>
