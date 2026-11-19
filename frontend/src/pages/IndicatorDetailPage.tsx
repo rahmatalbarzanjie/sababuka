@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import { AppLink } from "../components/AppLink";
 import type { AchievementItem, AchievementResponse } from "../components/AchievementSection";
+import { CrossAnalysisSection, CrossRecommendations, type CrossAnalysis } from "../components/CrossAnalysisSection";
 import { DetailTrend } from "../components/DetailTrend";
 import { DistrictMap, normalizeName, useKapuasGeography } from "../components/DistrictMap";
 import { LinkedSeries } from "../components/LinkedSeries";
@@ -65,14 +66,15 @@ function RankedDistricts({ items, unit, year, selected, onSelect }: { items: Arr
 /** Satu indikator selengkapnya: ringkasan, grafik, data per tahun, sebaran kecamatan, dan sumber. */
 export function IndicatorDetailPage({ id }: { id: string }) {
   const data = useAsync(async () => {
-    const [insights, achievement] = await Promise.all([api<InsightsResponse>(`/executive/insights?indicator_id=${encodeURIComponent(id)}&limit=1`), api<AchievementResponse>("/executive/achievement").catch(() => null)]);
-    return { item: insights.insights[0], ach: achievement?.items.find((entry) => entry.indicator_id === id) ?? null };
+    const [insights, achievement, cross] = await Promise.all([api<InsightsResponse>(`/executive/insights?indicator_id=${encodeURIComponent(id)}&limit=1`), api<AchievementResponse>("/executive/achievement").catch(() => null), api<CrossAnalysis>(`/executive/indicators/${encodeURIComponent(id)}/cross-analysis`).catch(() => null)]);
+    return { item: insights.insights[0], ach: achievement?.items.find((entry) => entry.indicator_id === id) ?? null, cross };
   }, [id]);
   const geography = useKapuasGeography();
   const [picked, setPicked] = useState<string | null>(null);
   const [allYears, setAllYears] = useState(false);
   const item = data.data?.item;
   const ach: AchievementItem | null = data.data?.ach ?? null;
+  const cross: CrossAnalysis | null = data.data?.cross ?? null;
   useEffect(() => {
     if (!item) return undefined;
     setPageTitle({ title: plain(item.name), subtitle: `${sector(item.category)} · ${plain(item.source_label)}` });
@@ -96,7 +98,7 @@ export function IndicatorDetailPage({ id }: { id: string }) {
   const spread = top && bottom && bottom.value > 0 ? top.value / bottom.value : null;
   const hasTrend = item.series.length >= 2;
   const shownRows = allYears ? rows : rows.slice(0, YEAR_ROWS);
-  const sections: Array<[string, string]> = [["capaian", "1 Capaian"], ["tren", "2 Tren"], ["tabulasi", "3 Tabulasi"], ["spasial", "4 Spasial"], ["sumber", "5 Sumber"], ["tindak-lanjut", "6 Rekomendasi"]];
+  const sections: Array<[string, string]> = [["capaian", "1 Capaian"], ["tren", "2 Tren"], ["tabulasi", "3 Tabulasi"], ["spasial", "4 Spasial"], ["sumber", "5 Sumber"], ["lintas-opd", "6 Lintas OPD"], ["tindak-lanjut", "7 Rekomendasi"]];
   const pickedItem = picked ? districts.find((entry) => normalizeName(entry.name) === normalizeName(picked)) : null;
   const pickedRank = pickedItem ? districts.indexOf(pickedItem) + 1 : 0;
   const pickedChange = pickedItem && pickedItem.previous ? ((pickedItem.value - pickedItem.previous) / Math.abs(pickedItem.previous)) * 100 : null;
@@ -186,9 +188,14 @@ export function IndicatorDetailPage({ id }: { id: string }) {
       <LinkedSeries links={item.links} baseYear={item.latest_year} />
     </section>
 
+    <section className="panel-card" id="lintas-opd" aria-labelledby="lintas-judul">
+      <header className="card-head"><div><h2 id="lintas-judul"><span className="step-no">6</span>Keterkaitan lintas OPD</h2><p>Indikator dan OPD lain pada isu atau fokus yang sama, dibandingkan hanya pada tahun yang sama.</p></div></header>
+      <CrossAnalysisSection cross={cross} />
+    </section>
+
     <section className="panel-card" id="tindak-lanjut" aria-labelledby="tindak-judul">
-      <header className="card-head"><div><h2 id="tindak-judul"><span className="step-no">6</span>Rekomendasi kepada OPD</h2><p>Disusun otomatis dari selisih capaian dan tren indikator.</p></div></header>
-      {guidance ? <p>{guidance}</p> : <p className="muted">Belum ada rekomendasi untuk indikator ini.</p>}
+      <header className="card-head"><div><h2 id="tindak-judul"><span className="step-no">7</span>Rekomendasi kepada OPD</h2><p>Disusun otomatis dari selisih capaian, tren, dan keterkaitan lintas OPD.</p></div></header>
+      {cross && cross.recommendations.length > 0 ? <CrossRecommendations cross={cross} /> : guidance ? <p>{guidance}</p> : <p className="muted">Belum ada rekomendasi untuk indikator ini.</p>}
       {item.opds.length > 0 && <p className="muted">OPD penanggung jawab: {item.opds.join(", ")}.</p>}
     </section>
   </div>;

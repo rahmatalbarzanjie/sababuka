@@ -929,6 +929,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/executive/focus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ringkasan capaian per fokus kebijakan Bupati
+         * @description Membutuhkan `executive_dashboard.view`. Satu ringkasan per fokus (1 sampai 8) berisi jumlah indikator tercapai, belum tercapai,
+         *     dan belum ada realisasi, kelompok isu beserta indikatornya, kelompok isu tanpa indikator (celah), dan beban OPD penanggung jawab utama.
+         *     Pengelompokan fokus dan isu adalah hasil analisis, bukan klasifikasi resmi dokumen RPJMD.
+         */
+        get: operations["getExecutiveFocus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/executive/indicators/{id}/cross-analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Analisis silang satu indikator lintas OPD
+         * @description Membutuhkan `executive_dashboard.view`. Menyajikan posisi terhadap target, indikator terkait (Tautan Seri Data, kelompok isu,
+         *     atau fokus yang sama), perbandingan hanya pada tahun yang sama, korelasi peringkat hanya bila minimal 5 tahun data bersama,
+         *     wilayah prioritas hanya bila indikator memiliki nilai per kecamatan, rekomendasi per OPD, dan keterbatasan data.
+         *     Korelasi tidak pernah disimpulkan sebagai sebab-akibat.
+         */
+        get: operations["getExecutiveIndicatorCrossAnalysis"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/executive/districts": {
         parameters: {
             query?: never;
@@ -3748,6 +3793,55 @@ export interface operations {
                 };
             };
             403: components["responses"]["Forbidden"];
+        };
+    };
+    getExecutiveFocus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ringkasan per fokus kebijakan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getExecutiveIndicatorCrossAnalysis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Analisis silang indikator */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     listExecutiveDistricts: {

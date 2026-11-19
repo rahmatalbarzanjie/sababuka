@@ -8,7 +8,7 @@ export const tokenize = (value: string) => [...new Set(value.toLocaleLowerCase("
 
 export interface Intent {
   rankOpd: boolean; overview: boolean; district: boolean; opd: boolean; recommendation: boolean;
-  worsening: boolean; improving: boolean; target: boolean; year: number | null; tokens: string[];
+  worsening: boolean; improving: boolean; target: boolean; related: boolean; year: number | null; tokens: string[];
 }
 
 export function parseIntent(question: string): Intent {
@@ -23,6 +23,7 @@ export function parseIntent(question: string): Intent {
     recommendation: /rekomendasi|saran|tindak lanjut|harus|sebaiknya|langkah|solusi/u.test(text),
     worsening: /turun|menurun|memburuk|buruk|masalah|mundur|naik tajam/u.test(text),
     improving: /membaik|meningkat|bagus|berhasil|maju/u.test(text),
+    related: /terkait|berkaitan|keterkaitan|korelasi|hubungan|pengaruh|faktor|lintas|opd lain|wilayah prioritas|tepat sasaran|penyebab|mengapa|kenapa/u.test(text),
     target: /target|tercapai|belum capai|capai(an)? (target|rpjmd)|realisasi/u.test(text),
     year: year ? Number(year[1]) : null,
     tokens,
@@ -56,7 +57,7 @@ export interface Visual {
   points?: Array<{ year: number; value: number }>;
   year?: number; items?: Array<{ name: string; value: number }>;
 }
-export interface AssistantReply { facts: unknown; answer: string; visuals: Visual[]; suggestions: string[]; sources: Array<{ label: string; indicator: string; year: number; source: string; indicator_id: string; source_url: string | null }>; sufficiency: "sufficient" | "partial" | "insufficient" }
+export interface AssistantReply { facts: unknown; answer: string; visuals: Visual[]; suggestions: string[]; sources: Array<{ label: string; indicator: string; year: number; source: string; indicator_id: string; source_url: string | null }>; sufficiency: "sufficient" | "partial" | "insufficient"; focusId?: string }
 
 const factOf = (insight: Insight) => ({
   indikator: insight.name, kategori: insight.category, satuan: insight.unit, tahun_terbaru: insight.latest_year,
@@ -179,5 +180,5 @@ export function buildReply(question: string, insights: Insight[], achievement: A
     !intent.recommendation ? `Apa rekomendasi untuk ${top.name}?` : null,
     ...others.map((item) => `Bagaimana tren ${item.insight.name}?`),
   ].filter((value): value is string => Boolean(value)).slice(0, 3);
-  return { facts: { mode: "indikator", tahun_ditanyakan: intent.year, indikator: matches.map((item) => factOf(item.insight)) }, answer: parts.join("\n\n"), visuals, suggestions, sources: [sourceOf(top), ...others.map((item) => sourceOf(item.insight))], sufficiency: top.analysis.years >= 4 ? "sufficient" : "partial" };
+  return { facts: { mode: "indikator", tahun_ditanyakan: intent.year, indikator: matches.map((item) => factOf(item.insight)) }, answer: parts.join("\n\n"), visuals, suggestions, sources: [sourceOf(top), ...others.map((item) => sourceOf(item.insight))], sufficiency: top.analysis.years >= 4 ? "sufficient" : "partial", focusId: top.indicator_id };
 }

@@ -3,6 +3,8 @@ import type { QueryResultRow } from "pg";
 import { requirePermission } from "../plugins/authentication.js";
 import { AchievementService } from "../services/achievement-service.js";
 import { BankDataCatalogService } from "../services/bank-data-catalog-service.js";
+import { CrossAnalysisService } from "../services/cross-analysis-service.js";
+import { FocusService } from "../services/focus-service.js";
 import { DistrictSummaryService } from "../services/district-summary-service.js";
 import { InsightService } from "../services/insight-service.js";
 
@@ -224,6 +226,20 @@ export async function executiveRoutes(app: FastifyInstance): Promise<void> {
   app.get("/executive/achievement", async (request) => {
     requirePermission(request, "executive_dashboard.view");
     return new AchievementService(app.db).list();
+  });
+
+  app.get("/executive/focus", async (request) => {
+    requirePermission(request, "executive_dashboard.view");
+    return new FocusService(app.db).overview();
+  });
+
+  app.get<{ Params: { id: string } }>("/executive/indicators/:id/cross-analysis", {
+    schema: { params: { type: "object", additionalProperties: false, required: ["id"], properties: { id: uuid } } },
+  }, async (request, reply) => {
+    requirePermission(request, "executive_dashboard.view");
+    const analysis = await new CrossAnalysisService(app.db).analyze(request.params.id);
+    if (!analysis) return reply.code(404).send({ error: { code: "NOT_FOUND", message: "Indikator tidak ditemukan atau belum memiliki data terbit." } });
+    return analysis;
   });
 
   app.get("/executive/districts", async (request) => {
