@@ -1120,6 +1120,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/connectors/responsible-opd": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Daftar relasi OPD utama dan pendukung per indikator
+         * @description Membutuhkan `connector.view`. Pencarian dan penyaringan menurut asal indikator atau yang belum punya OPD utama.
+         */
+        get: operations["listResponsibleOpd"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connectors/responsible-opd/organizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Organisasi yang dapat dipilih sebagai OPD penanggung jawab
+         * @description Membutuhkan `connector.view`. Hanya OPD, instansi vertikal, perusahaan daerah, dan kelompok Kecamatan.
+         */
+        get: operations["listResponsibleOpdOrganizations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connectors/responsible-opd/{indicator_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Menetapkan OPD utama dan pendukung satu indikator
+         * @description Membutuhkan `connector.map` (BAPPERIDA dan Developer). Mengganti seluruh relasi OPD indikator itu dalam satu transaksi dan
+         *     mencatat nilai sebelum dan sesudahnya di audit. Tidak mengubah pemilik pelaporan indikator.
+         */
+        put: operations["setResponsibleOpd"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/connectors/status": {
         parameters: {
             query?: never;
@@ -4064,6 +4125,92 @@ export interface operations {
                 };
             };
             403: components["responses"]["Forbidden"];
+        };
+    };
+    listResponsibleOpd: {
+        parameters: {
+            query?: {
+                q?: string;
+                origin?: "all" | "rpjmd_master" | "opd_manual" | "bank_data";
+                unmapped?: boolean;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Halaman indikator beserta OPD utama dan pendukungnya */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listResponsibleOpdOrganizations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Daftar organisasi */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    setResponsibleOpd: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                indicator_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    primary_organization_id: components["schemas"]["Uuid"] | null;
+                    support_organization_ids: components["schemas"]["Uuid"][];
+                };
+            };
+        };
+        responses: {
+            /** @description Relasi OPD terbaru */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
         };
     };
     listConnectorSources: {
