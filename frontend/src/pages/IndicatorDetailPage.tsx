@@ -140,6 +140,12 @@ export function IndicatorDetailPage({ id }: { id: string }) {
         <div className="detail-stat"><span>Selisih</span><b className={gapTone}>{ach.gap === null ? "-" : `${ach.gap > 0 ? "+" : ""}${num(ach.gap)}`}</b></div>
         <div className="detail-stat"><span>Arah baik</span><b className="small-b">{ach.direction === "decrease" ? "Semakin rendah semakin baik" : ach.direction === "increase" ? "Semakin tinggi semakin baik" : "Belum ditetapkan"}</b></div>
       </div>}
+      {hasTarget && ach && ach.latest_value !== null && ach.target_value !== null && (() => {
+        const top = Math.max(Math.abs(ach.latest_value), Math.abs(ach.target_value)) * 1.12 || 1;
+        const fill = Math.max(2, Math.min(100, (Math.abs(ach.latest_value) / top) * 100));
+        const mark = Math.max(0, Math.min(100, (Math.abs(ach.target_value) / top) * 100));
+        return <div className="portal-gauge"><div className="portal-gauge-track" role="img" aria-label={`Realisasi ${num(ach.latest_value)} dibandingkan target ${num(ach.target_value)}`}><i className={gapTone || "na"} style={{ width: `${fill}%` }} /><s style={{ left: `${mark}%` }} /></div><div className="portal-gauge-lab"><span>0</span><span style={{ left: `${mark}%` }}>Target {num(ach.target_value)}</span><span>Realisasi {num(ach.latest_value)}</span></div></div>;
+      })()}
       <p>{achText}</p>
       <dl className="brief-list">
         <div><dt>Nilai terbaru</dt><dd><strong>{num(item.latest_value)}</strong> {plain(item.unit)} pada {item.latest_year}{item.change_pct !== null ? `, ${pct(item.change_pct)} dari periode sebelumnya` : ""}.</dd></div>

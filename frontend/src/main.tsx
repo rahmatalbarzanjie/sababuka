@@ -21,5 +21,7 @@ import { initInteractions } from "./interactions";
 import { initializeTheme } from "./theme";
 
 initializeTheme();
+// Pembungkus Android menambahkan penanda pada user agent; mode aplikasi memakai tata letak khusus ponsel.
+if (/SABABUKA-Android/.test(navigator.userAgent) || new URLSearchParams(window.location.search).get("mode") === "app") document.documentElement.classList.add("app-mode");
 initInteractions();
 createRoot(document.getElementById("root")!).render(<StrictMode><App /></StrictMode>);

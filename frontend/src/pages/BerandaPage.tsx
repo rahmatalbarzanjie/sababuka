@@ -260,12 +260,12 @@ export function BerandaPage() {
       </div>
     </nav>
     <header className="section-head"><h2>Tren terbaru</h2><p>Arah perubahan (membaik atau memburuk) dihitung dari tren tahunan, terpisah dari status capaian terhadap target di atas.</p></header>
-    <div className="exec-columns">
-      <section className="exec-main" aria-labelledby="sorotan">
+    <div className={`exec-columns${spotlight.length + rest.length === 0 ? " solo" : ""}`}>
+      {spotlight.length + rest.length > 0 && <section className="exec-main" aria-labelledby="sorotan">
         <header className="section-head"><h2 id="sorotan"><AlertTriangle aria-hidden />Sorotan utama</h2><p>Indikator yang memburuk atau berubah tidak wajar, diurutkan menurut tingkat prioritas.</p></header>
-        {spotlight.length ? <div className="spotlight-list">{spotlight.map((item, index) => <Spotlight key={item.indicator_id} item={item} rank={index + 1} />)}</div> : <EmptyState title="Tidak ada sorotan">Tidak ada indikator yang memburuk atau berubah tidak wajar.</EmptyState>}
+        {spotlight.length ? <div className="spotlight-list">{spotlight.map((item, index) => <Spotlight key={item.indicator_id} item={item} rank={index + 1} />)}</div> : null}
         {rest.length > 0 && <div className="panel-card compact-list"><h3>Perlu dipantau juga</h3><ul>{rest.map((item) => <li key={item.indicator_id}><Sparkline points={item.series} tone={toneOf(item.assessment)} /><span><strong><AppLink to={indicatorPath(item.indicator_id)}>{plain(item.name)}</AppLink></strong><small>{sector(item.category)} · {item.opds.join(", ") || "OPD belum dipetakan"}</small></span><b className={toneOf(item.assessment)}>{pct(item.change_pct)}</b></li>)}</ul></div>}
-      </section>
+      </section>}
       <aside className="exec-side" aria-label="Ringkasan pendukung">
         <section className="panel-card" aria-labelledby="perubahan"><header className="card-head"><div><h2 id="perubahan"><TrendingUp aria-hidden />Perubahan terbesar</h2><p>Dibanding periode sebelumnya.</p></div></header><ChangeBoard items={movers} /></section>
         <section className="panel-card" aria-labelledby="sektor"><header className="card-head"><div><h2 id="sektor">Kondisi per sektor</h2><p>Sektor dengan indikator memburuk terbanyak di atas.</p></div></header><SectorHealth insights={insights} /></section>

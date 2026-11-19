@@ -157,3 +157,135 @@ html[data-theme="dark"] .workspace.portal .tab.active .tab-count.neutral { backg
 .workspace.portal .chat-composer textarea { border-radius: 18px; }
 .workspace.portal .chat-composer button[type="submit"] { border: 0; border-radius: 999px; background: var(--portal-accent); color: var(--portal-accent-fg); font-weight: 600; }
 .workspace.portal .chat-composer button[type="submit"]:disabled { opacity: .55; }
+
+/* Tab Capaian: sektor sebagai blok, indikator sebagai baris */
+.portal-chiprow { gap: 8px; }
+.workspace.portal .portal-chiprow .chip { min-height: 40px; padding: 0 16px; border: 1px solid transparent; border-radius: 12px; background: transparent; color: var(--ui-text); font-size: 13px; font-weight: 500; }
+.workspace.portal .portal-chiprow .chip:hover { background: var(--ui-surface-subtle); }
+.workspace.portal .portal-chiprow .chip.active { background: var(--portal-primary); color: var(--portal-primary-fg); }
+.workspace.portal .achv-sector { border: 1px solid var(--ui-border); border-radius: 14px; background: var(--ui-surface); overflow: hidden; }
+.workspace.portal .achv-sector > summary { padding: 14px 18px; }
+.workspace.portal .achv-sector[open] > summary { border-bottom: 1px solid var(--ui-rule); }
+.workspace.portal .achv-summary { padding: 12px 18px 0; margin: 0; color: var(--ui-muted); font-size: 13px; line-height: 1.55; }
+.portal-rows { display: grid; gap: 8px; padding: 14px 18px; }
+.portal-row { display: grid; grid-template-columns: minmax(0, 2.1fr) minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: 16px; align-items: center; padding: 12px 16px; border: 1px solid var(--ui-rule); border-radius: 12px; background: var(--ui-ground); }
+.portal-row:hover { border-color: var(--portal-link); }
+.portal-row-name { display: grid; gap: 2px; min-width: 0; }
+.portal-row-name strong { font-size: 14px; font-weight: 600; line-height: 1.35; }
+.portal-row-name small, .portal-row-num small { color: var(--ui-muted); font-size: 12px; line-height: 1.45; }
+.portal-row-num { display: grid; gap: 1px; font-size: 13px; font-variant-numeric: tabular-nums; min-width: 0; }
+.portal-row-num b { font-size: 16px; font-weight: 700; }
+.portal-row-num small.bad { color: var(--exec-bad); font-weight: 600; }
+.portal-row-num small.good { color: var(--exec-good); font-weight: 600; }
+.portal-row-end { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.portal-open { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border: 1px solid var(--ui-control); border-radius: 999px; color: var(--ui-text); font-size: 13px; font-weight: 600; text-decoration: none; }
+.portal-open:hover { background: var(--ui-surface-subtle); }
+.workspace.portal .achv-brief dt { display: grid; gap: 6px; justify-items: start; }
+@media (max-width: 900px) {
+  .portal-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .portal-row-name { grid-column: 1 / -1; }
+  .portal-row-end { grid-column: 1 / -1; justify-content: space-between; }
+}
+
+/* Tab Wilayah */
+.workspace.portal .district-panel { border-radius: 16px; }
+.workspace.portal .map-modes { display: inline-flex; width: fit-content; gap: 2px; padding: 4px; border-radius: 999px; background: var(--ui-surface-subtle); }
+.workspace.portal .map-modes .chip { min-height: 40px; padding: 0 18px; border: 0; border-radius: 999px; background: transparent; color: var(--ui-text); font-size: 13px; font-weight: 500; }
+.workspace.portal .map-modes .chip.active { background: var(--portal-primary); color: var(--portal-primary-fg); }
+.workspace.portal .district-pane { border-radius: 16px; }
+.workspace.portal .district-callout { font-size: 13px; line-height: 1.55; color: var(--ui-muted); }
+.workspace.portal .district-rank li button { border-radius: 10px; }
+.workspace.portal .dd-head h3 { font-weight: 700; }
+.workspace.portal .dd-chips .chip { border-radius: 999px; font-size: 12px; font-weight: 500; }
+.workspace.portal .dd-chips .chip.active { background: var(--portal-primary); color: var(--portal-primary-fg); }
+.workspace.portal .dd-list li { border-radius: 12px; }
+
+/* Lembar indikator */
+.workspace.portal .indicator-detail .button.primary { border: 0; border-radius: 999px; background: var(--portal-accent); color: var(--portal-accent-fg); font-weight: 600; }
+.workspace.portal .indicator-detail .button.secondary { border-radius: 999px; }
+.workspace.portal .section-nav { gap: 8px; }
+.workspace.portal .section-nav a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 16px; border-radius: 12px; font-size: 13px; font-weight: 500; text-decoration: none; color: var(--ui-text); }
+.workspace.portal .section-nav a:hover { background: var(--ui-surface-subtle); }
+.workspace.portal .step-no { display: inline-grid; place-items: center; width: 30px; height: 30px; margin-right: 10px; border-radius: 50%; background: var(--portal-primary); color: var(--portal-primary-fg); font-size: 14px; font-weight: 700; }
+.workspace.portal .detail-stat { border-radius: 12px; background: var(--ui-surface-subtle); }
+.workspace.portal .detail-stat b { font-size: 26px; font-weight: 700; }
+.workspace.portal .detail-stat b.small-b { font-size: 14px; font-weight: 600; line-height: 1.4; }
+.portal-gauge { display: grid; gap: 8px; margin: 6px 0 4px; }
+.portal-gauge-track { position: relative; height: 12px; border-radius: 999px; background: var(--ui-rule); }
+.portal-gauge-track i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: var(--exec-neutral); }
+.portal-gauge-track i.good { background: var(--exec-good); }
+.portal-gauge-track i.bad { background: var(--exec-bad); }
+.portal-gauge-track s { position: absolute; top: -5px; bottom: -5px; width: 3px; margin-left: -1px; border-radius: 2px; background: var(--ui-text); text-decoration: none; }
+.portal-gauge-lab { position: relative; display: flex; justify-content: space-between; font-size: 12px; color: var(--ui-muted); min-height: 18px; }
+.portal-gauge-lab span:nth-child(2) { position: absolute; transform: translateX(-50%); white-space: nowrap; color: var(--ui-text); font-weight: 600; }
+/* lencana peringatan bergaya portal */
+.portal-tag.warn { background: #fbebc9; color: #8a5500; white-space: normal; align-self: start; }
+html[data-theme="dark"] .portal-tag.warn { background: #3b2f10; color: #f2c877; }
+
+/* Beranda bagian bawah: tanpa kolom kosong bila tidak ada sorotan */
+.workspace.portal .exec-columns.solo { grid-template-columns: minmax(0, 1fr); }
+.workspace.portal .exec-columns.solo .exec-side { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+@media (max-width: 900px) { .workspace.portal .exec-columns.solo .exec-side { grid-template-columns: minmax(0, 1fr); } }
+
+/* Menu aksesibilitas */
+.workspace.portal .page-shell { zoom: var(--portal-zoom, 1); }
+html[data-contrast="high"] .workspace.portal { --ui-border: #6b8296; --ui-rule: #9db0c0; --ui-muted: #2b3f52; --ui-control: #5b7185; }
+html[data-theme="dark"][data-contrast="high"] .workspace.portal { --ui-border: #8aa3b8; --ui-rule: #5f788d; --ui-muted: #d3e0ec; --ui-control: #9db4c7; }
+.a11y-fab { position: fixed; z-index: 45; left: max(16px, env(safe-area-inset-left, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); display: grid; place-items: center; width: 52px; height: 52px; border: 0; border-radius: 50%; background: var(--portal-primary); color: var(--portal-primary-fg); box-shadow: 0 6px 18px rgba(0, 0, 0, .25); cursor: pointer; }
+.a11y-fab svg { width: 26px; height: 26px; }
+.a11y-panel { position: fixed; z-index: 46; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(max(16px, env(safe-area-inset-bottom, 0px)) + 64px); width: min(320px, calc(100vw - 32px)); display: grid; gap: 16px; padding: 18px; border: 1px solid var(--ui-border); border-radius: 18px; background: var(--ui-surface); color: var(--ui-text); box-shadow: 0 14px 36px rgba(0, 0, 0, .28); }
+.a11y-panel header { display: flex; justify-content: space-between; align-items: center; }
+.a11y-panel h2 { margin: 0; font-size: 16px; font-weight: 700; }
+.a11y-close { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; }
+.a11y-close:hover { background: var(--ui-surface-subtle); }
+.a11y-group { display: grid; gap: 8px; }
+.a11y-group > b { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ui-muted); }
+.a11y-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 12px; background: var(--ui-surface-subtle); }
+.a11y-seg button { min-height: 44px; border: 0; border-radius: 9px; background: transparent; color: inherit; font-weight: 600; cursor: pointer; }
+.a11y-seg button[aria-pressed="true"] { background: var(--portal-primary); color: var(--portal-primary-fg); }
+.a11y-switch { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; }
+.a11y-switch button { min-height: 40px; padding: 0 16px; border: 1px solid var(--ui-control); border-radius: 999px; background: var(--ui-surface-subtle); color: inherit; font-weight: 600; cursor: pointer; }
+.a11y-switch button[aria-pressed="true"] { background: var(--portal-primary); color: var(--portal-primary-fg); border-color: transparent; }
+@media (max-width: 760px) { .a11y-fab { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); width: 48px; height: 48px; } .a11y-panel { bottom: calc(146px + env(safe-area-inset-bottom, 0px)); } }
+
+/* Tanya Sababuka: percakapan */
+.workspace.portal .chat-stream { background: var(--ui-surface-subtle); }
+.workspace.portal .chat-message.assistant > div { border-radius: 6px 18px 18px 18px; }
+.workspace.portal .chat-message.user > div { border-radius: 18px 6px 18px 18px; background: var(--portal-primary); color: var(--portal-primary-fg); }
+.workspace.portal .citation-list > div { border: 0; border-radius: 10px; background: var(--portal-tint); }
+.workspace.portal .citation-links a { color: var(--portal-link); }
+
+/* Mode aplikasi: dibuka dari APK Android (atau ?mode=app untuk uji). Tampil seperti aplikasi, bukan halaman web. */
+html.app-mode { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: contain; }
+html.app-mode .workspace.portal .workspace-footer,
+html.app-mode .workspace.portal .palette-trigger,
+html.app-mode .workspace.portal .portal-ask,
+html.app-mode .workspace.portal .page-header { display: none; }
+html.app-mode .workspace.portal .topbar { position: sticky; top: 0; min-height: 56px; padding: 6px 14px; padding-top: calc(6px + env(safe-area-inset-top, 0px)); }
+html.app-mode .portal-lockup .sababuka-lockup-copy small { display: none; }
+html.app-mode .portal-nav { position: fixed; z-index: 40; left: 0; right: 0; bottom: 0; margin: 0; gap: 0; padding: 6px 8px calc(8px + env(safe-area-inset-bottom, 0px)); display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--ui-surface); border-top: 1px solid var(--ui-border); }
+html.app-mode .portal-link { flex-direction: column; gap: 2px; min-height: 56px; padding: 6px 4px; border-radius: 14px; font-size: 11px; background: transparent; color: var(--ui-muted); }
+html.app-mode .portal-link svg { width: 24px; height: 24px; }
+html.app-mode .portal-link.active { background: transparent; color: var(--portal-link); font-weight: 600; }
+html.app-mode .workspace.portal .page-shell { padding: 16px 14px calc(92px + env(safe-area-inset-bottom, 0px)); }
+html.app-mode .portal-hero { grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 18px; border-radius: 22px; background: var(--portal-primary); }
+html.app-mode .portal-hero h2, html.app-mode .portal-hero p, html.app-mode .portal-hero p strong { color: var(--portal-primary-fg); }
+html.app-mode .portal-hero h2 { font-size: 22px; }
+html.app-mode .portal-hero h2 em { color: var(--portal-accent); }
+html.app-mode .portal-hero p { font-size: 13px; opacity: .92; }
+html.app-mode .portal-search { box-shadow: none; }
+html.app-mode .portal-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); border-radius: 18px; }
+html.app-mode .portal-kpi { flex-direction: column; align-items: flex-start; gap: 8px; padding: 14px 12px; }
+html.app-mode .portal-kpi + .portal-kpi { border-top: 0; border-left: 1px solid var(--ui-border); }
+html.app-mode .portal-kpi-ic { width: 36px; height: 36px; }
+html.app-mode .portal-kpi-ic svg { width: 18px; height: 18px; }
+html.app-mode .portal-kpi-tx b { font-size: 26px; }
+html.app-mode .portal-kpi-tx small { display: none; }
+html.app-mode .a11y-fab { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); width: 48px; height: 48px; }
+html.app-mode .a11y-panel { bottom: calc(146px + env(safe-area-inset-bottom, 0px)); }
+html.app-mode .workspace.portal .section-nav { position: sticky; top: 56px; z-index: 5; overflow-x: auto; flex-wrap: nowrap; padding: 8px 0; background: var(--ui-ground); }
+html.app-mode .workspace.portal .section-nav a { flex: none; }
+html.app-mode .portal-cards { grid-template-columns: minmax(0, 1fr); }
+
+/* tanpa garis aksen berwarna di bawah judul (keputusan gaya 15 Nov 2026) */
+.workspace.portal .page-header h1::after, .workspace.portal .page-header h1::before { display: none; content: none; }

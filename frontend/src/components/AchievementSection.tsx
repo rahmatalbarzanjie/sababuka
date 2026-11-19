@@ -37,17 +37,16 @@ function SectorBlock({ sector, items, open }: { sector: string; items: Achieveme
   return <details className="achv-sector" open={open}>
     <summary><h3>{plain(sector)}</h3><span className="achv-badges">{behind.length > 0 && <Badge tone="danger">{behind.length} belum tercapai</Badge>}{missing.length > 0 && <Badge tone="neutral">{missing.length} belum ada data</Badge>}{done > 0 && <Badge tone="success">{done} tercapai</Badge>}</span></summary>
     <p className="achv-summary">{summary}</p>
-    <div className="table-scroll"><table className="all-table achv-table"><thead><tr><th>Indikator</th><th>Realisasi</th><th>Target</th><th>Selisih</th><th>Status</th></tr></thead><tbody>
-      {sorted.map((item) => <tr key={item.indicator_id}>
-        <td><strong><AppLink to={indicatorPath(item.indicator_id)}>{plain(item.name)}</AppLink></strong><small>{item.opds.join(", ") || "OPD belum dipetakan"}</small></td>
-        <td className="num">{item.latest_value === null ? "-" : <><strong>{num(item.latest_value)}</strong><small>{plain(item.unit)} · {item.latest_year}</small></>}</td>
-        <td className="num">{item.target_value === null ? "-" : <><strong>{num(item.target_value)}</strong><small>target {item.target_year}</small></>}</td>
-        <td className={`num ${item.status === "belum_tercapai" ? "bad" : item.status === "tercapai" ? "good" : ""}`}>{item.gap === null ? "-" : signed(item.gap)}</td>
-        <td><Badge tone={tone(item.status)}>{statusLabel[item.status]}</Badge></td>
-      </tr>)}
-    </tbody></table></div>
+    <div className="portal-rows" role="list">
+      {sorted.map((item) => <div key={item.indicator_id} className="portal-row" role="listitem">
+        <div className="portal-row-name"><strong><AppLink to={indicatorPath(item.indicator_id)}>{plain(item.name)}</AppLink></strong><small>{item.opds.join(", ") || "OPD belum dipetakan"}</small></div>
+        <div className="portal-row-num">{item.latest_value === null ? <><b>-</b><small>belum terbit</small></> : <><b>{num(item.latest_value)}</b><small>{plain(item.unit)} · {item.latest_year}</small></>}</div>
+        <div className="portal-row-num">{item.target_value === null ? <><b>-</b><small>target belum ada</small></> : <><span>Target {item.target_year}: <b>{num(item.target_value)}</b></span><small className={item.status === "belum_tercapai" ? "bad" : item.status === "tercapai" ? "good" : ""}>{item.gap === null ? "Menunggu realisasi" : `Selisih ${signed(item.gap)} ${plain(item.unit)}`}</small></>}</div>
+        <div className="portal-row-end"><span className={`portal-tag ${item.status === "tercapai" ? "ok" : item.status === "belum_tercapai" ? "bad" : "na"}`}>{statusLabel[item.status]}</span><AppLink to={indicatorPath(item.indicator_id)} className="portal-open">Buka</AppLink></div>
+      </div>)}
+    </div>
     {(behind.length > 0 || missing.length > 0) && <dl className="brief-list achv-brief">
-      <div><dt>Rekomendasi kepada OPD</dt><dd><ul>{[...behind, ...missing].map((item) => <li key={item.indicator_id}><b>{plain(item.name)}.</b> {plain(item.follow_up)}</li>)}</ul></dd></div>
+      <div><dt>Rekomendasi kepada OPD<span className="portal-tag warn">Arahan sistem, belum ada tanggapan OPD</span></dt><dd><ul>{[...behind, ...missing].map((item) => <li key={item.indicator_id}><b>{plain(item.name)}.</b> {plain(item.follow_up)}</li>)}</ul></dd></div>
       <div><dt>OPD yang perlu diarahkan</dt><dd>{opds.length ? opds.join(", ") : "OPD penanggung jawab belum dipetakan."}</dd></div>
     </dl>}
   </details>;
@@ -88,13 +87,13 @@ export function AchievementSection({ data, filter, onFilter }: { data: Achieveme
     return [...map.values()].sort((a, b) => b.behind.length - a.behind.length || b.missing.length - a.missing.length);
   }, [scoped]);
   const effectiveView = filter === "tercapai" ? "sektor" : view;
-  return <section className="panel-card achievement" aria-labelledby="capaian">
+  return <section className="panel-card achievement portal-achv" aria-labelledby="capaian">
     <header className="card-head"><div><h2 id="capaian">Capaian target RPJMD</h2><p>Realisasi terbit terbaru dibandingkan target tahun yang sama.</p></div><button type="button" className="button secondary" onClick={() => downloadCsv(data.items)}>Unduh CSV</button></header>
-    <div className="chip-row" role="group" aria-label="Filter status capaian">{(Object.keys(filterLabel) as AchievementFilter[]).map((key) => {
+    <div className="chip-row portal-chiprow" role="group" aria-label="Filter status capaian">{(Object.keys(filterLabel) as AchievementFilter[]).map((key) => {
       const count = key === "semua" ? data.summary.total : data.summary[key];
       return <button key={key} type="button" className={`chip${filter === key ? " active" : ""}`} aria-pressed={filter === key} onClick={() => onFilter(key)}>{filterLabel[key]} ({count})</button>;
     })}</div>
-    {filter !== "tercapai" && <div className="chip-row" role="group" aria-label="Kelompokkan capaian">
+    {filter !== "tercapai" && <div className="chip-row portal-chiprow" role="group" aria-label="Kelompokkan capaian">
       <button type="button" className={`chip${view === "sektor" ? " active" : ""}`} aria-pressed={view === "sektor"} onClick={() => setView("sektor")}>Per sektor</button>
       <button type="button" className={`chip${view === "opd" ? " active" : ""}`} aria-pressed={view === "opd"} onClick={() => setView("opd")}>Per OPD</button>
     </div>}
