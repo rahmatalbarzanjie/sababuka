@@ -494,3 +494,7 @@ html:not([data-theme="dark"]) .workspace.portal { --exec-good: #116a34; }
 .portal-gauge-lab span:nth-child(2) { position: static; transform: none; }
 .workspace.portal.portal-sheet .page-header { max-width: 900px; margin-inline: auto; width: 100%; }
 #sorotan-indikator { scroll-margin-top: 96px; }
+
+/* Tanya: satu logo di bilah atas dan satu pada tiap jawaban; logo di kepala panel dan di sambutan disembunyikan agar tidak berulang dalam satu bingkai. */
+.workspace.portal .assistant-panel > header .assistant-avatar, .workspace.portal .assistant-welcome .assistant-welcome-mark { display: none; }
+.workspace.portal .assistant-panel > header { display: none; }
