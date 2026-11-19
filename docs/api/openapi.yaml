@@ -1161,6 +1161,45 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/ExecutiveDashboard"}
         "403": {$ref: "#/components/responses/Forbidden"}
+  /executive/focus:
+    get:
+      tags: [Executive]
+      operationId: getExecutiveFocus
+      summary: Ringkasan capaian per fokus kebijakan Bupati
+      description: |
+        Membutuhkan `executive_dashboard.view`. Satu ringkasan per fokus (1 sampai 8) berisi jumlah indikator tercapai, belum tercapai,
+        dan belum ada realisasi, kelompok isu beserta indikatornya, kelompok isu tanpa indikator (celah), dan beban OPD penanggung jawab utama.
+        Pengelompokan fokus dan isu adalah hasil analisis, bukan klasifikasi resmi dokumen RPJMD.
+      responses:
+        "200":
+          description: Ringkasan per fokus kebijakan
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /executive/indicators/{id}/cross-analysis:
+    get:
+      tags: [Executive]
+      operationId: getExecutiveIndicatorCrossAnalysis
+      summary: Analisis silang satu indikator lintas OPD
+      description: |
+        Membutuhkan `executive_dashboard.view`. Menyajikan posisi terhadap target, indikator terkait (Tautan Seri Data, kelompok isu,
+        atau fokus yang sama), perbandingan hanya pada tahun yang sama, korelasi peringkat hanya bila minimal 5 tahun data bersama,
+        wilayah prioritas hanya bila indikator memiliki nilai per kecamatan, rekomendasi per OPD, dan keterbatasan data.
+        Korelasi tidak pernah disimpulkan sebagai sebab-akibat.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {$ref: "#/components/schemas/Uuid"}
+      responses:
+        "200":
+          description: Analisis silang indikator
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
   /executive/districts:
     get:
       tags: [Executive]

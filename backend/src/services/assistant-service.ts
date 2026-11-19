@@ -3,7 +3,8 @@ import { plainDash } from "./plain-text.js";
 import { ApiError } from "../errors.js";
 import type { AuthContext } from "../types/auth.js";
 import { recordAudit, type AuditContext } from "./audit-service.js";
-import { buildReply } from "./assistant-intents.js";
+import { buildReply, parseIntent } from "./assistant-intents.js";
+import { CrossAnalysisService, formatCrossAnalysis } from "./cross-analysis-service.js";
 import { InsightService } from "./insight-service.js";
 import { LlmService } from "./llm-service.js";
 import { AgentService, type AgentFailure } from "./agent-service.js";
@@ -51,6 +52,13 @@ export class AssistantService {
     }
     const achievement = (await new AchievementService(this.db).list()).items;
     const insightReply = buildReply(question, await new InsightService(this.db).all(), achievement);
+    if (!agent && insightReply.focusId) {
+      const wanted = parseIntent(question);
+      if (wanted.related || wanted.recommendation) {
+        const cross = await new CrossAnalysisService(this.db).analyze(insightReply.focusId).catch(() => null);
+        if (cross) insightReply.answer = formatCrossAnalysis(cross);
+      }
+    }
     if (agent) {
       insightReply.answer = plainDash(agent.answer); insightReply.visuals = agent.visuals; insightReply.sources = agent.sources.length ? agent.sources : insightReply.sources;
       insightReply.sufficiency = "sufficient"; insightReply.suggestions = [];

@@ -18,7 +18,7 @@ const insights = [make("a", "Angka Melek Huruf", [90, 92, 94, 95, 96, 97], ["Din
 const agent = new AgentService({} as Database);
 
 test("alat tersedia lengkap dan prompt membatasi ruang lingkup Kapuas", () => {
-  assert.deepEqual(AGENT_TOOLS.map((tool) => tool.name).sort(), ["ambil_kecamatan", "ambil_tren", "capaian_target", "cari_indikator", "indikator_opd", "perubahan_terbesar", "ringkasan_umum", "skor_opd"]);
+  assert.deepEqual(AGENT_TOOLS.map((tool) => tool.name).sort(), ["ambil_kecamatan", "ambil_tren", "analisis_silang", "capaian_target", "cari_indikator", "indikator_opd", "perubahan_terbesar", "ringkasan_fokus", "ringkasan_umum", "skor_opd"]);
   assert.match(AGENT_SYSTEM_PROMPT, /HANYA hal yang berkaitan dengan Kabupaten Kapuas/);
 });
 

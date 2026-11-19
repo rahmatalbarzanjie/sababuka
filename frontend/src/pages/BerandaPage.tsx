@@ -6,6 +6,7 @@ import { AchievementSection, type AchievementFilter, type AchievementResponse } 
 import { AppLink } from "../components/AppLink";
 import { DistrictMap, normalizeName, shade, useKapuasGeography } from "../components/DistrictMap";
 import { DistrictSummaryPanel } from "../components/DistrictSummaryPanel";
+import { FocusSection } from "../components/FocusSection";
 import { InlineLegend } from "../components/InlineLegend";
 import { Tabs } from "../components/Tabs";
 import { LinkedSeries } from "../components/LinkedSeries";
@@ -175,8 +176,8 @@ function DistrictSection({ insights }: { insights: Insight[] }) {
   </section>;
 }
 
-type DashTab = "ringkasan" | "capaian" | "peta" | "indikator";
-const DASH_TABS: DashTab[] = ["ringkasan", "capaian", "peta", "indikator"];
+type DashTab = "ringkasan" | "capaian" | "fokus" | "peta" | "indikator";
+const DASH_TABS: DashTab[] = ["ringkasan", "capaian", "fokus", "peta", "indikator"];
 function initialTab(): DashTab {
   try {
     if (new URLSearchParams(window.location.search).get("kecamatan")) return "peta";
@@ -223,6 +224,7 @@ export function BerandaPage() {
   const tabs = [
     { id: "ringkasan", label: "Ringkasan" },
     { id: "capaian", label: "Capaian target", count: cap.belum_tercapai, tone: "warning" as const },
+    { id: "fokus", label: "Fokus kebijakan" },
     { id: "peta", label: "Wilayah" },
     { id: "indikator", label: "Semua indikator", count: insights.length },
   ];
@@ -289,6 +291,7 @@ export function BerandaPage() {
       <ul className="good-grid">{better.map((item) => <li key={item.indicator_id}><Sparkline points={item.series} tone="good" /><span><strong><AppLink to={indicatorPath(item.indicator_id)}>{plain(item.name)}</AppLink></strong><small>{sector(item.category)}</small></span><b className="good">{pct(item.change_pct)}</b></li>)}</ul></section>}
       </>}
       {tab === "capaian" && <AchievementSection data={capaian} filter={capFilter} onFilter={setCapFilter} />}
+      {tab === "fokus" && <FocusSection />}
       {tab === "peta" && <DistrictSection insights={[...insights, ...konteks]} />}
       {tab === "indikator" && <>
         <AllIndicators insights={insights} />
