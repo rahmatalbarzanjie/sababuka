@@ -66,8 +66,6 @@ export class AssistantService {
     {
       const narrated = !agent && insightReply.facts ? await new LlmService(this.db, this.config).narrate(question, insightReply.facts, insightReply.answer) : null;
       if (narrated) insightReply.answer = narrated.text;
-      const degraded = !agent && failure !== null && failure !== "llm_tidak_tersedia";
-      if (degraded) insightReply.answer = `${insightReply.answer}\n\n**Catatan**\nJawaban ini disusun oleh mesin aturan karena analisis lengkap asisten sedang tidak tersedia. Ulangi pertanyaan beberapa saat lagi untuk analisis yang lebih lengkap.`;
       insightReply.answer = plainDash(insightReply.answer);
       const asked = await this.db.query<{ id: string }>(`INSERT INTO sababuka.assistant_messages (session_id, message_role, content, structured_data, request_id) VALUES ($1, 'user', $2, '{}'::jsonb, $3) RETURNING id::text`, [sessionId, question, audit.requestId]);
       const replied = await this.db.query<{ id: string }>(`INSERT INTO sababuka.assistant_messages (session_id, message_role, content, model_name, structured_data, request_id) VALUES ($1, 'assistant', $2, $5, $3::jsonb, $4) RETURNING id::text`, [sessionId, insightReply.answer, JSON.stringify({ sufficiency: insightReply.sufficiency, retrieval: "trend_engine", narrated_by: agent?.model ?? narrated?.model ?? "rules", answer_mode: agent ? "agent" : "aturan", agent_failure: failure, attempts, tools: agent?.toolsUsed ?? [], user_message_id: asked.rows[0]!.id, sources: insightReply.sources }), audit.requestId, agent?.model ?? narrated?.model ?? "sababuka-insight-v1"]);
