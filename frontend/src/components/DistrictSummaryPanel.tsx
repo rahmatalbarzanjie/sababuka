@@ -122,6 +122,34 @@ function DistrictDetail({ name, onClose }: { name: string; onClose(): void }) {
   </div>;
 }
 
+type Pick = "unggul" | "sedang" | "perhatian" | "membaik" | "stabil" | "memburuk";
+const pickLabel: Record<Pick, string> = { unggul: "Unggul", sedang: "Sedang", perhatian: "Perlu perhatian", membaik: "Membaik", stabil: "Stabil", memburuk: "Memburuk" };
+const inPick = (item: Cell, pick: Pick): boolean => pick === "unggul" ? item.status === "unggul" || item.status === "tercapai"
+  : pick === "sedang" ? item.status === "sedang"
+  : pick === "perhatian" ? item.status === "perhatian" || item.status === "belum_tercapai"
+  : item.trend === pick;
+
+/** Angka ringkasan kecamatan yang bisa dipilih; daftar di bawahnya memuat indikator yang menyusun angka tersebut. */
+function DistrictBreakdown({ name }: { name: string }) {
+  const detail = useAsync(() => api<DetailResponse>(`/executive/districts/${encodeURIComponent(name)}`), [name]);
+  const [pick, setPick] = useState<Pick>("perhatian");
+  const [shown, setShown] = useState(8);
+  useEffect(() => { setShown(8); }, [name, pick]);
+  const items = detail.data?.items ?? [];
+  const counts = useMemo(() => { const c: Record<Pick, number> = { unggul: 0, sedang: 0, perhatian: 0, membaik: 0, stabil: 0, memburuk: 0 }; for (const item of items) for (const key of Object.keys(c) as Pick[]) if (inPick(item, key)) c[key] += 1; return c; }, [items]);
+  const list = useMemo(() => items.filter((item) => inPick(item, pick)).sort((a, b) => a.rank - b.rank || plain(a.name).localeCompare(plain(b.name), "id")), [items, pick]);
+  const tile = (key: Pick, tone: string) => <button key={key} type="button" className={`portal-tile${pick === key ? " active" : ""}`} aria-pressed={pick === key} onClick={() => setPick(key)}><b className={tone}>{detail.data ? counts[key] : "-"}</b><span>{pickLabel[key]}</span></button>;
+  return <>
+    <div className="portal-minis" role="group" aria-label="Kondisi indikator kecamatan">{tile("unggul", "good")}{tile("sedang", "")}{tile("perhatian", "bad")}</div>
+    <div className="portal-minis" role="group" aria-label="Tren indikator kecamatan">{tile("membaik", "good")}{tile("stabil", "")}{tile("memburuk", "bad")}</div>
+    <h4 className="portal-breakdown-title">Indikator yang menyusun angka "{pickLabel[pick]}"{detail.data ? ` (${list.length})` : ""}</h4>
+    {detail.loading ? <div className="panel-loading"><Spinner /></div> : detail.error || !detail.data ? <ErrorState title="Rincian belum dapat dimuat" onRetry={detail.reload}>{detail.error}</ErrorState>
+      : list.length === 0 ? <p className="muted sm">Tidak ada indikator pada kelompok ini di kecamatan ini.</p>
+      : <><ul className="dd-list portal-breakdown">{list.slice(0, shown).map((item) => <IndicatorRow key={item.indicator_id} item={item} showSource={item.source_kind === "bank_data"} />)}</ul>
+        {list.length > shown && <button type="button" className="portal-more" onClick={() => setShown((value) => value + 8)}>Tampilkan {Math.min(8, list.length - shown)} lagi ({list.length - shown} tersisa)</button>}</>}
+  </>;
+}
+
 /** Peta di kiri, ringkasan kecamatan terpilih di kanan; rincian seluruh indikator kecamatan dibuka dari ringkasan (lembar bawah di ponsel). */
 export function DistrictSummaryPanel() {
   const list = useAsync(() => api<ListResponse>("/executive/districts"), []);
@@ -168,18 +196,11 @@ export function DistrictSummaryPanel() {
       <aside className="portal-panel portal-summary" aria-live="polite" aria-label="Ringkasan kecamatan">
         <h3>Kecamatan {plain(active.name)}</h3>
         <p className="portal-summary-text">{mode === "kondisi" ? "Skor kondisi" : "Skor pertumbuhan"} <b>{activeScore === null ? "-" : `${activeScore > 0 ? "+" : ""}${Math.round(activeScore)}`}</b>{position > 0 ? `, peringkat ${position} dari ${ranked.length}` : ""}. Dihitung dari {active.indicators.toLocaleString("id-ID")} indikator berdata.</p>
-        <div className="portal-minis"><div><b className="good">{c.unggul + c.tercapai}</b><span>Unggul</span></div><div><b>{c.sedang}</b><span>Sedang</span></div><div><b className="bad">{c.perhatian + c.belum_tercapai}</b><span>Perlu perhatian</span></div></div>
-        <div className="portal-minis"><div><b className="good">{active.trend_counts.membaik}</b><span>Membaik</span></div><div><b>{active.trend_counts.stabil}</b><span>Stabil</span></div><div><b className="bad">{active.trend_counts.memburuk}</b><span>Memburuk</span></div></div>
-        <h4>Tertinggi</h4><ol className="portal-rank">{top.map((item) => <li key={item.name}><button type="button" onClick={() => select(item.name)}><span>{plain(item.name)}</span><b>{fmtScore(item)}</b></button></li>)}</ol>
-        <h4>Terendah</h4><ol className="portal-rank">{bottom.map((item) => <li key={item.name}><button type="button" onClick={() => select(item.name)}><span>{plain(item.name)}</span><b>{fmtScore(item)}</b></button></li>)}</ol>
+        <DistrictBreakdown name={active.name} />
         <div className="portal-summary-actions">
-          <button type="button" className="portal-more" aria-expanded={detail} onClick={() => setDetail((value) => !value)}>{detail ? "Tutup rincian indikator" : "Rincian indikator kecamatan"}</button>
           <button type="button" className="portal-cta" onClick={() => navigate(askPath(`Bagaimana kondisi Kecamatan ${plain(active.name)} dan indikator apa yang perlu diperhatikan?`))}><MessageCircle aria-hidden />Tanya tentang {plain(active.name)}</button>
         </div>
       </aside>
     </div>
-    {detail && (narrow
-      ? createPortal(<div className="sheet-layer"><button type="button" className="sheet-backdrop" aria-label="Tutup rincian kecamatan" onClick={() => setDetail(false)} /><aside className="district-pane sheet" role="dialog" aria-label={`Rincian kecamatan ${plain(active.name)}`}><DistrictDetail name={active.name} onClose={() => setDetail(false)} /></aside></div>, document.body)
-      : <div className="portal-panel portal-detail"><DistrictDetail name={active.name} onClose={() => setDetail(false)} /></div>)}
   </div>;
 }

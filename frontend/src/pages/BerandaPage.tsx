@@ -2,12 +2,12 @@ import { AlertTriangle, Clock, Database, Search, ArrowDownRight, ArrowUpRight, B
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { Badge, EmptyState, ErrorState, PageLoading, useAsync } from "../components";
-import { AchievementSection, type AchievementFilter, type AchievementResponse } from "../components/AchievementSection";
+import type { AchievementResponse } from "../components/AchievementSection";
 import { AppLink } from "../components/AppLink";
 import { DistrictMap, normalizeName, shade, useKapuasGeography } from "../components/DistrictMap";
 import { DistrictSummaryPanel } from "../components/DistrictSummaryPanel";
 import { FocusSection } from "../components/FocusSection";
-import { IndicatorCards, shortSector } from "../components/IndicatorCards";
+import { IndicatorCards, shortSector, type CardFilter } from "../components/IndicatorCards";
 import { InlineLegend } from "../components/InlineLegend";
 import { LinkedSeries } from "../components/LinkedSeries";
 import { askAbout, askPath, indicatorPath, isVerified, num, pct, sector, statusOf, toneOf, type Assessment, type Insight } from "../insight";
@@ -178,12 +178,12 @@ function DistrictSection({ insights }: { insights: Insight[] }) {
 
 export function BerandaPage() {
   const tab: DashTab = useDashTab();
-  const [capFilter, setCapFilter] = useState<AchievementFilter>("semua");
+  const [cardFilter, setCardFilter] = useState<CardFilter>("dinilai");
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState("");
   const changeTab = (id: DashTab) => goDashboard(id);
   const submitSearch = (event: React.FormEvent) => { event.preventDefault(); setSearch(draft.trim()); changeTab("indikator"); };
-  const openCapaian = (filter: AchievementFilter) => { setCapFilter(filter); changeTab("capaian"); };
+  const pickStatus = (filter: CardFilter) => { setCardFilter((current) => current === filter ? "dinilai" : filter); window.setTimeout(() => document.getElementById("sorotan-indikator")?.scrollIntoView({ block: "start", behavior: "smooth" }), 0); };
   const data = useAsync(async () => {
     const [kinerja, konteks, capaian] = await Promise.all([api<InsightsResponse>("/executive/insights?layer=kinerja&limit=100"), api<InsightsResponse>("/executive/insights?layer=konteks&limit=100"), api<AchievementResponse>("/executive/achievement")]);
     return { ...kinerja, context: konteks.context, konteks: konteks.insights, capaian };
@@ -228,15 +228,14 @@ export function BerandaPage() {
     </section>
 
     <div className="portal-kpis" role="group" aria-label="Ringkasan capaian target">
-      <button type="button" className="portal-kpi good" onClick={() => openCapaian("tercapai")}><span className="portal-kpi-ic" aria-hidden><CheckCircle2 /></span><span className="portal-kpi-tx"><b>{cap.tercapai}</b><span>Tercapai</span><small>Memenuhi target tahun yang sama.</small></span></button>
-      <button type="button" className="portal-kpi bad" onClick={() => openCapaian("belum_tercapai")}><span className="portal-kpi-ic" aria-hidden><AlertTriangle /></span><span className="portal-kpi-tx"><b>{cap.belum_tercapai}</b><span>Belum tercapai</span><small>{worst && worst.latest_value !== null && worst.target_value !== null ? `Selisih terjauh: ${plain(worst.name)}, ${num(worst.latest_value)} dari target ${num(worst.target_value)} (${worst.latest_year}).` : "Realisasi di bawah target."}</small></span></button>
-      <button type="button" className="portal-kpi neutral" onClick={() => openCapaian("belum_ada_data")}><span className="portal-kpi-ic" aria-hidden><Clock /></span><span className="portal-kpi-tx"><b>{cap.belum_ada_data}</b><span>Belum ada realisasi</span><small>Menunggu pengisian OPD atau belum terbit.</small></span></button>
+      <button type="button" className="portal-kpi good" aria-pressed={cardFilter === "tercapai"} onClick={() => pickStatus("tercapai")}><span className="portal-kpi-ic" aria-hidden><CheckCircle2 /></span><span className="portal-kpi-tx"><b>{cap.tercapai}</b><span>Tercapai</span><small>Memenuhi target tahun yang sama.</small></span></button>
+      <button type="button" className="portal-kpi bad" aria-pressed={cardFilter === "belum_tercapai"} onClick={() => pickStatus("belum_tercapai")}><span className="portal-kpi-ic" aria-hidden><AlertTriangle /></span><span className="portal-kpi-tx"><b>{cap.belum_tercapai}</b><span>Belum tercapai</span><small>{worst && worst.latest_value !== null && worst.target_value !== null ? `Selisih terjauh: ${plain(worst.name)}, ${num(worst.latest_value)} dari target ${num(worst.target_value)} (${worst.latest_year}).` : "Realisasi di bawah target."}</small></span></button>
+      <button type="button" className="portal-kpi neutral" aria-pressed={cardFilter === "belum_ada_data"} onClick={() => pickStatus("belum_ada_data")}><span className="portal-kpi-ic" aria-hidden><Clock /></span><span className="portal-kpi-tx"><b>{cap.belum_ada_data}</b><span>Belum ada realisasi</span><small>Menunggu pengisian OPD atau belum terbit.</small></span></button>
     </div>
 
 
-      <IndicatorCards items={capaian.items} trends={trends} onOpenAll={() => openCapaian("semua")} />
+      <IndicatorCards items={capaian.items} allItems={capaian.items} trends={trends} filter={cardFilter} />
     </>}
-    {tab === "capaian" && <AchievementSection data={capaian} filter={capFilter} onFilter={setCapFilter} />}
     {tab === "peta" && <DistrictSection insights={[...insights, ...konteks]} />}
     {inIndicator && <>
       <div className="portal-chips" role="group" aria-label="Bagian indikator">{subs.map(([id, label]) => <button key={id} type="button" className={`portal-chip${tab === id ? " active" : ""}`} aria-pressed={tab === id} onClick={() => changeTab(id)}>{label}</button>)}</div>

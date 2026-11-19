@@ -22,7 +22,7 @@ const statusLabel: Record<AchievementStatus, string> = { tercapai: "Tercapai", b
 const signed = (value: number) => `${value > 0 ? "+" : ""}${num(value)}`;
 
 /** Capaian terhadap target RPJMD: yang belum tercapai di depan agar Bupati dapat langsung mengarahkan OPD. */
-function downloadCsv(items: AchievementItem[]) {
+export function downloadCsv(items: AchievementItem[]) {
   const cell = (value: unknown) => `"${plain(String(value ?? "")).replace(/"/g, '""')}"`;
   const head = ["Indikator", "Sektor", "Satuan", "OPD terkait", "Tahun realisasi", "Realisasi", "Tahun target", "Target", "Selisih", "Status"];
   const lines = items.map((item) => [item.name, item.sector, item.unit, item.opds.join("; "), item.latest_year, item.latest_value, item.target_year, item.target_value, item.gap, statusLabel[item.status]].map(cell).join(","));

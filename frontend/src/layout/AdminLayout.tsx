@@ -139,7 +139,6 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     const items: Array<{ id: string; label: string; aria?: string; icon: typeof LayoutDashboard; active: boolean; run(): void }> = [];
     if (primaryEntries.length > 0) {
       items.push({ id: "ringkasan", label: "Beranda", icon: LayoutDashboard, active: onDash && dashTab === "ringkasan", run: () => goDashboard("ringkasan") });
-      items.push({ id: "capaian", label: "Capaian", icon: Target, active: onDash && dashTab === "capaian", run: () => goDashboard("capaian") });
       items.push({ id: "peta", label: "Wilayah", icon: MapPinned, active: onDash && dashTab === "peta", run: () => goDashboard("peta") });
       items.push({ id: "indikator", label: "Indikator", icon: ListChecks, active: onDash && INDICATOR_GROUP.includes(dashTab), run: () => goDashboard("indikator") });
     }
@@ -357,7 +356,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-  return <div className={`workspace ${collapsed ? "collapsed" : ""}${isPimpinan ? " portal" : ""}${isPimpinan && pathname === "/dashboard" ? " portal-home" : ""}${isPimpinan && pathname === "/assistant" ? " portal-chat" : ""}`}>
+  return <div className={`workspace ${collapsed ? "collapsed" : ""}${isPimpinan ? " portal" : ""}${isPimpinan && pathname === "/dashboard" ? " portal-home" : ""}${isPimpinan && pathname === "/assistant" ? " portal-chat" : ""}${isPimpinan && pathname.startsWith("/dashboard/indikator/") ? " portal-sheet" : ""}`}>
     <button className="skip-link" onClick={() => { mainRef.current?.focus({ preventScroll: true }); mainRef.current?.scrollIntoView({ block: "start" }); }}>Lewati navigasi ke konten utama</button>
     <aside ref={sidebarRef} className={`sidebar ${mobile ? "mobile-open" : ""}`} aria-label="Navigasi utama">
       <div className="sidebar-brand"><SababukaLockup className="sidebar-lockup" /><button className="mobile-close" aria-label="Tutup menu" onClick={() => setMobile(false)}><X /></button></div>
