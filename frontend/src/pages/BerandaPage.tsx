@@ -170,10 +170,9 @@ function DistrictPanel({ insights }: { insights: Insight[] }) {
 
 function DistrictSection({ insights }: { insights: Insight[] }) {
   const [view, setView] = useState<"ringkasan" | "indikator">("ringkasan");
-  return <section className="panel-card district-panel" aria-labelledby="peta-kecamatan">
-    <header className="card-head"><div><h2 id="peta-kecamatan">Peta kecamatan</h2><p>{view === "ringkasan" ? "Pilih kecamatan untuk melihat status seluruh indikatornya." : "Pilih satu indikator untuk melihat sebarannya di 17 kecamatan."}</p></div>
-      <div className="chip-row" role="group" aria-label="Tampilan peta"><button type="button" className={`chip${view === "ringkasan" ? " active" : ""}`} aria-pressed={view === "ringkasan"} onClick={() => setView("ringkasan")}>Status kecamatan</button><button type="button" className={`chip${view === "indikator" ? " active" : ""}`} aria-pressed={view === "indikator"} onClick={() => setView("indikator")}>Sebaran satu indikator</button></div></header>
-    {view === "ringkasan" ? <DistrictSummaryPanel /> : <DistrictPanel insights={insights} />}
+  return <section className="portal-wilayah-wrap" aria-labelledby={view === "ringkasan" ? "peta-judul" : "sebaran"}>
+    <div className="portal-view portal-view-switch" role="group" aria-label="Tampilan peta"><button type="button" className={view === "ringkasan" ? "active" : ""} aria-pressed={view === "ringkasan"} onClick={() => setView("ringkasan")}>Status kecamatan</button><button type="button" className={view === "indikator" ? "active" : ""} aria-pressed={view === "indikator"} onClick={() => setView("indikator")}>Sebaran satu indikator</button></div>
+    {view === "ringkasan" ? <DistrictSummaryPanel /> : <div className="portal-panel"><DistrictPanel insights={insights} /></div>}
   </section>;
 }
 

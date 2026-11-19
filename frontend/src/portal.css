@@ -349,3 +349,106 @@ html:not([data-theme="dark"]) .workspace.portal { --exec-good: #116a34; }
   .a11y-panel { bottom: calc(146px + env(safe-area-inset-bottom, 0px)); }
 }
 .workspace.portal .search-field input { min-height: 44px; }
+
+/* ===== Penyamaan tahap 2 dengan mockup terbaru: Capaian, Wilayah, Fokus, Lembar indikator, Tanya ===== */
+.portal-page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.portal-page-head h2 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -.01em; }
+.portal-page-head p { margin: 6px 0 0; max-width: 72ch; color: var(--ui-muted); font-size: 14px; line-height: 1.6; }
+.portal-sub { margin: 8px 0 0; font-size: 17px; font-weight: 700; }
+.portal-panel { display: grid; gap: 12px; align-content: start; min-width: 0; padding: 20px; border: 1px solid var(--ui-border); border-radius: 16px; background: var(--ui-surface); }
+.portal-panel h3 { margin: 0; font-size: 17px; font-weight: 700; }
+.portal-panel h4 { margin: 4px 0 0; font-size: 14px; font-weight: 600; }
+
+/* Capaian */
+.portal-capaian { display: grid; gap: 16px; min-width: 0; }
+.portal-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; color: var(--ui-muted); font-size: 13px; }
+.portal-legend i { display: inline-block; width: 14px; height: 14px; margin-right: 6px; border-radius: 4px; vertical-align: -2px; }
+.portal-legend i.ok { background: var(--exec-good); } .portal-legend i.bad { background: var(--exec-bad); } .portal-legend i.na { background: var(--exec-neutral); }
+.portal-view { margin-left: auto; display: inline-flex; gap: 2px; padding: 4px; border-radius: 999px; background: var(--ui-surface-subtle); }
+.portal-view button { min-height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent; color: var(--ui-text); font-size: 13px; font-weight: 500; cursor: pointer; }
+.portal-view button.active { background: var(--portal-primary); color: var(--portal-primary-fg); }
+.portal-list { display: grid; gap: 10px; }
+.workspace.portal .portal-row { background: var(--ui-surface); border-color: var(--ui-border); }
+.portal-row .portal-open { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 16px 0 8px; border: 1px solid var(--ui-control); border-radius: 999px; background: var(--ui-surface); color: var(--ui-text); font-size: 14px; font-weight: 600; text-decoration: none; }
+.portal-row-more { grid-column: 1 / -1; border-top: 1px solid var(--ui-rule); padding-top: 8px; }
+.portal-row-more summary { cursor: pointer; color: var(--portal-link); font-size: 13px; font-weight: 600; min-height: 32px; display: flex; align-items: center; }
+.portal-row-more p { margin: 6px 0 0; font-size: 13px; line-height: 1.6; color: var(--ui-text); }
+.portal-row-more .portal-tag { margin-right: 6px; }
+.portal-row-opd { grid-template-columns: minmax(0, 2.4fr) minmax(0, .8fr) minmax(0, .8fr); }
+@media (max-width: 900px) { .portal-row .portal-open { justify-content: space-between; width: 100%; } .portal-row-opd { grid-template-columns: minmax(0, 1fr) auto auto; } .portal-row-opd .portal-row-name { grid-column: 1 / -1; } .portal-view { margin-left: 0; } }
+
+/* Wilayah */
+.portal-wilayah { display: grid; gap: 16px; min-width: 0; }
+.portal-toggle { display: inline-flex; width: fit-content; gap: 2px; padding: 4px; border-radius: 999px; background: var(--ui-surface-subtle); }
+.portal-toggle button { min-height: 40px; padding: 0 18px; border: 0; border-radius: 999px; background: transparent; color: var(--ui-text); font-size: 14px; font-weight: 500; cursor: pointer; }
+.portal-toggle button.active { background: var(--portal-primary); color: var(--portal-primary-fg); }
+.portal-mapwrap { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 20px; align-items: start; }
+.portal-map .district-map, .portal-map figure { margin: 0; }
+.portal-map svg { max-height: 640px; width: 100%; height: auto; display: block; margin: 0 auto; }
+.portal-summary-text { margin: 0; color: var(--ui-muted); font-size: 14px; line-height: 1.6; }
+.portal-summary-text b { color: var(--ui-text); }
+.portal-minis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.portal-minis div { padding: 10px 6px; border-radius: 12px; background: var(--portal-bg); text-align: center; }
+.portal-minis b { display: block; font-size: 22px; font-weight: 700; line-height: 1.2; }
+.portal-minis b.good { color: var(--exec-good); } .portal-minis b.bad { color: var(--exec-bad); }
+.portal-minis span { font-size: 12px; color: var(--ui-muted); }
+.portal-rank { display: grid; margin: 0; padding: 0; list-style: none; }
+.portal-rank li + li { border-top: 1px solid var(--ui-rule); }
+.portal-rank button { display: flex; justify-content: space-between; align-items: center; width: 100%; min-height: 40px; padding: 4px 2px; border: 0; background: transparent; color: var(--ui-text); font-size: 14px; text-align: left; cursor: pointer; }
+.portal-rank button:hover { color: var(--portal-link); }
+.portal-rank b { font-variant-numeric: tabular-nums; }
+.portal-summary-actions { display: grid; gap: 10px; margin-top: 6px; }
+.portal-summary-actions .portal-cta, .portal-summary-actions .portal-more { width: 100%; }
+.portal-detail { margin-top: 4px; }
+@media (max-width: 900px) { .portal-mapwrap { grid-template-columns: minmax(0, 1fr); } }
+
+/* Fokus kebijakan */
+.portal-fokus { display: grid; gap: 16px; min-width: 0; }
+.workspace.portal .focus-picker { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; margin: 0; }
+.workspace.portal .focus-chip { min-height: 64px; padding: 12px 14px; border: 1px solid var(--ui-border); border-radius: 14px; background: var(--ui-surface); color: var(--ui-text); }
+.workspace.portal .focus-chip:hover { border-color: var(--portal-link); }
+.workspace.portal .focus-chip.active { background: var(--portal-primary); color: var(--portal-primary-fg); border-color: transparent; }
+.workspace.portal .focus-chip.active small { color: inherit; opacity: .85; }
+.workspace.portal .focus-detail h3 { font-size: 17px; font-weight: 700; margin: 0; }
+.workspace.portal .focus-narrative { margin: 0; font-size: 14px; }
+.workspace.portal .focus-detail .achv-sector { border: 1px solid var(--ui-border); border-radius: 14px; background: var(--ui-surface); overflow: hidden; }
+.workspace.portal .focus-detail .achv-sector > summary { padding: 14px 18px; }
+.portal-focus-rows { display: grid; gap: 16px; padding: 4px 18px 16px; }
+.portal-focus-row { display: grid; gap: 4px; }
+.portal-focus-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.portal-focus-top a { font-size: 14px; font-weight: 500; }
+.portal-focus-meta { display: flex; justify-content: space-between; gap: 6px 16px; flex-wrap: wrap; color: var(--ui-muted); font-size: 13px; }
+.workspace.portal .focus-note { color: var(--ui-muted); font-size: 13px; }
+
+/* Lembar indikator */
+.workspace.portal .indicator-detail { max-width: 900px; margin: 0 auto; width: 100%; }
+.workspace.portal .indicator-detail .panel-card { border-radius: 16px; padding: 22px; background: var(--ui-surface); border-color: var(--ui-border); }
+.workspace.portal .indicator-detail .panel-card h2 { font-size: 17px; font-weight: 700; }
+.workspace.portal .page-header { margin-bottom: 8px; }
+.workspace.portal .page-header h1 { font-size: clamp(24px, 3vw, 32px); }
+
+/* Tanya Sababuka: hanya penyajian, isi dan peran asisten tidak diubah */
+.workspace.portal .assistant-workspace { max-width: 860px; margin: 0 auto; width: 100%; }
+.workspace.portal .assistant-panel { border: 0; background: transparent; box-shadow: none; padding: 0; }
+.workspace.portal .assistant-panel > header { border: 0; padding: 0 0 8px; background: transparent; }
+.workspace.portal .assistant-panel > header h2 { display: none; }
+.workspace.portal .assistant-panel:not(.compact) .chat-stream { max-height: none; min-height: 0; overflow: visible; padding: 8px 0 16px; background: transparent; }
+.workspace.portal .chat-message { max-width: 90%; }
+.workspace.portal .chat-message.assistant { max-width: 100%; }
+.workspace.portal .chat-message.assistant > div { border: 1px solid var(--ui-border); border-radius: 6px 18px 18px 18px; background: var(--ui-surface); }
+.workspace.portal .rich-text h4 { margin: 6px 0 0; padding-top: 0; border-top: 0; font-size: 14px; font-weight: 700; color: var(--ui-text); }
+.workspace.portal .rich-text { gap: 6px; }
+.workspace.portal .assistant-suggestions { gap: 8px; }
+.workspace.portal .assistant-suggestions button { min-height: 44px; padding: 8px 16px; border: 1px solid var(--ui-border); border-radius: 999px; background: var(--ui-surface); color: var(--ui-text); font-size: 13px; font-weight: 500; }
+.workspace.portal .chat-composer { position: sticky; bottom: max(12px, env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 6px 6px 6px 20px; border: 1px solid var(--ui-border); border-radius: 999px; background: var(--ui-surface); box-shadow: 0 6px 18px rgba(0, 54, 90, .1); }
+.workspace.portal .chat-composer textarea { flex: 1; min-width: 0; min-height: 44px; padding: 10px 0; border: 0; border-radius: 0; background: transparent; resize: none; box-shadow: none; outline: 0; }
+.workspace.portal .chat-composer .button.primary { min-height: 44px; border: 0; border-radius: 999px; background: var(--portal-accent); color: var(--portal-accent-fg); font-weight: 600; }
+.workspace.portal .chat-composer .button.primary:disabled { opacity: .55; }
+
+.portal-wilayah-wrap { display: grid; gap: 16px; min-width: 0; }
+.portal-view-switch { margin-left: 0; width: fit-content; }
+
+@media (max-width: 900px), (pointer: coarse) {
+  .portal-view button, .portal-toggle button { min-height: 44px; }
+  .portal-rank button { min-height: 44px; }
+}

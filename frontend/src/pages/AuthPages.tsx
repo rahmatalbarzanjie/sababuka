@@ -110,10 +110,8 @@ export function LoginPage() {
     }
   }
 
-  return <main className="login-page auth-layout">
+  return <main className="login-page auth-layout login-simple">
     <a className="skip-link" href="#form-masuk">Lewati ke formulir masuk</a>
-    <AuthBackdrop />
-    <AuthBrand />
     <section className="login-panel auth-panel">
       <form id="form-masuk" className="auth-card login-card" onSubmit={submit}>
         <div className="login-identity"><SababukaLockup className="login-lockup" /></div>

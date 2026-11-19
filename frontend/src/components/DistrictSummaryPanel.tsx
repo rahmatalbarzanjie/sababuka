@@ -1,9 +1,10 @@
-import { X } from "lucide-react";
+import { MessageCircle, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { api } from "../api";
 import { Badge, EmptyState, ErrorState, Spinner, useAsync } from "../components";
-import { indicatorPath, num, pct } from "../insight";
+import { askPath, indicatorPath, num, pct } from "../insight";
+import { navigate } from "../router";
 import { plain } from "../text";
 import { AppLink } from "./AppLink";
 import { DistrictMap, normalizeName, useKapuasGeography } from "./DistrictMap";
@@ -121,58 +122,64 @@ function DistrictDetail({ name, onClose }: { name: string; onClose(): void }) {
   </div>;
 }
 
-/** Peta kiri, rincian kanan: klik kecamatan langsung menampilkan statusnya di samping peta (lembar bawah di ponsel). */
+/** Peta di kiri, ringkasan kecamatan terpilih di kanan; rincian seluruh indikator kecamatan dibuka dari ringkasan (lembar bawah di ponsel). */
 export function DistrictSummaryPanel() {
   const list = useAsync(() => api<ListResponse>("/executive/districts"), []);
   const geography = useKapuasGeography();
   const [district, setDistrict] = useState<string | null>(() => { try { return new URLSearchParams(window.location.search).get("kecamatan"); } catch { return null; } });
-  const select = (name: string | null) => { setDistrict(name); writeQuery(name); };
+  const [detail, setDetail] = useState<boolean>(() => { try { return Boolean(new URLSearchParams(window.location.search).get("kecamatan")); } catch { return false; } });
+  const select = (name: string | null) => { setDistrict(name); writeQuery(name); if (!name) setDetail(false); };
   const narrow = useNarrow();
   const [mode, setMode] = useState<MapMode>("kondisi");
   useEffect(() => {
-    if (!district) return undefined;
-    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") { setDistrict(null); writeQuery(null); } };
+    if (!detail) return undefined;
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") setDetail(false); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [district]);
+  }, [detail]);
   if (list.loading) return <div className="panel-loading"><Spinner /></div>;
   if (list.error || !list.data) return <ErrorState title="Ringkasan kecamatan belum dapat dimuat" onRetry={list.reload}>{list.error}</ErrorState>;
   const { districts, coverage } = list.data;
   if (!districts.length) return <EmptyState title="Belum ada data per kecamatan yang terbit">Ringkasan akan tampil otomatis begitu ada indikator yang memiliki nilai per kecamatan.</EmptyState>;
   const mapItems = districts.flatMap((item) => { const score = scoreOf(mode, item); return score === null ? [] : [{ name: item.name, value: score, previous: null }]; });
-  const ranked = [...districts].sort((a, b) => (scoreOf(mode, a) ?? 999) - (scoreOf(mode, b) ?? 999));
+  const ranked = [...districts].filter((item) => scoreOf(mode, item) !== null).sort((a, b) => (scoreOf(mode, b) ?? 0) - (scoreOf(mode, a) ?? 0));
   const withoutData = districts.length - mapItems.length;
-  const active = district ? districts.find((item) => normalizeName(item.name) === normalizeName(district)) ?? null : null;
-  return <div className={`district-split${active ? " has-selection" : ""}`}>
-    <div className="district-map-col">
-      <div className="dd-chips map-modes" role="group" aria-label="Dasar warna peta">
-        <button type="button" className={`chip${mode === "kondisi" ? " active" : ""}`} aria-pressed={mode === "kondisi"} onClick={() => setMode("kondisi")}>Kondisi</button>
-        <button type="button" className={`chip${mode === "pertumbuhan" ? " active" : ""}`} aria-pressed={mode === "pertumbuhan"} onClick={() => setMode("pertumbuhan")}>Pertumbuhan</button>
-      </div>
-      {geography.data ? <DistrictMap geography={geography.data} items={mapItems} unit="skor" selected={active?.name ?? null} onSelect={select} colorOf={divergingColor}
-        valueText={(value) => `${value < -5 ? modeText[mode].bad.toLowerCase() : value > 5 ? modeText[mode].good.toLowerCase() : "seimbang"} (skor ${value > 0 ? "+" : ""}${Math.round(value)})`}
-        legend={<figcaption className="map-scale"><span>{modeText[mode].bad}</span><i className="scale-bar" aria-hidden /><span>{modeText[mode].good}</span></figcaption>} /> : <p className="muted">{geography.error ? "Peta wilayah belum tersedia." : "Memuat peta..."}</p>}
-      <p className="map-caption">{modeText[mode].note}{withoutData > 0 ? ` ${withoutData} dari ${districts.length} kecamatan belum punya data untuk dasar warna ini.` : ""}</p>
-      <details className="district-howto"><summary>Cara membaca peta</summary>
-        <p>Indeks perhatian adalah persentase indikator kecamatan yang berada di seperempat terbawah dari 17 kecamatan, atau belum mencapai target bila ada target kecamatan. {coverage.with_target > 0 ? `${coverage.with_target} indikator sudah memiliki target kecamatan.` : "Belum ada target tingkat kecamatan, jadi statusnya berupa posisi relatif."} Sumber Bank Data belum diverifikasi OPD.</p></details>
+  const active = (district ? districts.find((item) => normalizeName(item.name) === normalizeName(district)) : null) ?? ranked[0] ?? districts[0]!;
+  const activeScore = scoreOf(mode, active);
+  const position = ranked.findIndex((item) => item.name === active.name) + 1;
+  const top = ranked.slice(0, 3); const bottom = ranked.slice(-3).reverse();
+  const fmtScore = (item: Summary) => { const score = scoreOf(mode, item); return score === null ? "-" : `${score > 0 ? "+" : ""}${Math.round(score)}`; };
+  const c = active.counts;
+  return <div className="portal-wilayah">
+    <header className="portal-page-head"><div><h2 id="peta-judul">Wilayah: kondisi {districts.length} kecamatan</h2><p>Gabungan {coverage.indicators.toLocaleString("id-ID")} indikator Bank Data tingkat kecamatan (BPS dan Satu Data, belum diverifikasi). Pilih kecamatan pada peta untuk melihat ringkasannya.</p></div></header>
+    <div className="portal-toggle" role="group" aria-label="Dasar warna peta">
+      <button type="button" className={mode === "kondisi" ? "active" : ""} aria-pressed={mode === "kondisi"} onClick={() => setMode("kondisi")}>Kondisi</button>
+      <button type="button" className={mode === "pertumbuhan" ? "active" : ""} aria-pressed={mode === "pertumbuhan"} onClick={() => setMode("pertumbuhan")}>Pertumbuhan</button>
     </div>
-    {active && narrow ? createPortal(<div className="sheet-layer"><button type="button" className="sheet-backdrop" aria-label="Tutup rincian kecamatan" onClick={() => select(null)} /><aside className="district-pane sheet" role="dialog" aria-label={`Rincian kecamatan ${plain(active.name)}`}><DistrictDetail name={active.name} onClose={() => select(null)} /></aside></div>, document.body) : null}
-    <aside className="district-pane" aria-live="polite" aria-label="Rincian kecamatan">
-      {active && !narrow
-        ? <DistrictDetail name={active.name} onClose={() => select(null)} />
-        : <div className="district-rank">
-          <p className="district-callout">Klik kecamatan pada peta atau daftar untuk melihat status seluruh indikatornya.</p>
-          <ol>{ranked.map((item) => <li key={item.name}>
-            {(() => { const score = scoreOf(mode, item); return <button type="button" onClick={() => select(item.name)}>
-              <i className="rank-dot" style={{ background: score === null ? "var(--ui-rule)" : divergingColor(score) }} aria-hidden />
-              <span>{plain(item.name)}</span>
-              <span className="rank-bar" role="presentation">{mode === "kondisi"
-                ? <><i className="bad" style={{ width: `${item.attention_index ?? 0}%` }} /><i className="good" style={{ width: `${item.good_index ?? 0}%` }} /></>
-                : score !== null && <i className={score >= 0 ? "good" : "bad"} style={{ width: `${Math.max(3, Math.abs(score))}%` }} />}</span>
-              <b>{mode === "kondisi" ? (item.attention_index === null ? "-" : `${item.attention_index.toLocaleString("id-ID")}%`) : score === null ? "-" : `${score > 0 ? "+" : ""}${Math.round(score)}%`}</b>
-            </button>; })()}</li>)}</ol>
-          <p className="rank-hint">{mode === "kondisi" ? "Bilah: merah = perlu perhatian, hijau = unggul. Angka: persentase perlu perhatian." : "Angka: selisih persentase indikator membaik dan memburuk."}</p>
-        </div>}
-    </aside>
+    <div className="portal-mapwrap">
+      <div className="portal-panel portal-map">
+        {geography.data ? <DistrictMap geography={geography.data} items={mapItems} unit="skor" selected={active.name} onSelect={select} colorOf={divergingColor}
+          valueText={(value) => `${value < -5 ? modeText[mode].bad.toLowerCase() : value > 5 ? modeText[mode].good.toLowerCase() : "seimbang"} (skor ${value > 0 ? "+" : ""}${Math.round(value)})`}
+          legend={<figcaption className="map-scale"><span>{modeText[mode].bad}</span><i className="scale-bar" aria-hidden /><span>{modeText[mode].good}</span></figcaption>} /> : <p className="muted">{geography.error ? "Peta wilayah belum tersedia." : "Memuat peta..."}</p>}
+        <p className="map-caption">{modeText[mode].note}{withoutData > 0 ? ` ${withoutData} dari ${districts.length} kecamatan belum punya data untuk dasar warna ini.` : ""}</p>
+        <details className="district-howto"><summary>Cara membaca peta</summary>
+          <p>Indeks perhatian adalah persentase indikator kecamatan yang berada di seperempat terbawah dari 17 kecamatan, atau belum mencapai target bila ada target kecamatan. {coverage.with_target > 0 ? `${coverage.with_target} indikator sudah memiliki target kecamatan.` : "Belum ada target tingkat kecamatan, jadi statusnya berupa posisi relatif."} Sumber Bank Data belum diverifikasi OPD.</p></details>
+      </div>
+      <aside className="portal-panel portal-summary" aria-live="polite" aria-label="Ringkasan kecamatan">
+        <h3>Kecamatan {plain(active.name)}</h3>
+        <p className="portal-summary-text">{mode === "kondisi" ? "Skor kondisi" : "Skor pertumbuhan"} <b>{activeScore === null ? "-" : `${activeScore > 0 ? "+" : ""}${Math.round(activeScore)}`}</b>{position > 0 ? `, peringkat ${position} dari ${ranked.length}` : ""}. Dihitung dari {active.indicators.toLocaleString("id-ID")} indikator berdata.</p>
+        <div className="portal-minis"><div><b className="good">{c.unggul + c.tercapai}</b><span>Unggul</span></div><div><b>{c.sedang}</b><span>Sedang</span></div><div><b className="bad">{c.perhatian + c.belum_tercapai}</b><span>Perlu perhatian</span></div></div>
+        <div className="portal-minis"><div><b className="good">{active.trend_counts.membaik}</b><span>Membaik</span></div><div><b>{active.trend_counts.stabil}</b><span>Stabil</span></div><div><b className="bad">{active.trend_counts.memburuk}</b><span>Memburuk</span></div></div>
+        <h4>Tertinggi</h4><ol className="portal-rank">{top.map((item) => <li key={item.name}><button type="button" onClick={() => select(item.name)}><span>{plain(item.name)}</span><b>{fmtScore(item)}</b></button></li>)}</ol>
+        <h4>Terendah</h4><ol className="portal-rank">{bottom.map((item) => <li key={item.name}><button type="button" onClick={() => select(item.name)}><span>{plain(item.name)}</span><b>{fmtScore(item)}</b></button></li>)}</ol>
+        <div className="portal-summary-actions">
+          <button type="button" className="portal-more" aria-expanded={detail} onClick={() => setDetail((value) => !value)}>{detail ? "Tutup rincian indikator" : "Rincian indikator kecamatan"}</button>
+          <button type="button" className="portal-cta" onClick={() => navigate(askPath(`Bagaimana kondisi Kecamatan ${plain(active.name)} dan indikator apa yang perlu diperhatikan?`))}><MessageCircle aria-hidden />Tanya tentang {plain(active.name)}</button>
+        </div>
+      </aside>
+    </div>
+    {detail && (narrow
+      ? createPortal(<div className="sheet-layer"><button type="button" className="sheet-backdrop" aria-label="Tutup rincian kecamatan" onClick={() => setDetail(false)} /><aside className="district-pane sheet" role="dialog" aria-label={`Rincian kecamatan ${plain(active.name)}`}><DistrictDetail name={active.name} onClose={() => setDetail(false)} /></aside></div>, document.body)
+      : <div className="portal-panel portal-detail"><DistrictDetail name={active.name} onClose={() => setDetail(false)} /></div>)}
   </div>;
 }

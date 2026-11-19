@@ -101,3 +101,15 @@ html[data-theme="dark"] .registration-page .auth-card { box-shadow: 0 12px 36px 
 /* sisi merek disembunyikan di bawah 960 px, jadi logo tampil di dalam kartu masuk */
 @media (max-width: 960px) { .login-page.auth-layout .login-identity { display: flex; } }
 .auth-layout .auth-back-link, .registration-page .auth-back-link, .auth-layout .text-button, .registration-page .text-button { min-height: 44px; }
+
+/* Halaman masuk sederhana: hanya kartu masuk di tengah, tanpa sisi merek dan ilustrasi. */
+.login-page.auth-layout.login-simple { display: grid; place-items: center; grid-template-columns: minmax(0, 1fr); min-height: 100svh; padding: 24px 16px; background: var(--ui-surface-subtle); overflow: auto; }
+.login-page.auth-layout.login-simple::before { display: none; }
+.login-simple .login-panel, .login-simple .auth-panel { width: 100%; min-height: 0; padding: 0; background: transparent; display: grid; place-items: center; }
+.login-page.auth-layout.login-simple .login-identity { display: flex; justify-content: center; padding-bottom: 20px; }
+.login-simple .login-lockup > .sababuka-mark { width: 40px; height: 54px; flex-basis: 40px; }
+.login-page.auth-layout.login-simple .login-credit { display: block; }
+.login-simple .auth-card-heading { text-align: center; }
+.login-simple .auth-card.login-card { width: min(100%, 440px); }
+.login-page.auth-layout.login-simple .auth-panel.login-panel, html[data-theme="dark"] .login-page.auth-layout.login-simple .auth-panel.login-panel { background: transparent; border: 0; box-shadow: none; }
+.login-page.auth-layout.login-simple .auth-panel.login-panel { padding: 0; min-height: 0; width: 100%; max-width: 100%; }
