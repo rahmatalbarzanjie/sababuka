@@ -496,3 +496,7 @@ html[data-theme="dark"] .step-no { color: #0b1b2b; }
 .cross-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .cross-actions .button { min-height: 36px; padding: 0 10px; font-size: 13px; }
 .link-button { background: none; border: 0; padding: 0; color: var(--ui-link, inherit); text-decoration: underline; font: inherit; cursor: pointer; min-height: 24px; }
+
+/* Rekomendasi dikelompokkan per OPD: satu judul OPD, beberapa tindakan di bawahnya. */
+.cross-recs .cross-recs-items { margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.cross-recs .cross-recs-items li { display: grid; gap: 2px; padding: 0; border-top: 0; }

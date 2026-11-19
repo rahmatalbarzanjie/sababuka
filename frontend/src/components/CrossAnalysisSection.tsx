@@ -83,5 +83,7 @@ export function CrossAnalysisSection({ cross, onChanged }: { cross: CrossAnalysi
 /** Rekomendasi per OPD hasil analisis silang. */
 export function CrossRecommendations({ cross }: { cross: CrossAnalysis | null }) {
   if (!cross || cross.recommendations.length === 0) return null;
-  return <ol className="cross-recs" aria-label="Rekomendasi per OPD">{cross.recommendations.map((entry, index) => <li key={`${entry.opd}-${index}`}><strong>{plain(entry.opd)}</strong><span>{plain(entry.action)}</span><small>Dasar: {plain(entry.basis)}</small></li>)}</ol>;
+  const groups = new Map<string, CrossRecommendation[]>();
+  for (const entry of cross.recommendations) { const key = plain(entry.opd); groups.set(key, [...(groups.get(key) ?? []), entry]); }
+  return <ol className="cross-recs" aria-label="Rekomendasi per OPD">{[...groups].map(([opd, entries]) => <li key={opd}><strong>{opd}</strong><ul className="cross-recs-items">{entries.map((entry, index) => <li key={index}><span>{plain(entry.action)}</span><small>Dasar: {plain(entry.basis)}</small></li>)}</ul></li>)}</ol>;
 }
