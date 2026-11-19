@@ -25,7 +25,7 @@ Ada dua gaya yang berjalan bersamaan. Keduanya mengikuti identitas resmi Kabupat
 - Bentuk membulat: kartu 12 sampai 16 px, kontrol dan tombol berbentuk pil. Status ditandai lewat lencana, ikon, atau latar tipis, tanpa garis aksen sisi.
 - Pola halaman Bupati: judul narasi yang dihitung dari angka, kotak cari, pita tiga angka yang bisa diklik, kartu indikator berlabel sektor dan status (dengan sparkline bila ada deret tren). Navigasi satu tingkat di bilah atas: Beranda, Wilayah, Indikator (chip Semua indikator, Tren terbaru, Fokus kebijakan), dan Tanya. Di layar sempit navigasi menjadi tab bawah seperti aplikasi. Tidak ada bilah tab kedua di dalam dashboard.
 - Mode aplikasi (dibuka dari APK Android dengan penanda `SABABUKA-Android`, atau `?mode=app` untuk uji): hero navy, tanpa footer, tab bawah.
-- Menu aksesibilitas bagi Bupati: ukuran teks, mode gelap, dan kontras tinggi, tersimpan di perangkat. Target sentuh minimal 44 px di layar sempit atau sentuh.
+- Menu aksesibilitas (ukuran teks, kontras tinggi) dihapus atas permintaan pemilik, 19 Nov 2026; mode gelap lewat tombol di bilah atas. Target sentuh minimal 44 px di layar sempit atau sentuh.
 - Ilustrasi tugu Kapuas pada halaman masuk dibingkai panggung navy karena warnanya dirancang untuk latar gelap. Tidak memakai maskot, logo, atau ilustrasi pihak lain.
 
 ## Larangan

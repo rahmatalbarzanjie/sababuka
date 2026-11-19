@@ -1,6 +1,7 @@
 import { Send, ShieldCheck, UserRound } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, jsonBody } from "../api";
+import { loadChat, saveChat } from "../chatStore";
 import { SababukaAssistantMark, type SababukaAssistantState } from "../branding/SababukaBrand";
 import { AppLink } from "../components/AppLink";
 import { DistrictBars, TrendChart } from "../components/InsightVisuals";
@@ -18,15 +19,19 @@ interface ChatMessage { role: "user" | "assistant"; content: string; answer?: An
 const EXAMPLES = ["Apa yang perlu saya perhatikan hari ini?", "Bagaimana tren kemiskinan di Kapuas?", "Kecamatan mana yang paling rendah angka melek hurufnya?"];
 
 export function AssistantChat({ compact = false }: { compact?: boolean }) {
-  const [session, setSession] = useState<Session | null>(null); const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([]); const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
+  const restored = useRef(loadChat<Session, ChatMessage>());
+  const [session, setSession] = useState<Session | null>(restored.current.session); const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<ChatMessage[]>(restored.current.messages); const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
+  useEffect(() => { saveChat<Session, ChatMessage>({ session, messages }); }, [session, messages]);
   const ask = async (question: string) => {
     setBusy(true); setError(""); setMessage("");
     setMessages((current) => [...current, { role: "user", content: question }]);
     try {
-      const active = session ?? await api<Session>("/assistant/sessions", { method: "POST", mutation: true, body: jsonBody({ title: "Tanya Sababuka" }) });
-      if (!session) setSession(active);
-      const answer = await api<Answer>(`/assistant/sessions/${active.id}/messages`, { method: "POST", mutation: true, body: jsonBody({ message: question }) });
+      const open = async () => { const created = await api<Session>("/assistant/sessions", { method: "POST", mutation: true, body: jsonBody({ title: "Tanya Sababuka" }) }); setSession(created); return created; };
+      const post = (id: string) => api<Answer>(`/assistant/sessions/${id}/messages`, { method: "POST", mutation: true, body: jsonBody({ message: question }) });
+      let answer: Answer;
+      if (!session) answer = await post((await open()).id);
+      else { try { answer = await post(session.id); } catch { answer = await post((await open()).id); } }
       setMessages((current) => [...current, { role: "assistant", content: answer.answer, answer }]);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Asisten belum dapat menjawab."); }
     finally { setBusy(false); }
