@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { requireCsrf, requirePermission, requireSuperadmin } from "../plugins/authentication.js";
 import { requestAuditContext } from "../request-context.js";
+import { ResponsibleOpdService, type ResponsibleOpdInput } from "../services/responsible-opd-service.js";
 import { SeriesLinkService, type SeriesLinkInput } from "../services/series-link-service.js";
 import { ConnectorService, type IntegrationProfileInput, type MappingInput } from "../services/connector-service.js";
 
@@ -57,6 +58,16 @@ export async function connectorRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Querystring: { q?: string; page?: number } }>("/connectors/bps/variables", { schema: { querystring: { type: "object", additionalProperties: false, properties: { q: { type: "string", maxLength: 120 }, page: { type: "integer", minimum: 1, maximum: 200, default: 1 } } } } }, async (request) => { view(request); return service(request).searchBpsVariables(request.query.q ?? "", request.query.page ?? 1); });
   app.get<{ Params: { variable_id: string } }>("/connectors/bps/variables/:variable_id", { schema: { params: { type: "object", additionalProperties: false, required: ["variable_id"], properties: { variable_id: { type: "string", pattern: "^[0-9]{1,8}$" } } } } }, async (request) => { view(request); return service(request).getBpsVariable(request.params.variable_id); });
   const links = (request: FastifyRequest) => new SeriesLinkService(request.server.db);
+  app.get<{ Querystring: { q?: string; origin?: string; unmapped?: boolean; page?: number; page_size?: number } }>("/connectors/responsible-opd", {
+    schema: { querystring: { type: "object", additionalProperties: false, properties: { q: { type: "string", maxLength: 120 }, origin: { type: "string", enum: ["all", "rpjmd_master", "opd_manual", "bank_data"] }, unmapped: { type: "boolean" }, page: { type: "integer", minimum: 1, default: 1 }, page_size: { type: "integer", minimum: 1, maximum: 100, default: 25 } } } },
+  }, async (request) => { view(request); return new ResponsibleOpdService(app.db).list({ q: request.query.q, origin: request.query.origin ?? "rpjmd_master", unmapped: request.query.unmapped, page: request.query.page ?? 1, page_size: request.query.page_size ?? 25 }); });
+  app.get("/connectors/responsible-opd/organizations", async (request) => { view(request); return new ResponsibleOpdService(app.db).organizations(); });
+  app.put<{ Params: { indicator_id: string }; Body: ResponsibleOpdInput }>("/connectors/responsible-opd/:indicator_id", {
+    schema: {
+      params: { type: "object", additionalProperties: false, required: ["indicator_id"], properties: { indicator_id: uuid } },
+      body: { type: "object", additionalProperties: false, required: ["primary_organization_id", "support_organization_ids"], properties: { primary_organization_id: { anyOf: [uuid, { type: "null" }] }, support_organization_ids: { type: "array", maxItems: 12, items: uuid } } },
+    },
+  }, async (request) => { mapper(request); return new ResponsibleOpdService(app.db).set(request.auth!, request.params.indicator_id, request.body, requestAuditContext(request)); });
   app.get("/connectors/series-links", async (request) => { view(request); return links(request).list(); });
   app.get<{ Querystring: { q: string } }>("/connectors/series-links/search", { schema: { querystring: { type: "object", additionalProperties: false, required: ["q"], properties: { q: { type: "string", maxLength: 120 } } } } }, async (request) => { view(request); return links(request).searchSeries(request.query.q); });
   app.post<{ Body: SeriesLinkInput }>("/connectors/series-links", { schema: { body: { type: "object", additionalProperties: false, required: ["rpjmd_indicator_id", "series_indicator_id", "relation_type"], properties: { rpjmd_indicator_id: uuid, series_indicator_id: uuid, relation_type: { type: "string", enum: ["primary", "supporting", "comparison"] }, notes: { type: ["string", "null"], maxLength: 1000 } } } } }, async (request, reply) => { mapper(request); return reply.code(201).send(await links(request).create(request.auth!, request.body, requestAuditContext(request))); });

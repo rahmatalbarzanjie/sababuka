@@ -1375,6 +1375,74 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/AuditPage"}
         "403": {$ref: "#/components/responses/Forbidden"}
+  /connectors/responsible-opd:
+    get:
+      tags: [Connectors]
+      operationId: listResponsibleOpd
+      summary: Daftar relasi OPD utama dan pendukung per indikator
+      description: Membutuhkan `connector.view`. Pencarian dan penyaringan menurut asal indikator atau yang belum punya OPD utama.
+      parameters:
+        - {name: q, in: query, schema: {type: string, maxLength: 120}}
+        - {name: origin, in: query, schema: {type: string, enum: [all, rpjmd_master, opd_manual, bank_data]}}
+        - {name: unmapped, in: query, schema: {type: boolean}}
+        - {name: page, in: query, schema: {type: integer, minimum: 1}}
+        - {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100}}
+      responses:
+        "200":
+          description: Halaman indikator beserta OPD utama dan pendukungnya
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /connectors/responsible-opd/organizations:
+    get:
+      tags: [Connectors]
+      operationId: listResponsibleOpdOrganizations
+      summary: Organisasi yang dapat dipilih sebagai OPD penanggung jawab
+      description: Membutuhkan `connector.view`. Hanya OPD, instansi vertikal, perusahaan daerah, dan kelompok Kecamatan.
+      responses:
+        "200":
+          description: Daftar organisasi
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /connectors/responsible-opd/{indicator_id}:
+    put:
+      tags: [Connectors]
+      operationId: setResponsibleOpd
+      summary: Menetapkan OPD utama dan pendukung satu indikator
+      description: |
+        Membutuhkan `connector.map` (BAPPERIDA dan Developer). Mengganti seluruh relasi OPD indikator itu dalam satu transaksi dan
+        mencatat nilai sebelum dan sesudahnya di audit. Tidak mengubah pemilik pelaporan indikator.
+      parameters:
+        - name: indicator_id
+          in: path
+          required: true
+          schema: {$ref: "#/components/schemas/Uuid"}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [primary_organization_id, support_organization_ids]
+              properties:
+                primary_organization_id: {oneOf: [{$ref: "#/components/schemas/Uuid"}, {type: "null"}]}
+                support_organization_ids:
+                  type: array
+                  maxItems: 12
+                  items: {$ref: "#/components/schemas/Uuid"}
+      responses:
+        "200":
+          description: Relasi OPD terbaru
+          content:
+            application/json:
+              schema: {type: object, additionalProperties: true}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "422": {$ref: "#/components/responses/ValidationError"}
   /connectors/status:
     get:
       tags: [Connectors]
