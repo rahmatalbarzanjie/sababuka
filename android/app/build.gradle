@@ -13,8 +13,8 @@ android {
         applicationId "com.sababuka.bersinar"
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        versionCode 3
+        versionName "1.2"
         buildConfigField "String", "APP_URL", "\"${appUrl}\""
         buildConfigField "String", "APP_HOST", "\"${appHost}\""
     }
