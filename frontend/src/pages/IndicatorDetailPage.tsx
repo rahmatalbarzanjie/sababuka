@@ -112,6 +112,18 @@ export function IndicatorDetailPage({ id }: { id: string }) {
   const steady = !item.limited && item.assessment === "netral" && ach?.direction && (item.trend === "stabil" || item.trend === "fluktuatif");
   const trendLabel = steady ? (item.trend === "stabil" ? "Stabil" : "Berfluktuasi") : statusOf(item);
   const trendMeaning = steady ? "Tren " + (item.trend === "stabil" ? "stabil" : "berfluktuasi") + ": perubahan terbaru belum cukup konsisten untuk dinyatakan membaik atau memburuk." : statusMeaning(item);
+  const unitText = plain(item.unit);
+  const narasi: string[] = [];
+  if (ach && hasTarget && ach.latest_value !== null && ach.target_value !== null && ach.gap !== null && ach.status !== "belum_ada_data") {
+    const diff = `${num(Math.abs(ach.gap))} ${unitText}`;
+    narasi.push(`${plain(item.name)} tercatat ${num(ach.latest_value)} ${unitText} pada ${ach.latest_year}, ${ach.status === "tercapai" ? `memenuhi target ${num(ach.target_value)} untuk tahun ${ach.target_year}${ach.gap === 0 ? "" : ` dengan selisih ${diff} lebih baik dari target`}` : `belum mencapai target ${num(ach.target_value)} untuk tahun ${ach.target_year}, selisihnya ${diff} ${ach.direction === "decrease" ? "di atas" : "di bawah"} target`}.`);
+  } else narasi.push(`${plain(item.name)} tercatat ${num(item.latest_value)} ${unitText} pada ${item.latest_year}${item.change_pct !== null ? `, ${pct(item.change_pct)} dari periode sebelumnya` : ""}. ${hasTarget ? "Realisasi pada tahun target belum terbit." : "Indikator ini belum memiliki target RPJMD di sistem."}`);
+  const an = item.analysis;
+  if (!item.limited && item.series.length >= 3) narasi.push(`Selama ${an.years} tahun nilainya ${item.trend === "naik" ? "cenderung naik" : item.trend === "turun" ? "cenderung turun" : "relatif stabil"}${an.years >= 4 && an.cagr_pct !== null ? ` dengan laju rata-rata ${pct(an.cagr_pct)} per tahun` : ""}${an.streak.direction && an.streak.length >= 2 ? `, ${an.streak.direction} ${an.streak.length} tahun berturut-turut` : ""}.`);
+  else narasi.push(`Data baru ${item.series.length} tahun, sehingga tren belum dapat dinilai (minimal 3 tahun).`);
+  if (an.anomaly?.is_anomaly) narasi.push("Perubahan terbaru tidak biasa dibanding pola historisnya.");
+  if (top && bottom && districts.length > 1) narasi.push(`Di tingkat kecamatan, nilai tertinggi ada di ${plain(top.name)} (${num(top.value)}) dan terendah di ${plain(bottom.name)} (${num(bottom.value)}).`);
+  narasi.push(`OPD penanggung jawab: ${item.opds.length ? item.opds.join(", ") : "belum dipetakan"}. Sumber: ${plain(item.source_label) || "-"}${verified ? " (terverifikasi)" : " (Bank Data, belum diverifikasi)"}, data hingga ${item.latest_year}.`);
   const guidance = ach ? plain(ach.follow_up) : !item.limited && item.assessment !== "netral" ? plain(item.recommendation) : "";
   return <div className="exec indicator-detail">
     {back}
@@ -130,6 +142,8 @@ export function IndicatorDetailPage({ id }: { id: string }) {
     </div>
     {stale && <p className="stale-note" role="note">Data terbaru berasal dari tahun {item.latest_year}, {years} tahun lalu. Gunakan sebagai gambaran konteks dan periksa sumber asli untuk angka terkini.</p>}
 
+    <section className="portal-narasi" aria-labelledby="narasi-judul"><h2 id="narasi-judul">Narasi data</h2><p>{narasi.join(" ")}</p><small>Disusun otomatis dari data tersimpan, bukan kalimat bebas.</small></section>
+
     <nav className="section-nav" aria-label="Isi halaman">{sections.map(([anchor, label]) => <a key={anchor} href={`#${anchor}`}>{label}</a>)}</nav>
 
     <section className="panel-card" id="capaian" aria-labelledby="capaian-judul">
@@ -144,7 +158,7 @@ export function IndicatorDetailPage({ id }: { id: string }) {
         const top = Math.max(Math.abs(ach.latest_value), Math.abs(ach.target_value)) * 1.12 || 1;
         const fill = Math.max(2, Math.min(100, (Math.abs(ach.latest_value) / top) * 100));
         const mark = Math.max(0, Math.min(100, (Math.abs(ach.target_value) / top) * 100));
-        return <div className="portal-gauge"><div className="portal-gauge-track" role="img" aria-label={`Realisasi ${num(ach.latest_value)} dibandingkan target ${num(ach.target_value)}`}><i className={gapTone || "na"} style={{ width: `${fill}%` }} /><s style={{ left: `${mark}%` }} /></div><div className="portal-gauge-lab"><span>0</span><span style={{ left: `${mark}%` }}>Target {num(ach.target_value)}</span><span>Realisasi {num(ach.latest_value)}</span></div></div>;
+        return <div className="portal-gauge"><div className="portal-gauge-track" role="img" aria-label={`Realisasi ${num(ach.latest_value)} dibandingkan target ${num(ach.target_value)}`}><i className={gapTone || "na"} style={{ width: `${fill}%` }} /><s style={{ left: `${mark}%` }} /></div><div className="portal-gauge-lab"><span>Realisasi {num(ach.latest_value)}</span><span>Target {num(ach.target_value)}</span></div></div>;
       })()}
       <p>{achText}</p>
       <dl className="brief-list">

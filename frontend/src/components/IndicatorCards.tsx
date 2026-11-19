@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { AppLink } from "./AppLink";
+import { downloadCsv } from "./AchievementSection";
 import type { AchievementItem, AchievementStatus } from "./AchievementSection";
 import { indicatorPath, num, toneOf, type Insight } from "../insight";
 import { Sparkline } from "./InsightVisuals";
@@ -29,25 +30,36 @@ function progress(item: AchievementItem): number {
 }
 
 /** Kartu indikator bergaya portal data: lencana sektor dan status, nilai terbaru, kemajuan menuju target, tahun data. */
-export function IndicatorCards({ items, trends, onOpenAll, limit = 8 }: { items: AchievementItem[]; trends: Map<string, Insight>; onOpenAll(): void; limit?: number }) {
+export type CardFilter = "dinilai" | "tercapai" | "belum_tercapai" | "belum_ada_data";
+const filterText: Record<CardFilter, { title: string; text: string }> = {
+  dinilai: { title: "Indikator tercapai dan belum tercapai", text: "Indikator yang sudah memiliki realisasi dibandingkan target tahun yang sama. Yang belum tercapai tampil lebih dahulu. Pilih kartu untuk membuka lembar indikatornya." },
+  tercapai: { title: "Indikator yang sudah tercapai", text: "Realisasi terbaru memenuhi target tahun yang sama. Capaian yang perlu dipertahankan." },
+  belum_tercapai: { title: "Indikator yang belum tercapai", text: "Realisasi di bawah target. Diurutkan menurut selisih terbesar terhadap target." },
+  belum_ada_data: { title: "Indikator yang belum ada realisasi", text: "Menunggu pengisian OPD atau belum terbit, sehingga belum dapat dinilai terhadap target." },
+};
+const PAGE = 12;
+
+/** Daftar kartu indikator menurut filter dari pita angka, dapat disaring per sektor, dengan unduhan CSV seluruh capaian. */
+export function IndicatorCards({ items, trends, filter, allItems }: { items: AchievementItem[]; trends: Map<string, Insight>; filter: CardFilter; allItems: AchievementItem[] }) {
+  const [shown, setShown] = useState(PAGE);
+  const inFilter = useMemo(() => items.filter((item) => filter === "dinilai" ? item.status === "tercapai" || item.status === "belum_tercapai" : item.status === filter), [items, filter]);
   const [sector, setSector] = useState("");
   const sectors = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const item of items) counts.set(item.sector, (counts.get(item.sector) ?? 0) + 1);
+    for (const item of inFilter) counts.set(item.sector, (counts.get(item.sector) ?? 0) + 1);
     return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "id")).slice(0, 5).map(([name]) => name);
   }, [items]);
-  const shown = useMemo(() => items
+  const list = useMemo(() => inFilter
     .filter((item) => !sector || item.sector === sector)
-    .sort((a, b) => statusRank[a.status] - statusRank[b.status] || Math.abs(b.gap_pct ?? 0) - Math.abs(a.gap_pct ?? 0) || a.name.localeCompare(b.name, "id"))
-    .slice(0, limit), [items, sector, limit]);
+    .sort((a, b) => statusRank[a.status] - statusRank[b.status] || Math.abs(b.gap_pct ?? 0) - Math.abs(a.gap_pct ?? 0) || a.name.localeCompare(b.name, "id")), [inFilter, sector]);
   return <section className="portal-section" aria-labelledby="sorotan-indikator">
-    <header className="portal-section-head"><h2 id="sorotan-indikator">Indikator yang perlu diperhatikan</h2><p>Indikator yang belum mencapai target tampil lebih dahulu. Pilih kartu untuk membuka lembar indikatornya.</p></header>
+    <header className="portal-section-head portal-section-split"><div><h2 id="sorotan-indikator">{filterText[filter].title} ({inFilter.length})</h2><p>{filterText[filter].text}</p></div><button type="button" className="portal-more" onClick={() => downloadCsv(allItems)}>Unduh CSV</button></header>
     <div className="portal-chips" role="group" aria-label="Filter sektor">
-      <button type="button" className={`portal-chip${sector === "" ? " active" : ""}`} aria-pressed={sector === ""} onClick={() => setSector("")}>Semua</button>
-      {sectors.map((name) => <button key={name} type="button" className={`portal-chip${sector === name ? " active" : ""}`} aria-pressed={sector === name} title={plain(name)} onClick={() => setSector(name)}>{shortSector(name)}</button>)}
+      <button type="button" className={`portal-chip${sector === "" ? " active" : ""}`} aria-pressed={sector === ""} onClick={() => { setSector(""); setShown(PAGE); }}>Semua</button>
+      {sectors.map((name) => <button key={name} type="button" className={`portal-chip${sector === name ? " active" : ""}`} aria-pressed={sector === name} title={plain(name)} onClick={() => { setSector(name); setShown(PAGE); }}>{shortSector(name)}</button>)}
     </div>
-    {shown.length === 0 ? <p className="muted">Belum ada indikator pada sektor ini.</p> : <div className="portal-cards">
-      {shown.map((item) => {
+    {list.length === 0 ? <p className="muted">Belum ada indikator pada pilihan ini.</p> : <div className="portal-cards">
+      {list.slice(0, shown).map((item) => {
         const tone = statusTone(item.status);
         const has = item.latest_value !== null;
         return <AppLink key={item.indicator_id} to={indicatorPath(item.indicator_id)} className="portal-card">
@@ -60,6 +72,6 @@ export function IndicatorCards({ items, trends, onOpenAll, limit = 8 }: { items:
         </AppLink>;
       })}
     </div>}
-    <button type="button" className="portal-more" onClick={onOpenAll}>Lihat semua capaian</button>
+    {list.length > shown && <button type="button" className="portal-more" onClick={() => setShown((value) => value + PAGE)}>Tampilkan {Math.min(PAGE, list.length - shown)} lagi ({list.length - shown} tersisa)</button>}
   </section>;
 }

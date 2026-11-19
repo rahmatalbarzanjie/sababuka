@@ -11,6 +11,7 @@ export function currentTab(): DashTab {
   try {
     if (new URLSearchParams(window.location.search).get("kecamatan")) return "peta";
     const hash = window.location.hash.replace("#", "") as DashTab;
+    if ((hash as string) === "capaian") return "ringkasan";
     return DASH_TABS.includes(hash) ? hash : "ringkasan";
   } catch { return "ringkasan"; }
 }
