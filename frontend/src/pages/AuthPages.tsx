@@ -8,7 +8,7 @@ import { navigate } from "../router";
 
 function AuthBrand() {
   return <aside className="auth-brand">
-    <div className="auth-brand-top"><SababukaLockup className="auth-lockup" /></div>
+    <div className="auth-brand-top"><SababukaLockup className="auth-lockup" descriptor /></div>
     <div className="auth-brand-stage">
       <KapuasDataIllustration />
       <div className="auth-copy">
@@ -114,7 +114,7 @@ export function LoginPage() {
     <a className="skip-link" href="#form-masuk">Lewati ke formulir masuk</a>
     <section className="login-panel auth-panel">
       <form id="form-masuk" className="auth-card login-card" onSubmit={submit}>
-        <div className="login-identity"><SababukaLockup className="login-lockup" /></div>
+        <div className="login-identity"><SababukaLockup className="login-lockup" descriptor /></div>
         <div className="auth-card-heading"><h1>Masuk ke SABABUKA</h1><p>Gunakan email atau username dan kata sandi akun Anda.</p></div>
         {error && <Notice tone="error">{error}</Notice>}
           <label className="field"><span>Email atau username</span><input autoFocus autoComplete="username" data-field="identifier" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="nama@kapuaskab.go.id" required /></label>
@@ -209,12 +209,12 @@ export function RegistrationPage() {
     <section className="login-panel registration-panel">
       <div className="auth-card login-card registration-card">
         {complete ? <>
-          <div className="login-identity"><SababukaLockup className="login-lockup" /></div>
+          <div className="login-identity"><SababukaLockup className="login-lockup" descriptor /></div>
           <div className="success-symbol"><Check /></div>
           <div className="auth-card-heading centered"><span className="context-label">Pendaftaran terkirim</span><h1>Menunggu persetujuan</h1><p>Pengelola Sistem akan memeriksa identitas PIC, instansi, dan paket peran yang sesuai.</p></div>
           <button className="button primary full" onClick={() => navigate("/login")}>Kembali ke halaman masuk</button>
         </> : <form className="registration-form" onSubmit={submit}>
-          <div className="login-identity"><SababukaLockup className="login-lockup" /></div>
+          <div className="login-identity"><SababukaLockup className="login-lockup" descriptor /></div>
           <div className="auth-card-heading"><span className="context-label">Pendaftaran akun</span><h1>Daftar sebagai PIC instansi</h1><p>Untuk OPD dan instansi vertikal yang telah terdaftar. Hak akses diberikan setelah identitas dan kedudukan instansi diperiksa.</p></div>
           {error && <Notice tone="error">{error}</Notice>}
           <div className="registration-form-grid">
