@@ -120,16 +120,18 @@ export class LlmService {
     return { state: value?.state ?? "ok", message: value?.message ?? null, at: value?.at ?? null };
   }
 
-  private async call(key: string, system: string, user: string, maxTokens: number): Promise<string> {
+  private async call(key: string, system: string, user: string, maxTokens: number, rejectTruncated = false): Promise<string> {
     const response = await fetch(API_URL, {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
       body: JSON.stringify({ model: this.model(), max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] }),
       signal: AbortSignal.timeout(25_000),
     });
-    const payload = await response.json().catch(() => ({})) as { content?: Array<{ type: string; text?: string }>; error?: { message?: string } };
+    const payload = await response.json().catch(() => ({})) as { content?: Array<{ type: string; text?: string }>; stop_reason?: string; error?: { message?: string } };
     if (!response.ok) { const text = payload.error?.message?.replaceAll(key, "***").slice(0, 200) ?? `HTTP ${response.status}`; await this.noteHealth(classify(text), text); throw new Error(text); }
     await this.noteHealth("ok", null);
+    // Jawaban yang berhenti karena batas token terpotong di tengah kalimat; jangan ditampilkan.
+    if (rejectTruncated && payload.stop_reason === "max_tokens") throw new Error("Jawaban model terpotong oleh batas token.");
     return (payload.content ?? []).filter((part) => part.type === "text").map((part) => part.text ?? "").join("").trim();
   }
 
@@ -161,7 +163,7 @@ export class LlmService {
     if (!key) return null;
     const factText = JSON.stringify(facts);
     try {
-      const text = await this.call(key, SYSTEM_PROMPT, `PERTANYAAN:\n${question}\n\nFAKTA:\n${factText}\n\nDRAF JAWABAN (boleh dipoles, angka harus tetap):\n${draft}`, 700);
+      const text = await this.call(key, SYSTEM_PROMPT, `PERTANYAAN:\n${question}\n\nFAKTA:\n${factText}\n\nDRAF JAWABAN (boleh dipoles, angka harus tetap):\n${draft}`, 3000, true);
       if (!text || !numbersGrounded(text, `${factText} ${draft}`)) return null;
       return { text, model: this.model() };
     } catch { return null; }
