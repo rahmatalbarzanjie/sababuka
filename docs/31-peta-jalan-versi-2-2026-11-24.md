@@ -21,7 +21,7 @@ Batasi Bupati pada percakapan dengan data yang sudah terkumpul, hidupkan pengala
 |---|---|---|---|---|---|
 | B1 | Dashboard Bupati lebih hidup | Pengalaman Bupati | Tinggi | sedang | Berikutnya |
 
-**B1 Dashboard Bupati lebih hidup.** Halaman awal yang terasa hidup: sapaan, ringkasan visual status RPJMD, kartu briefing dengan gerak halus, pembaruan terakhir, dan jalan pintas ke pertanyaan yang paling sering diajukan. Syarat: Fondasi Ruang Bupati (briefing, Pantauan, Catatan) sudah live.
+**B1 Dashboard Bupati lebih hidup.** Halaman awal Bupati yang terasa hidup dengan tetap membatasi diri pada percakapan dengan data terkumpul: ringkasan visual status RPJMD, gerak halus, pembaruan terakhir, dan jalan pintas ke pertanyaan yang paling sering diajukan. Syarat: Chat Bupati yang rapi dan presisi sudah live; briefing, Pantauan, dan Catatan tidak termasuk (B7 sampai B9).
 
 ## Fase 1 - Menguatkan Kapuas
 
@@ -29,6 +29,9 @@ Perbandingan antardaerah, dokumen kajian, peringatan dini, dan syarat keamanan s
 
 | Kode | Butir | Tema | Nilai | Usaha | Status |
 |---|---|---|---|---|---|
+| B7 | Briefing harian | Pengalaman Bupati | Tinggi | kecil | Dicabut dari V1 |
+| B8 | Pantauan indikator | Pengalaman Bupati | Sedang | kecil | Dicabut dari V1 |
+| B9 | Catatan Bupati | Pengalaman Bupati | Sedang | kecil | Dicabut dari V1 |
 | B2 | Bahan rapat dari jawaban dan catatan | Pengalaman Bupati | Tinggi | sedang | Usulan |
 | P1 | Perbandingan dengan kabupaten dan kota se-Kalimantan Tengah | Perbandingan antardaerah | Tinggi | sedang | Usulan |
 | P2 | Pembanding provinsi dan nasional | Perbandingan antardaerah | Sedang | kecil | Usulan |
@@ -38,6 +41,12 @@ Perbandingan antardaerah, dokumen kajian, peringatan dini, dan syarat keamanan s
 | K2 | Proyeksi menuju target akhir periode | Rekomendasi strategis | Tinggi | sedang | Usulan |
 | J4 | Keamanan dan keandalan yang dapat dibuktikan | Siap dijual ke pemda | Tinggi | sedang | Perlu keputusan |
 | J7 | Kapuas sebagai rujukan | Siap dijual ke pemda | Tinggi | kecil | Usulan |
+
+**B7 Briefing harian.** Halaman awal chat membuka dengan tiga hal yang layak diketahui hari ini (indikator yang perlu dicermati, indikator belum mencapai target, OPD yang perlu pembinaan), dengan status dibaca dan cincin progres. Syarat: Sudah dibuat dan dicabut dari Versi 1 atas keputusan pemilik (24 Nov 2026); kode ada di riwayat git (PR #121, #122) dan tabel migration 092 dipertahankan. Perlu pemeriksa data janggal (T2) agar nilai nol mendadak tidak disorot.
+
+**B8 Pantauan indikator.** Bupati menandai indikator dari grafik jawaban dan melihat ringkasannya di panel Pantauan. Syarat: Sudah dibuat dan dicabut dari Versi 1 atas keputusan pemilik (24 Nov 2026); kode ada di riwayat git (PR #121, #122) dan tabel migration 092 dipertahankan.
+
+**B9 Catatan Bupati.** Butir tindak lanjut dari jawaban dapat disimpan ke catatan pribadi untuk bahan rapat. Hanya terlihat oleh Bupati dan tidak dikirim ke OPD. Syarat: Sudah dibuat dan dicabut dari Versi 1 atas keputusan pemilik (24 Nov 2026); kode ada di riwayat git (PR #121, #122) dan tabel migration 092 dipertahankan. Berpasangan dengan bahan rapat (B2).
 
 **B2 Bahan rapat dari jawaban dan catatan.** Ekspor jawaban, grafik, sumber, dan Catatan Bupati menjadi PDF atau Word satu halaman untuk rapat OPD atau paparan. Syarat: Pembuat dokumen di server dengan batas ukuran.
 
