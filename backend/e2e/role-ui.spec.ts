@@ -34,11 +34,6 @@ async function mockBupati(page: Page) {
       organizations: [],
     };
     else if (path === "/api/v1/me/menu") body = { data: [{ code: "assistant", label: "Tanya Sababuka", icon: "message-circle", route_name: "/assistant", navigation_disabled: false, display_order: 1, children: [] }] };
-    else if (path === "/api/v1/assistant/briefing") body = { date: "2026-11-24", items: [
-      { key: "perhatian", tone: "warn", title: "Tingkat Kemiskinan perlu dicermati", detail: "5,48 % pada 2025, +1,2% dari tahun sebelumnya.", question: "Bagaimana tren Tingkat Kemiskinan?", read: false },
-      { key: "target", tone: "bad", title: "8 indikator belum mencapai target", detail: "14 tercapai, 46 masih menunggu realisasi.", question: "Indikator apa yang belum mencapai target?", read: false },
-      { key: "opd", tone: "info", title: "3 OPD perlu pembinaan", detail: "Bapperida (skor 6) dan DKPP (skor 7).", question: "Bagaimana kondisi dan perkembangan OPD di Kapuas?", read: false },
-    ] };
     else if (path === "/api/v1/assistant/sessions" && request.method() === "GET") body = { data: [
       { id: sessionId, title: "Perkembangan kemiskinan Kapuas", status: "active", started_at: "2026-11-20T08:00:00.000Z", updated_at: "2026-11-21T03:00:00.000Z", message_count: 2 },
       { id: "6c508554-1990-45f9-8b02-194acbde69e8", title: "Prioritas pembangunan kecamatan", status: "active", started_at: "2026-11-19T08:00:00.000Z", updated_at: "2026-11-19T09:00:00.000Z", message_count: 4 },
@@ -98,9 +93,7 @@ test("Tanya Sababuka nyaman dipakai Bupati pada desktop dan ponsel", async ({ pa
   const errors = monitorBrowser(page);
   await mockBupati(page);
   await page.goto("/assistant");
-  await expect(page.getByRole("heading", { name: /Bapak Bupati./u })).toBeVisible();
-  await expect(page.getByRole("button", { name: /8 indikator belum mencapai target/u })).toBeVisible();
-  await expect(page.getByRole("complementary", { name: "Pantauan Bupati" })).toBeAttached();
+  await expect(page.getByRole("heading", { name: "Apa yang ingin Bapak ketahui?" })).toBeVisible();
   await expect(page.getByRole("complementary", { name: "Riwayat Tanya Sababuka" })).toBeVisible();
   await page.getByRole("button", { name: /Perkembangan kemiskinan Kapuas/u }).click();
   await expect(page.getByText(/Persentase penduduk miskin menurun/u)).toBeVisible();
