@@ -16,10 +16,13 @@ const num = (value: number) => new Intl.NumberFormat("id-ID", { maximumFractionD
 const list = (names: string[]) => names.length > 1 ? `${names.slice(0, -1).join(", ")} dan ${names[names.length - 1]}` : names[0] ?? "";
 
 /** Tiga hal yang layak diketahui Bupati hari ini, dihitung dari data terbit yang sama dengan jawaban asisten. */
+/** Nilai terbaru nol setelah tahun sebelumnya positif lazimnya data belum terisi atau salah ketik, bukan kemunduran nyata; tidak layak jadi sorotan briefing. */
+const suspectZero = (item: Insight) => { const previous = item.series[item.series.length - 2]; return item.latest_value <= 0 && previous !== undefined && previous.value > 0; };
+
 export function buildBriefing(insights: Insight[], achievement: AchievementItem[]): BriefItem[] {
   const items: BriefItem[] = [];
-  const concerning = insights.filter((item) => item.layer === "kinerja" && (item.assessment === "memburuk" || item.analysis.anomaly?.is_anomaly)).sort((a, b) => b.score - a.score)[0]
-    ?? insights.filter((item) => item.assessment === "memburuk" || item.analysis.anomaly?.is_anomaly).sort((a, b) => b.score - a.score)[0];
+  const candidates = insights.filter((item) => !suspectZero(item) && (item.assessment === "memburuk" || item.analysis.anomaly?.is_anomaly));
+  const concerning = candidates.filter((item) => item.layer === "kinerja").sort((a, b) => b.score - a.score)[0] ?? candidates.sort((a, b) => b.score - a.score)[0];
   if (concerning) {
     items.push({ key: "perhatian", tone: "warn", title: plainDash(`${concerning.name} perlu dicermati`), detail: plainDash(`${num(concerning.latest_value)}${concerning.unit ? ` ${concerning.unit}` : ""} pada ${concerning.latest_year}${concerning.change_pct === null ? "" : `, ${formatPct(concerning.change_pct)} dari tahun sebelumnya`}.`), question: `Bagaimana tren ${concerning.name}?` });
   }
