@@ -1007,6 +1007,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/assistant/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Membaca ringkasan kondisi RPJMD untuk sambutan chat
+         * @description Membutuhkan `assistant.use`. Hanya membaca data terbit; tidak menyimpan apa pun.
+         */
+        get: operations["getAssistantOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/assistant/sessions": {
         parameters: {
             query?: never;
@@ -2254,6 +2274,18 @@ export interface components {
             recent: {
                 [key: string]: unknown;
             }[];
+        };
+        AssistantOverview: {
+            /** Format: date */
+            as_of: string | null;
+            bertarget: number;
+            tercapai: number;
+            belum_tercapai: number;
+            belum_ada_realisasi: number;
+            persen_tercapai: number | null;
+            indikator_dianalisis: number;
+            membaik: number;
+            memburuk: number;
         };
         AssistantSession: {
             id: components["schemas"]["Uuid"];
@@ -4036,6 +4068,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OperationsDashboard"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getAssistantOverview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ringkasan capaian dan tren */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssistantOverview"];
                 };
             };
             403: components["responses"]["Forbidden"];

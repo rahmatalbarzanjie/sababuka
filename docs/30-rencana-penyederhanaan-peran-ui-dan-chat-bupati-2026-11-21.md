@@ -736,3 +736,10 @@ Setiap PR wajib memiliki migration impact, test, screenshot untuk UI, rollback, 
 - Ruang Bupati (PR #121 dan #122) dibatalkan atas keputusan pemilik: briefing hari ini, Pantauan, dan Catatan Bupati masuk Versi 2. UI, endpoint, dan layanan dicabut; migration 092 dipertahankan tanpa dipakai.
 - Audit tampilan chat: kolom percakapan terpusat 820 px untuk pesan, saran, dan komposer; komposer sebaris satu baris yang tumbuh otomatis dan tidak lagi menimpa isi; panel percakapan bertinggi tetap dengan hanya aliran pesan yang menggulir; grafik dalam jawaban maksimum 560 px.
 - Jawaban analitis berantai (analisis silang: Kondisi terhadap target, Faktor terkait, Wilayah prioritas, Rekomendasi per OPD, Keterbatasan data) tidak diubah.
+
+### 24 November 2026 - B1 sambutan chat Bupati hidup
+
+- Sambutan: sapaan menurut jam, tanggal, kartu Capaian RPJMD saat ini (angka naik pelan, bilah tiga segmen, tanggal pembaruan data), jalan pintas tercapai, belum tercapai, menunggu realisasi, membaik, memburuk yang mengetuk menjadi pertanyaan, dan contoh pertanyaan dua kolom.
+- Endpoint baca-saja `GET /assistant/overview` (izin `assistant.use`). Teks proses saat menunggu jawaban bergeser tiap beberapa detik; pesan terbaru masuk dengan gerak halus.
+- Perbaikan: sambutan tidak lagi tergulir ke dasar saat dibuka; di ponsel teks pengantar disembunyikan agar kartu dan contoh terlihat tanpa menggulir banyak.
+- Tidak termasuk: status dibaca, Pantauan, Catatan, ringkasan terjadwal (Versi 2).
