@@ -4,6 +4,7 @@ import { api, jsonBody } from "../api";
 import { SababukaAssistantMark, type SababukaAssistantState } from "../branding/SababukaBrand";
 import { DistrictBars, TrendChart } from "../components/InsightVisuals";
 import { Notice, Spinner, formatDate } from "../components";
+import { ChatWelcome } from "../components/ChatWelcome";
 import { RichText } from "../components/RichText";
 import { num } from "../insight";
 import { plain } from "../text";
@@ -15,7 +16,7 @@ interface Answer { message_id: string; answer: string; citations: Citation[]; su
 interface ChatMessage { id: string; role: "user" | "assistant"; content: string; created_at?: string; answer?: Answer }
 interface SessionDetail extends Session { messages: ChatMessage[] }
 
-const EXAMPLES = ["Apa yang perlu saya perhatikan hari ini?", "Bagaimana kondisi dan perkembangan OPD di Kapuas?", "Bagaimana tren kemiskinan di Kapuas?", "Kecamatan mana yang paling rendah angka melek hurufnya?"];
+const THINKING = ["Memeriksa angka dan tren indikator...", "Membandingkan dengan target dan OPD terkait...", "Menyusun jawaban dan sumber data..."];
 const DRAFT_KEY = "sababuka.assistant.draft";
 
 export function AssistantPage() {
@@ -33,6 +34,7 @@ export function AssistantPage() {
   const [renaming, setRenaming] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
   const stream = useRef<HTMLDivElement>(null);
+  const [thinkingStep, setThinkingStep] = useState(0);
   const composer = useRef<HTMLTextAreaElement>(null);
 
   const loadSessions = async (archived = showArchived) => {
@@ -53,7 +55,8 @@ export function AssistantPage() {
   }, [message]);
   useEffect(() => {
     const chatStream = stream.current;
-    if (chatStream) chatStream.scrollTo({ top: chatStream.scrollHeight, behavior: "smooth" });
+    // Sambutan selalu dibuka dari atas; hanya percakapan yang digulir ke pesan terbaru.
+    if (chatStream) chatStream.scrollTo({ top: messages.length ? chatStream.scrollHeight : 0, behavior: "smooth" });
   }, [messages.length]);
 
   useEffect(() => {
@@ -63,6 +66,12 @@ export function AssistantPage() {
     field.style.height = "auto";
     if (message) field.style.height = Math.min(field.scrollHeight, 132) + "px";
   }, [message]);
+  useEffect(() => {
+    // Teks proses bergeser tiap beberapa detik agar jawaban yang lama terasa berjalan.
+    if (!busy) { setThinkingStep(0); return; }
+    const timer = window.setInterval(() => setThinkingStep((step) => Math.min(step + 1, THINKING.length - 1)), 2600);
+    return () => window.clearInterval(timer);
+  }, [busy]);
   const openSession = async (item: Session) => {
     setLoadingChat(true); setError(""); setFailedRequest(null);
     try {
@@ -126,13 +135,13 @@ export function AssistantPage() {
       </header>
 
       <div className="chat-stream" ref={stream} aria-live="polite">
-        {loadingChat ? <div className="assistant-chat-loading"><Spinner /><span>Memuat percakapan...</span></div> : !messages.length && <div className="assistant-welcome"><SababukaAssistantMark className="assistant-welcome-mark" state="neutral" /><h2>Apa yang ingin Bapak ketahui?</h2><p>Tanyakan kondisi daerah, tren indikator, perkembangan OPD, perbandingan kecamatan, atau rekomendasi tindak lanjut.</p><div className="assistant-suggestions">{EXAMPLES.map((example) => <button key={example} type="button" onClick={() => void ask(example)}>{example}</button>)}</div></div>}
+        {loadingChat ? <div className="assistant-chat-loading"><Spinner /><span>Memuat percakapan...</span></div> : !messages.length && <ChatWelcome onAsk={(question) => void ask(question)} />}
         {messages.map((item, index) => <article key={item.id} className={`chat-message ${item.role}`} data-newest={index === messages.length - 1 ? "" : undefined}><span>{item.role === "assistant" ? <SababukaAssistantMark state={assistantState(item.answer)} /> : <UserRound />}</span><div>
           {item.role === "assistant" ? <RichText text={item.content} /> : <p className="chat-text">{item.content}</p>}
           {!!item.answer?.visuals?.length && <div className="chat-visuals">{item.answer.visuals.map((visual, position) => <VisualBlock key={`${item.id}-${position}`} visual={visual} />)}</div>}
           {item.answer && <><BadgeSufficiency value={item.answer.sufficiency} />{item.answer.citations.length > 0 && <details className="citation-list"><summary>Sumber data ({item.answer.citations.length})</summary>{item.answer.citations.map((citation, position) => <div key={`${citation.publication_item_id}-${position}`}><strong>{plain(citation.label)}</strong><small>{plain([citation.organization, citation.source].filter(Boolean).join(" · "))}</small>{citation.source_url && <span className="citation-links"><a href={citation.source_url} target="_blank" rel="noopener noreferrer">Buka sumber asli</a></span>}</div>)}</details>}</>}
         </div></article>)}
-        {busy && <div className="assistant-thinking"><SababukaAssistantMark state="searching" /><span><strong>SABABUKA sedang menganalisis</strong><small>Memeriksa angka, tren, dan sumber data...</small></span></div>}
+        {busy && <div className="assistant-thinking"><SababukaAssistantMark state="searching" /><span><strong>SABABUKA sedang menganalisis</strong><small>{THINKING[thinkingStep]}</small></span></div>}
       </div>
 
       {last?.suggestions && last.suggestions.length > 0 && !busy && <div className="assistant-suggestions follow-up">{last.suggestions.map((suggestion) => <button key={suggestion} type="button" onClick={() => void ask(suggestion)}>{suggestion}</button>)}</div>}

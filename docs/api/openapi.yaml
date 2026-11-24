@@ -1228,6 +1228,19 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/OperationsDashboard"}
         "403": {$ref: "#/components/responses/Forbidden"}
+  /assistant/overview:
+    get:
+      tags: [Assistant]
+      operationId: getAssistantOverview
+      summary: Membaca ringkasan kondisi RPJMD untuk sambutan chat
+      description: Membutuhkan `assistant.use`. Hanya membaca data terbit; tidak menyimpan apa pun.
+      responses:
+        "200":
+          description: Ringkasan capaian dan tren
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/AssistantOverview"}
+        "403": {$ref: "#/components/responses/Forbidden"}
   /assistant/sessions:
     get:
       tags: [Assistant]
@@ -2881,6 +2894,19 @@ components:
         recent:
           type: array
           items: {type: object, additionalProperties: true}
+    AssistantOverview:
+      type: object
+      required: [as_of, bertarget, tercapai, belum_tercapai, belum_ada_realisasi, persen_tercapai, indikator_dianalisis, membaik, memburuk]
+      properties:
+        as_of: {type: [string, "null"], format: date}
+        bertarget: {type: integer}
+        tercapai: {type: integer}
+        belum_tercapai: {type: integer}
+        belum_ada_realisasi: {type: integer}
+        persen_tercapai: {type: [integer, "null"]}
+        indikator_dianalisis: {type: integer}
+        membaik: {type: integer}
+        memburuk: {type: integer}
     AssistantSession:
       type: object
       required: [id, status, started_at]

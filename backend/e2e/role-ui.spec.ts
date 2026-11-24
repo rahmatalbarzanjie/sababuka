@@ -34,6 +34,7 @@ async function mockBupati(page: Page) {
       organizations: [],
     };
     else if (path === "/api/v1/me/menu") body = { data: [{ code: "assistant", label: "Tanya Sababuka", icon: "message-circle", route_name: "/assistant", navigation_disabled: false, display_order: 1, children: [] }] };
+    else if (path === "/api/v1/assistant/overview") body = { as_of: "2026-11-24", bertarget: 70, tercapai: 17, belum_tercapai: 16, belum_ada_realisasi: 37, persen_tercapai: 52, indikator_dianalisis: 33, membaik: 9, memburuk: 5 };
     else if (path === "/api/v1/assistant/sessions" && request.method() === "GET") body = { data: [
       { id: sessionId, title: "Perkembangan kemiskinan Kapuas", status: "active", started_at: "2026-11-20T08:00:00.000Z", updated_at: "2026-11-21T03:00:00.000Z", message_count: 2 },
       { id: "6c508554-1990-45f9-8b02-194acbde69e8", title: "Prioritas pembangunan kecamatan", status: "active", started_at: "2026-11-19T08:00:00.000Z", updated_at: "2026-11-19T09:00:00.000Z", message_count: 4 },
@@ -93,7 +94,9 @@ test("Tanya Sababuka nyaman dipakai Bupati pada desktop dan ponsel", async ({ pa
   const errors = monitorBrowser(page);
   await mockBupati(page);
   await page.goto("/assistant");
-  await expect(page.getByRole("heading", { name: "Apa yang ingin Bapak ketahui?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Bapak Bupati./u })).toBeVisible();
+  await expect(page.getByLabel("Kondisi capaian RPJMD saat ini")).toContainText("indikator yang sudah terealisasi mencapai target");
+  await expect(page.getByRole("button", { name: /belum tercapai/u })).toBeVisible();
   await expect(page.getByRole("complementary", { name: "Riwayat Tanya Sababuka" })).toBeVisible();
   await page.getByRole("button", { name: /Perkembangan kemiskinan Kapuas/u }).click();
   await expect(page.getByText(/Persentase penduduk miskin menurun/u)).toBeVisible();

@@ -145,3 +145,38 @@
 .workspace.portal .assistant-conversation .assistant-welcome .assistant-suggestions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; max-width: 700px; margin: 0 auto; }
 .workspace.portal .assistant-conversation .assistant-welcome .assistant-suggestions button { max-width: none; width: 100%; min-height: 56px; border-radius: 16px; padding: 10px 16px; }
 @media (max-width: 640px) { .workspace.portal .assistant-conversation .assistant-welcome .assistant-suggestions { grid-template-columns: minmax(0, 1fr); } }
+
+/* Sambutan hidup (B1): sapaan, ringkasan capaian RPJMD yang dapat diketuk menjadi pertanyaan, dan masuk bertahap. Tanpa status baca atau penyimpanan. */
+.welcome-live { --snap-good: #14794a; --snap-bad: #b83227; --snap-none: #8a99ad; display: grid; justify-items: center; gap: 0; text-align: center; }
+html[data-theme="dark"] .welcome-live { --snap-good: #52c98a; --snap-bad: #ff8d82; --snap-none: #6f819a; }
+.welcome-live > * { animation: welcome-rise .5s cubic-bezier(.2, .7, .2, 1) both; animation-delay: calc(var(--i, 0) * 70ms); }
+.welcome-eyebrow { margin: 0 0 6px; color: var(--ui-muted); font-size: 12.5px; letter-spacing: .04em; }
+.workspace.portal .assistant-conversation .welcome-live h2 { margin: 0 0 8px; }
+.workspace.portal .assistant-conversation .welcome-live .welcome-sub { max-width: 52ch; margin: 0 auto 22px; }
+.welcome-snapshot { width: min(100%, 700px); display: grid; gap: 12px; padding: 18px 20px 16px; margin-bottom: 20px; border: 1px solid var(--ui-border); border-radius: 18px; background: var(--ui-surface); text-align: left; box-shadow: 0 1px 2px rgba(10, 34, 65, .05), 0 8px 24px rgba(10, 34, 65, .05); }
+.welcome-snapshot > header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.welcome-snapshot > header strong { font-size: 13px; font-weight: 600; letter-spacing: .02em; }
+.welcome-snapshot > header small { color: var(--ui-muted); font-size: 12px; }
+.snap-lead { margin: 0; font-size: 17px; line-height: 1.5; font-weight: 500; color: var(--ui-text); }
+.snap-lead b { font-size: 28px; font-weight: 700; margin-right: 2px; }
+.snap-bar { display: flex; height: 12px; border-radius: 999px; overflow: hidden; background: var(--ui-surface-subtle); gap: 2px; }
+.snap-bar span { display: block; height: 100%; transform-origin: left; animation: snap-grow .9s cubic-bezier(.2, .7, .2, 1) .35s both; }
+.snap-bar .good, .snap-legend i.good { background: var(--snap-good); }
+.snap-bar .bad, .snap-legend i.bad { background: var(--snap-bad); }
+.snap-bar .none, .snap-legend i.none { background: var(--snap-none); }
+.snap-legend, .snap-trend { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.snap-legend button, .snap-trend button { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 4px 12px; border: 1px solid var(--ui-border); border-radius: 999px; background: var(--ui-surface); color: var(--ui-text); font: inherit; font-size: 13px; cursor: pointer; transition: border-color .15s ease, background .15s ease, transform .15s ease; }
+.snap-legend button:hover, .snap-trend button:hover { border-color: var(--ui-accent); background: var(--ui-active); transform: translateY(-1px); }
+.snap-legend i { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+.snap-legend b { font-weight: 700; }
+.snap-trend { padding-top: 10px; border-top: 1px solid var(--ui-rule); color: var(--ui-muted); font-size: 12.5px; }
+.welcome-snapshot.loading { gap: 12px; min-height: 168px; }
+.welcome-snapshot.loading span { display: block; border-radius: 8px; background: linear-gradient(90deg, var(--ui-surface-subtle), var(--ui-rule), var(--ui-surface-subtle)); background-size: 200% 100%; animation: snap-shimmer 1.4s linear infinite; }
+.welcome-snapshot.loading span:nth-child(1) { height: 18px; width: 40%; } .welcome-snapshot.loading span:nth-child(2) { height: 30px; width: 85%; } .welcome-snapshot.loading span:nth-child(3) { height: 12px; }
+.workspace.portal .assistant-conversation .chat-message[data-newest] { animation: welcome-rise .4s cubic-bezier(.2, .7, .2, 1) both; }
+@keyframes welcome-rise { from { opacity: 0; transform: translateY(10px); } }
+@keyframes snap-grow { from { transform: scaleX(0); } }
+@keyframes snap-shimmer { to { background-position: -200% 0; } }
+@media (max-width: 640px) { .welcome-snapshot { padding: 16px 14px 14px; } .snap-lead { font-size: 15.5px; } .snap-lead b { font-size: 24px; } .snap-legend button, .snap-trend button { flex: 1 1 auto; justify-content: center; } }
+@media (prefers-reduced-motion: reduce) { .welcome-live > *, .snap-bar span, .chat-message[data-newest], .welcome-snapshot.loading span { animation: none !important; } .snap-legend button:hover, .snap-trend button:hover { transform: none; } }
+@media (max-width: 640px) { .welcome-live .welcome-eyebrow, .workspace.portal .assistant-conversation .welcome-live .welcome-sub { display: none; } .workspace.portal .assistant-conversation .welcome-live h2 { margin-bottom: 16px; } .workspace.portal .assistant-conversation .assistant-welcome.welcome-live { padding-top: 12px; } }
