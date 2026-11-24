@@ -6,6 +6,8 @@ Panduan ini berlaku untuk seluruh repository dan harus dibaca oleh Codex atau ag
 
 Sebelum melanjutkan perbaikan hasil audit November 2026, baca `docs/29-rencana-penyelesaian-kesenjangan-2026-11-21.md` dan `docs/30-rencana-penyederhanaan-peran-ui-dan-chat-bupati-2026-11-21.md`. Dokumen 30 menjadi sumber utama untuk perubahan role, Bank Data BPS, Dashboard Analisis BAPPERIDA, dan chat Bupati. Jangan mengubah kode untuk fase berikutnya sebelum kriteria fase aktif terpenuhi dan status dokumen diperbarui.
 
+Daftar usulan pengembangan Versi 2 (perbandingan antardaerah, sumber kementerian, integrasi mesin ke mesin dengan sistem OPD, dokumen kajian, kesiapan dijual ke pemda) ada di `docs/31-peta-jalan-versi-2-2026-11-24.md`. Daftar itu usulan; jangan mengerjakan butir bertanda perlu keputusan sebelum pemilik memutuskan, dan Versi 1 tetap dibatasi pada percakapan Bupati dengan data yang sudah terkumpul.
+
 ## Tentang proyek
 
 **SABABUKA BERSINAR** adalah sistem analisis data Kabupaten Kapuas untuk tata kelola indikator RPJMD, pelaporan OPD, verifikasi dan Dashboard Analisis BAPPERIDA, pembinaan statistik BPS, publikasi, serta Tanya Sababuka untuk Bupati.
