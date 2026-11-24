@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { publicSourceUrl } from "../services/public-source-url.js";
 import type { QueryResultRow } from "pg";
 import { requireCsrf, requirePermission } from "../plugins/authentication.js";
 import { requestAuditContext } from "../request-context.js";
@@ -159,7 +160,7 @@ export async function executiveRoutes(app: FastifyInstance): Promise<void> {
       };
       current.points.push({ observation_id: row.observation_id, period_id: row.period_id, period_label: row.period_label,
         period_end: row.period_end, value: numeric(row.numeric_value), target: numeric(row.target_value),
-        source_name: row.source_name, source_url: row.source_url, organization_name: row.organization_name,
+        source_name: row.source_name, source_url: publicSourceUrl(row.source_url), organization_name: row.organization_name,
         publication_title: row.publication_title, effective_at: row.effective_at });
       seriesMap.set(key, current);
     }
@@ -186,7 +187,7 @@ export async function executiveRoutes(app: FastifyInstance): Promise<void> {
         period_label: sample.period_label, geography_name: sample.geography_name ?? "Kabupaten Kapuas",
         status: "needs_reconciliation", sources: rows.map((row) => ({ source_name: row.source_name,
           organization_name: row.organization_name, value: numeric(row.numeric_value), text_value: row.text_value,
-          source_url: row.source_url, publication_title: row.publication_title, quality_note: row.notes })) }];
+          source_url: publicSourceUrl(row.source_url), publication_title: row.publication_title, quality_note: row.notes })) }];
     });
 
     const recommendations: Array<{ severity: "high" | "medium" | "info"; indicator_id: string; title: string; evidence: string; meaning: string; action: string }> = [];

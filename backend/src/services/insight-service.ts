@@ -1,4 +1,5 @@
 import type { Database, QueryResultRow } from "../database.js";
+import { publicSourceUrl } from "./public-source-url.js";
 import { inferDirection } from "./direction-inference.js";
 import { plainDash } from "./plain-text.js";
 import { analyzeDistricts, analyzeSeries, buildNarrative, type DistrictAnalysis, type Direction, type SeriesAnalysis, type SeriesPoint } from "./trend-engine.js";
@@ -139,7 +140,7 @@ export class InsightService {
         ? { headline: "Data belum cukup untuk tren", detail: `Baru ada ${analysis.years} tahun data (terbaru ${analysis.latest_year}). Tren dan penilaian memerlukan minimal 3 tahun data.`, recommendation: "Lengkapi data tahun-tahun sebelumnya agar tren dapat dinilai." }
         : buildNarrative({ name: plainDash(first.name), unit, analysis, districts, opds, direction });
       insights.push({
-        layer: first.origin_type === "bank_data" ? "konteks" : "kinerja", links: [], limited, source_url: [...items].reverse().find((entry) => entry.source_url?.toLowerCase().startsWith("http"))?.source_url ?? null,
+        layer: first.origin_type === "bank_data" ? "konteks" : "kinerja", links: [], limited, source_url: publicSourceUrl([...items].reverse().find((entry) => entry.source_url?.toLowerCase().startsWith("http"))?.source_url ?? null),
         indicator_id: indicatorId, code: first.code, name: plainDash(first.name), category: plainDash(first.category_name), source_kind: sourceKind(first.origin_type, first.code),
         unit, latest_year: analysis.latest_year, latest_value: analysis.latest_value, change_pct: analysis.change_pct, trend: analysis.trend,
         assessment: analysis.assessment, score: analysis.score, ...narrative, opds, direction_inferred: !first.direction && direction !== null, source_label: plainDash(items.find((entry) => entry.source_name)?.source_name ?? "") || (sourceKind(first.origin_type, first.code) === "rpjmd" ? "RPJMD Kabupaten Kapuas" : "Sumber resmi"),
