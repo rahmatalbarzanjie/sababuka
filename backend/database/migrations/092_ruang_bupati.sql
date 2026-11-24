@@ -1,3 +1,4 @@
+-- Fitur Ruang Bupati dibatalkan dari Versi 1 (keputusan pemilik, 24 Nov 2026) dan dipindah ke Versi 2. Tabel ini sudah diterapkan di produksi dan dipertahankan tanpa dipakai aplikasi, seperti submission_evidence.
 -- Ruang Bupati (permintaan pemilik, 24 Nov 2026): briefing harian, indikator pantauan, dan catatan pribadi Bupati.
 -- Semua data milik pengguna dan hanya dibaca pemiliknya; tidak dikirim ke OPD.
 BEGIN;

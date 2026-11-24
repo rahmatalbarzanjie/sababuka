@@ -731,9 +731,8 @@ Setiap PR wajib memiliki migration impact, test, screenshot untuk UI, rollback, 
 - Tampilan Bupati diperiksa di desktop, tablet, dan ponsel (tanpa overflow dan galat JS); judul sambutan memakai warna teks utama dan contoh pertanyaan menambah kondisi OPD.
 - Ditunda: ukuran ketepatan waktu pelaporan dan jumlah pengembalian karena belum ada tenggat pelaporan di sistem dan data impor tidak mencerminkan waktu kirim nyata.
 
-### 24 November 2026 - Ruang Bupati
+### 24 November 2026 - Pembatalan Ruang Bupati dan perapian chat
 
-- Prototipe disetujui pemilik, lalu diterapkan: briefing harian, panel Pantauan (indikator pantauan, Catatan Bupati), tombol Pantau pada grafik, butir tindak lanjut yang dapat disimpan, langkah proses analisis, pintasan `/`, dan kartu jawaban yang dirapikan.
-- Migration 092: `assistant_briefing_reads`, `assistant_pins`, `assistant_notes` (semua per pengguna). Endpoint baru ada di OpenAPI dan tipe frontend.
-- Tidak ditambah: konfirmasi atau tanggapan OPD, pelacakan arahan ke OPD, input suara, ekspor PDF. Semuanya butuh keputusan baru.
-- Uji: unit backend dan frontend, e2e Playwright dengan mock, uji tangan dengan database lokal di tiga ukuran layar.
+- Ruang Bupati (PR #121 dan #122) dibatalkan atas keputusan pemilik: briefing hari ini, Pantauan, dan Catatan Bupati masuk Versi 2. UI, endpoint, dan layanan dicabut; migration 092 dipertahankan tanpa dipakai.
+- Audit tampilan chat: kolom percakapan terpusat 820 px untuk pesan, saran, dan komposer; komposer sebaris satu baris yang tumbuh otomatis dan tidak lagi menimpa isi; panel percakapan bertinggi tetap dengan hanya aliran pesan yang menggulir; grafik dalam jawaban maksimum 560 px.
+- Jawaban analitis berantai (analisis silang: Kondisi terhadap target, Faktor terkait, Wilayah prioritas, Rekomendasi per OPD, Keterbatasan data) tidak diubah.
