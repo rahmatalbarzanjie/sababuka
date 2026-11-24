@@ -1,4 +1,5 @@
 import type { Database, QueryResultRow } from "../database.js";
+import { publicSourceUrl } from "./public-source-url.js";
 import { ApiError } from "../errors.js";
 import type { AuthContext } from "../types/auth.js";
 import { recordAudit, type AuditContext } from "./audit-service.js";
@@ -65,7 +66,7 @@ export class ConsolidationService {
     const byId = new Map(observations.rows.map((row) => [row.id as string, row]));
     const data = conflicts.rows.map(({ observation_ids, ...row }) => ({
       ...row,
-      observations: (observation_ids as string[]).map((id) => byId.get(id)).filter(Boolean),
+      observations: (observation_ids as string[]).map((id) => byId.get(id)).filter((row): row is NonNullable<typeof row> => Boolean(row)).map((row) => ({ ...row, source_url: publicSourceUrl(row.source_url as string | null) })),
     }));
     const counts = await this.db.query<{ status: string; total: string }>(
       `SELECT c.status, count(*)::text AS total
