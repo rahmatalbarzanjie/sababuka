@@ -59,7 +59,7 @@ const brief = (insight: Insight) => ({
 export interface AgentRun { answer: string; visuals: Visual[]; sources: AssistantReply["sources"]; toolsUsed: string[]; model: string }
 
 /** Alasan agen tidak menghasilkan jawaban; dicatat di audit agar kegagalan ke mesin aturan dapat ditelusuri. */
-export type AgentFailure = "llm_tidak_tersedia" | "jawaban_kosong" | "angka_tidak_terverifikasi" | "langkah_habis";
+export type AgentFailure = "llm_tidak_tersedia" | "jawaban_terpotong" | "jawaban_kosong" | "angka_tidak_terverifikasi" | "langkah_habis";
 
 export class AgentService {
   failure: AgentFailure | null = null;
@@ -183,7 +183,7 @@ export class AgentService {
     const visuals: Visual[] = []; const focus: Insight[] = []; const toolsUsed: string[] = [];
     let corrected = false;
     for (let step = 0; step < 7; step += 1) {
-      const reply = await llm.converse(AGENT_SYSTEM_PROMPT, messages, AGENT_TOOLS, 900);
+      const reply = await llm.converse(AGENT_SYSTEM_PROMPT, messages, AGENT_TOOLS, 4000);
       if (reply.stop_reason === "tool_use") {
         const calls = reply.content.filter((block) => block.type === "tool_use");
         messages.push({ role: "assistant", content: reply.content });
@@ -199,6 +199,7 @@ export class AgentService {
         messages.push({ role: "user", content: results });
         continue;
       }
+      if (reply.stop_reason === "max_tokens") { this.failure = "jawaban_terpotong"; return null; }
       const answer = reply.content.filter((block) => block.type === "text").map((block) => String(block.text ?? "")).join("").trim();
       if (!answer) { this.failure = "jawaban_kosong"; return null; }
       const bad = ungroundedNumbers(answer, evidence.join(" "));
