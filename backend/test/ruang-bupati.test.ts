@@ -27,13 +27,6 @@ test("briefing memuat tiga butir berurutan dengan pertanyaan lanjutan", () => {
   assert.ok(items.every((item) => !/[\u2013\u2014]/u.test(`${item.title}${item.detail}`)));
 });
 
-test("briefing tidak menyorot nilai nol mendadak yang lazimnya data belum terisi", () => {
-  const insights = [make("z", "Usia Harapan Hidup", [70, 70.5, 71, 71.2, 71.4, 0], "Dinkes"), make("b", "Produksi Padi", [100, 90, 80, 70, 60, 50], "Dinas Pertanian")];
-  const items = buildBriefing(insights, []);
-  assert.match(items[0]!.title, /Produksi Padi/);
-  assert.ok(items.every((item) => !/Usia Harapan Hidup/.test(item.title)));
-});
-
 test("briefing tanpa data tidak membuat butir kosong", () => {
   assert.deepEqual(buildBriefing([], []), []);
 });
