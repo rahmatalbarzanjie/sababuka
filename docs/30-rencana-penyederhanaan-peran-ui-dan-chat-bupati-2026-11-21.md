@@ -730,3 +730,9 @@ Setiap PR wajib memiliki migration impact, test, screenshot untuk UI, rollback, 
 - Migration 091 menghapus seluruh riwayat chat lama (permintaan pemilik); jumlah baris tercatat di audit `assistant.history_cleared`. Uji pada salinan lokal: 50 sesi dan 214 pesan terhapus.
 - Tampilan Bupati diperiksa di desktop, tablet, dan ponsel (tanpa overflow dan galat JS); judul sambutan memakai warna teks utama dan contoh pertanyaan menambah kondisi OPD.
 - Ditunda: ukuran ketepatan waktu pelaporan dan jumlah pengembalian karena belum ada tenggat pelaporan di sistem dan data impor tidak mencerminkan waktu kirim nyata.
+
+### 24 November 2026 - Pembatalan Ruang Bupati dan perapian chat
+
+- Ruang Bupati (PR #121 dan #122) dibatalkan atas keputusan pemilik: briefing hari ini, Pantauan, dan Catatan Bupati masuk Versi 2. UI, endpoint, dan layanan dicabut; migration 092 dipertahankan tanpa dipakai.
+- Audit tampilan chat: kolom percakapan terpusat 820 px untuk pesan, saran, dan komposer; komposer sebaris satu baris yang tumbuh otomatis dan tidak lagi menimpa isi; panel percakapan bertinggi tetap dengan hanya aliran pesan yang menggulir; grafik dalam jawaban maksimum 560 px.
+- Jawaban analitis berantai (analisis silang: Kondisi terhadap target, Faktor terkait, Wilayah prioritas, Rekomendasi per OPD, Keterbatasan data) tidak diubah.

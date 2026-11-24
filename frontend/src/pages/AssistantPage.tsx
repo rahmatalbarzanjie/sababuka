@@ -33,6 +33,7 @@ export function AssistantPage() {
   const [renaming, setRenaming] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
   const stream = useRef<HTMLDivElement>(null);
+  const composer = useRef<HTMLTextAreaElement>(null);
 
   const loadSessions = async (archived = showArchived) => {
     setLoadingSessions(true);
@@ -55,6 +56,13 @@ export function AssistantPage() {
     if (chatStream) chatStream.scrollTo({ top: chatStream.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
 
+  useEffect(() => {
+    // Tinggi komposer mengikuti isi (satu baris dulu, maksimal sekitar lima baris) agar tombol Kirim selalu sejajar.
+    const field = composer.current;
+    if (!field) return;
+    field.style.height = "auto";
+    if (message) field.style.height = Math.min(field.scrollHeight, 132) + "px";
+  }, [message]);
   const openSession = async (item: Session) => {
     setLoadingChat(true); setError(""); setFailedRequest(null);
     try {
@@ -129,7 +137,7 @@ export function AssistantPage() {
 
       {last?.suggestions && last.suggestions.length > 0 && !busy && <div className="assistant-suggestions follow-up">{last.suggestions.map((suggestion) => <button key={suggestion} type="button" onClick={() => void ask(suggestion)}>{suggestion}</button>)}</div>}
       {error && <div className="assistant-error"><Notice tone="error">{error}</Notice>{failedRequest && <button type="button" className="button secondary" disabled={busy} onClick={() => void ask(failedRequest.question, failedRequest.clientId, false)}>Coba kirim lagi</button>}</div>}
-      <form className="chat-composer" onSubmit={submit}><textarea aria-label="Pertanyaan untuk Sababuka" rows={2} data-field="message" value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); submit(event as unknown as FormEvent); } }} placeholder="Tanyakan kondisi, indikator, atau kecamatan..." disabled={session?.status === "archived"} /><button className="button primary" disabled={busy || !message.trim() || session?.status === "archived"} aria-label="Kirim pertanyaan"><Send />{busy ? "Menganalisis..." : "Kirim"}</button></form>
+      <form className="chat-composer" onSubmit={submit}><textarea ref={composer} aria-label="Pertanyaan untuk Sababuka" rows={1} data-field="message" value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); submit(event as unknown as FormEvent); } }} placeholder="Tanyakan tentang Kapuas..." disabled={session?.status === "archived"} /><button className="button primary" disabled={busy || !message.trim() || session?.status === "archived"} aria-label="Kirim pertanyaan"><Send />{busy ? "Menganalisis..." : "Kirim"}</button></form>
       {session?.status === "archived" && <small className="assistant-archived-note">Pulihkan chat ini untuk melanjutkan percakapan.</small>}
     </section>
   </div>;

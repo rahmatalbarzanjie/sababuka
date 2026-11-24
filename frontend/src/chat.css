@@ -106,3 +106,42 @@
 
 /* Sambutan: judul memakai warna teks utama agar terbaca sebagai pertanyaan pembuka, bukan teks sekunder. */
 .assistant-conversation .assistant-welcome h2 { margin: 0 0 8px; color: var(--ink); font-size: clamp(22px, 4.5vw, 28px); line-height: 1.25; }
+
+/* Penataan akhir percakapan (audit 24 Nov 2026): satu kolom terpusat selebar 820 px untuk pesan, saran, dan komposer; komposer sebaris dan tidak menimpa isi. */
+.workspace.portal .assistant-conversation { --col: 820px; --gutter: max(16px, calc((100% - var(--col)) / 2)); }
+.workspace.portal .assistant-conversation .chat-stream { padding: 24px var(--gutter) 16px; gap: 18px; align-content: start; overflow-y: auto; }
+.workspace.portal .assistant-conversation .chat-message { width: 100%; max-width: 100%; gap: 12px; }
+.workspace.portal .assistant-conversation .chat-message.user { width: auto; max-width: min(82%, 640px); }
+.workspace.portal .assistant-conversation .chat-message.assistant > div { padding: 20px 24px; border-radius: 18px; }
+.workspace.portal .assistant-conversation .chat-message.user > div { padding: 11px 18px; border-radius: 20px 20px 6px 20px; }
+.workspace.portal .assistant-conversation .chat-message > span { width: 32px; height: 32px; flex: 0 0 32px; margin-top: 2px; }
+.workspace.portal .assistant-conversation > .assistant-suggestions.follow-up { margin: 0; padding: 4px var(--gutter) 10px; justify-content: flex-start; }
+.workspace.portal .assistant-conversation .chat-composer { position: static; display: flex; align-items: center; gap: 8px; margin: 0 var(--gutter) max(14px, env(safe-area-inset-bottom, 0px)); padding: 6px 6px 6px 20px; min-height: 58px; border: 1px solid var(--ui-control); border-radius: 29px; background: var(--ui-surface); box-shadow: 0 6px 20px rgba(0, 54, 90, .08); }
+.workspace.portal .assistant-conversation .chat-composer:focus-within { border-color: var(--ui-accent); box-shadow: 0 6px 20px rgba(0, 54, 90, .08), 0 0 0 3px color-mix(in srgb, var(--ui-accent) 18%, transparent); }
+.workspace.portal .assistant-conversation .chat-composer textarea { flex: 1; min-width: 0; min-height: 44px; max-height: 132px; padding: 11px 0; line-height: 22px; border: 0; border-radius: 0; background: transparent; resize: none; overflow-y: auto; }
+.workspace.portal .assistant-conversation .chat-composer .button { flex: none; min-height: 44px; padding: 0 20px; border-radius: 999px; }
+.workspace.portal .assistant-conversation .assistant-error, .workspace.portal .assistant-conversation .assistant-archived-note { padding-inline: var(--gutter); }
+.workspace.portal .assistant-conversation .assistant-welcome { max-width: var(--col); margin: 0 auto; padding: clamp(28px, 9vh, 88px) 0 24px; }
+.workspace.portal .assistant-conversation .assistant-welcome p { max-width: 54ch; margin: 0 auto 18px; }
+.workspace.portal .assistant-conversation .assistant-suggestions button { max-width: 340px; text-align: left; }
+@media (max-width: 860px) {
+  .workspace.portal .assistant-conversation { --gutter: 14px; }
+  .workspace.portal .assistant-conversation .chat-stream { padding-top: 18px; }
+  .workspace.portal .assistant-conversation .chat-message.user { max-width: 90%; }
+  .workspace.portal .assistant-conversation .chat-message.assistant > div { padding: 16px; }
+  .workspace.portal .assistant-conversation .chat-message > span { display: none; }
+  .workspace.portal .assistant-conversation > .assistant-suggestions.follow-up { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 8px; }
+  .workspace.portal .assistant-conversation > .assistant-suggestions.follow-up button { flex: none; max-width: 78vw; }
+  .workspace.portal .assistant-conversation .chat-composer { margin: 0 12px max(12px, env(safe-area-inset-bottom, 0px)); padding-left: 16px; }
+  .workspace.portal .assistant-conversation .chat-composer .button { width: 44px; padding: 0; font-size: 0; gap: 0; justify-content: center; }
+}
+/* Tinggi tetap: panel percakapan mengisi tinggi tata letak dan hanya aliran pesan yang menggulir; komposer selalu terlihat di dasar. */
+.workspace.portal .assistant-chat-layout { grid-template-rows: minmax(0, 1fr); }
+.workspace.portal .assistant-chat-layout > .assistant-conversation { min-height: 0; height: 100%; overflow: hidden; }
+.workspace.portal .assistant-conversation .chat-composer { flex-direction: row; align-items: center; }
+/* Grafik dan tabel dalam jawaban: lebar maksimum 560 px agar proporsional di layar lebar dan tetap penuh di ponsel. */
+.workspace.portal .assistant-conversation .chat-visuals { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 560px)); }
+/* Contoh pertanyaan pada sambutan: dua kolom sama lebar agar rapi; satu kolom di ponsel. */
+.workspace.portal .assistant-conversation .assistant-welcome .assistant-suggestions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; max-width: 700px; margin: 0 auto; }
+.workspace.portal .assistant-conversation .assistant-welcome .assistant-suggestions button { max-width: none; width: 100%; min-height: 56px; border-radius: 16px; padding: 10px 16px; }
+@media (max-width: 640px) { .workspace.portal .assistant-conversation .assistant-welcome .assistant-suggestions { grid-template-columns: minmax(0, 1fr); } }
