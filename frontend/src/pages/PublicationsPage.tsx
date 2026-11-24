@@ -5,13 +5,14 @@ import { api, jsonBody } from "../api";
 import { useAuth } from "../auth";
 import { Badge, RowLink, EmptyState, ErrorState, formatDate, formatDateOnly, Modal, Notice, PageSizeControl, Pagination, SortableHeader, Spinner, statusLabel, useAsync, type SortDirection } from "../components";
 import type { PageResponse, Publication, PublicationCandidate } from "../types";
+import { formatStoredNumber } from "../utils/number-format";
 
 const cleanDisplayText = plain;
 const formatPublishedValue = (numericValue: string | null, textValue: string | null, unit?: string | null) => {
   if (textValue) return textValue;
   if (numericValue === null || numericValue === "") return "-";
   const numeric = Number(numericValue);
-  const value = Number.isFinite(numeric) ? new Intl.NumberFormat("id-ID", { maximumFractionDigits: 4 }).format(numeric) : numericValue;
+  const value = Number.isFinite(numeric) ? formatStoredNumber(numeric) : numericValue;
   return `${value}${unit ? ` ${unit}` : ""}`;
 };
 

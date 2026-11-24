@@ -3,6 +3,7 @@ import { useState } from "react";
 import { api, jsonBody } from "../api";
 import { useAuth } from "../auth";
 import { Badge, EmptyState, ErrorState, formatTanggal, Notice, Spinner, useAsync } from "../components";
+import { formatStoredNumber } from "../utils/number-format";
 
 interface SourceRow {
   id: string; numeric_value: string | number | null; text_value: string | null; source_name: string | null; source_url: string | null;
@@ -20,7 +21,7 @@ const methodLabel = (method: string) => method === "api_import" ? "Impor sumber 
 const valueText = (row: SourceRow, symbol: string | null) => {
   const raw = row.numeric_value ?? row.text_value;
   if (raw === null) return "-";
-  const shown = typeof raw === "string" && !Number.isNaN(Number(raw)) && row.numeric_value !== null ? new Intl.NumberFormat("id-ID", { maximumFractionDigits: 4 }).format(Number(raw)) : String(raw);
+  const shown = typeof raw === "string" && !Number.isNaN(Number(raw)) && row.numeric_value !== null ? formatStoredNumber(raw) : String(raw);
   return symbol ? `${shown} ${symbol}` : shown;
 };
 

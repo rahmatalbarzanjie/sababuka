@@ -717,3 +717,8 @@ Setiap PR wajib memiliki migration impact, test, screenshot untuk UI, rollback, 
 - Bug ditemukan hanya oleh database nyata dan diperbaiki: `bank-data-guidance-service.ts` memakai tabel `sababuka.reporting_periods` yang tidak ada (galat 42P01, daftar catatan pembinaan gagal dimuat). Diganti `sababuka.periods` dengan `p.code::int`, sama seperti katalog Bank Data.
 - Catatan lingkungan: WSL mati sendiri; jalankan keeper `wsl -d Ubuntu -u root -- sleep 36000` lalu `service postgresql start`. Akun uji `bupati@`, `developer@`, `bapperida@` pada DB uji diset `must_change_password=false`.
 - Sisa sebelum produksi: buku panduan, backup produksi baru dan rencana rollback (sudah ada menurut pemilik), serta persetujuan pemilik.
+
+### 24 November 2026 - Angka desimal dan bukti dukung
+
+- Angka realisasi tampil sesuai input (1,234 tidak lagi menjadi 1,2340000000 pada isian): util `number-format.ts`, diterapkan pada form capaian, target indikator, publikasi, dan konsolidasi.
+- Bukti dukung dihapus dari pelaporan OPD (4 endpoint, UI unggah, panel, OpenAPI). Tabel dan berkas lama dipertahankan. Backup lokal saja sampai keputusan lanjutan pemilik.

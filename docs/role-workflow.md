@@ -33,7 +33,7 @@ Kategori harus disetujui BAPPERIDA sebelum indikator di bawahnya diajukan.
 
 `draft` → `submitted` → `under_review` → `approved` atau `returned` → `submitted`.
 
-`Capaian disetujui` berarti BAPPERIDA menyetujui realisasi dan bukti dukung pada form OPD untuk periode tersebut. Itu tidak mengubah status kategori atau indikator.
+`Capaian disetujui` berarti BAPPERIDA menyetujui realisasi pada form OPD (nilai, sumber, dan catatan) untuk periode tersebut. Itu tidak mengubah status kategori atau indikator.
 
 ### Publikasi
 

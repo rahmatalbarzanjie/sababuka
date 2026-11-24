@@ -5,6 +5,7 @@ import { useAuth } from "../auth";
 import { ReferenceDataPanel } from "./ReferenceDataPanel";
 import { Badge, RowLink, EmptyState, ErrorState, formatCategoryCode, formatDate, Modal, Notice, PageSizeControl, Pagination, SortableHeader, Spinner, statusLabel, useAsync, type SortDirection } from "../components";
 import type { BulkTransitionResult, Category, Indicator, Organization, PageResponse, Period, PolicyFocus, Unit } from "../types";
+import { formatStoredNumber, trimNumericText } from "../utils/number-format";
 
 const categorySortLabels: Record<string, string> = {
   hierarchy: "Urutan kelompok isu", name: "Nama kelompok isu", focus: "Fokus pembangunan",
@@ -348,7 +349,7 @@ function formatTarget(target: Indicator["targets"][number], indicator: Indicator
   if (target.text_value) return target.text_value;
   const value = Number(target.numeric_value);
   if (indicator.data_type === "currency") return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 2 }).format(value);
-  return `${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 4 }).format(value)}${indicator.unit_symbol ?? ""}`;
+  return `${formatStoredNumber(value)}${indicator.unit_symbol ?? ""}`;
 }
 
 function IndicatorDetail({ indicator, statusText, permissions, canSubmit, canEdit, canEditTechnical, busy, error, onEdit, onEditTechnical, onAction, onReturn, onClose }: { indicator: Indicator; statusText: string; error?: string; permissions: string[]; canSubmit: boolean; canEdit: boolean; canEditTechnical: boolean; busy: boolean; onEdit(): void; onEditTechnical(): void; onAction(action: "submit" | "approve" | "verify" | "activate" | "retire"): void; onReturn(notes: string): void; onClose(): void }) {
@@ -425,7 +426,7 @@ function IndicatorForm({ references, initial, manualProposal = false, onClose, o
     return year >= 2025 && year <= 2029;
   }).sort((a, b) => a.code.localeCompare(b.code)), [references.periods]);
   const [form, setForm] = useState({ code: initial?.code ?? "", kodref_ip: initial?.kodref_ip ?? "", name: initial?.name ?? "", category_id: initial?.category_id ?? references.categories[0]?.id ?? "", owner_organization_id: initial?.owner_organization_id ?? references.organizations[0]?.id ?? "", definition: initial?.definition ?? "", formula: initial?.formula ?? "", unit_id: initial?.unit_id ?? references.units[0]?.id ?? "", frequency: initial?.frequency ?? "annual", data_type: initial?.data_type ?? "number", direction: initial?.direction ?? "increase", source_reference: initial?.source_reference ?? "", effective_from: initial?.effective_from ?? "2019-01-01", planning_document_type: initial?.planning_document_type ?? "renstra", planning_document_reference: initial?.planning_document_reference ?? "" });
-  const [targets, setTargets] = useState<Record<string, string>>(() => Object.fromEntries((initial?.targets ?? []).map((target) => [target.period_id, target.numeric_value ?? target.text_value ?? ""])));
+  const [targets, setTargets] = useState<Record<string, string>>(() => Object.fromEntries((initial?.targets ?? []).map((target) => [target.period_id, trimNumericText(target.numeric_value ?? target.text_value ?? "")])));
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const update = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));

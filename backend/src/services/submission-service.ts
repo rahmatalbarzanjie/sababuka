@@ -32,15 +32,6 @@ export interface ObservationInput {
   notes?: string | null;
 }
 
-export interface EvidenceMetadataInput {
-  indicatorVersionId?: string | null | undefined;
-  originalFilename: string;
-  storageKey: string;
-  mimeType: string;
-  byteSize: number;
-  checksumSha256: string;
-}
-
 function isGlobal(auth: AuthContext): boolean {
   return auth.user.roles.some((role) => role.scope_type === "global");
 }
@@ -331,80 +322,6 @@ export class SubmissionService {
       entityId: batchId, organizationId: detail.organization_id as string,
       afterData: result.rows[0] as Record<string, unknown>, metadata: { indicator_version_id: indicatorVersionId } });
     return result.rows[0];
-  }
-
-  async listEvidence(auth: AuthContext, batchId: string) {
-    await this.get(auth, batchId);
-    const result = await this.db.query<QueryResultRow & Record<string, unknown>>(
-      `SELECT e.id::text, e.batch_id::text, e.indicator_version_id::text,
-              i.code AS indicator_code, i.name AS indicator_name,
-              e.original_filename, e.mime_type, e.byte_size::text, e.checksum_sha256,
-              e.uploaded_by::text, u.full_name AS uploaded_by_name, e.uploaded_at::text
-       FROM sababuka.submission_evidence e
-       LEFT JOIN sababuka.indicator_versions iv ON iv.id = e.indicator_version_id
-       LEFT JOIN sababuka.indicators i ON i.id = iv.indicator_id
-       JOIN sababuka.users u ON u.id = e.uploaded_by
-       WHERE e.batch_id = $1 AND e.deleted_at IS NULL
-       ORDER BY e.uploaded_at DESC`, [batchId],
-    );
-    return { data: result.rows };
-  }
-
-  async prepareEvidence(auth: AuthContext, batchId: string, indicatorVersionId?: string | null) {
-    const detail = await this.get(auth, batchId);
-    assertWritableOrganizationScope(auth, detail.organization_id);
-    if (!["draft", "returned"].includes(detail.status)) {
-      throw new ApiError(409, "CONFLICT", "Bukti dukung hanya dapat ditambah saat capaian berstatus draft atau dikembalikan.");
-    }
-    if (indicatorVersionId && !(detail.observations as Record<string, unknown>[]).some((item) => item.indicator_version_id === indicatorVersionId)) {
-      throw new ApiError(403, "SCOPE_DENIED", "Indikator aktif tidak ditugaskan kepada OPD ini.");
-    }
-    return detail;
-  }
-
-  async createEvidence(auth: AuthContext, batchId: string, input: EvidenceMetadataInput, audit: AuditContext) {
-    const detail = await this.prepareEvidence(auth, batchId, input.indicatorVersionId);
-    const result = await this.db.query<QueryResultRow & Record<string, unknown>>(
-      `INSERT INTO sababuka.submission_evidence
-         (batch_id, indicator_version_id, original_filename, storage_key, mime_type,
-          byte_size, checksum_sha256, uploaded_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING id::text, batch_id::text, indicator_version_id::text, original_filename,
-                 mime_type, byte_size::text, checksum_sha256, uploaded_by::text, uploaded_at::text`,
-      [batchId, input.indicatorVersionId ?? null, input.originalFilename, input.storageKey,
-       input.mimeType, input.byteSize, input.checksumSha256, auth.user.id],
-    );
-    const evidence = result.rows[0]!;
-    await recordAudit(this.db, { ...audit, eventType: "submission.evidence_uploaded", entityType: "data_batch",
-      entityId: batchId, organizationId: detail.organization_id,
-      afterData: evidence as Record<string, unknown>, metadata: { evidence_id: evidence.id } });
-    return evidence;
-  }
-
-  async getEvidence(auth: AuthContext, batchId: string, evidenceId: string) {
-    await this.get(auth, batchId);
-    const result = await this.db.query<QueryResultRow & Record<string, unknown>>(
-      `SELECT id::text, batch_id::text, indicator_version_id::text, original_filename,
-              storage_key, mime_type, byte_size::text, checksum_sha256, uploaded_at::text
-       FROM sababuka.submission_evidence
-       WHERE id = $1 AND batch_id = $2 AND deleted_at IS NULL`, [evidenceId, batchId],
-    );
-    if (!result.rows[0]) throw new ApiError(404, "NOT_FOUND", "Bukti dukung tidak ditemukan.");
-    return result.rows[0];
-  }
-
-  async deleteEvidence(auth: AuthContext, batchId: string, evidenceId: string, audit: AuditContext) {
-    const detail = await this.prepareEvidence(auth, batchId);
-    const evidence = await this.getEvidence(auth, batchId, evidenceId);
-    const result = await this.db.query(
-      `UPDATE sababuka.submission_evidence SET deleted_by = $3, deleted_at = now()
-       WHERE id = $1 AND batch_id = $2 AND deleted_at IS NULL`, [evidenceId, batchId, auth.user.id],
-    );
-    if (result.rowCount !== 1) throw new ApiError(404, "NOT_FOUND", "Bukti dukung tidak ditemukan.");
-    await recordAudit(this.db, { ...audit, eventType: "submission.evidence_deleted", entityType: "data_batch",
-      entityId: batchId, organizationId: detail.organization_id,
-      beforeData: evidence as Record<string, unknown>, metadata: { evidence_id: evidenceId } });
-    return evidence;
   }
 
   async transition(auth: AuthContext, id: string, action: SubmissionAction, notes: string | null, audit: AuditContext) {

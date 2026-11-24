@@ -1317,20 +1317,10 @@ td small { color: var(--muted); margin-top: 3px; }
 .realization-readonly strong { overflow-wrap: anywhere; font-size: 14px; font-weight: 600; }
 .button.compact { margin-top: 10px; padding: 8px 12px; }
 .realization-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.upload-button { position: relative; overflow: hidden; }
-.upload-button input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .evidence-panel { border-top: 1px solid var(--line); padding-top: 18px; }
 .evidence-panel h3 { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .evidence-panel h3 svg { width: 19px; color: var(--teal-700); }
 .evidence-panel > p, .evidence-panel > small { color: var(--muted); font-size: 13px; }
-.evidence-list { display: grid; gap: 8px; margin-top: 12px; }
-.evidence-list > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); padding: 10px 12px; }
-.evidence-list > div > span { display: flex; align-items: center; gap: 8px; }
-.evidence-list > div > span:first-child { display: grid; gap: 3px; min-width: 0; }
-.evidence-list strong { overflow-wrap: anywhere; }
-.evidence-list small { color: var(--muted); }
-.evidence-list .icon-button { width: 34px; height: 34px; }
-.evidence-list .icon-button svg { width: 16px; }
 .executive-metrics .metric-card { cursor: default; }
 .executive-page { min-width: 0; display: grid; gap: 18px; }
 .executive-page > * { min-width: 0; max-width: 100%; }
