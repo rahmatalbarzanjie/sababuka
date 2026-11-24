@@ -1,4 +1,4 @@
-export type StatusViewpoint = "neutral" | "opd" | "bapperida" | "walidata" | "pembina_statistik" | "pimpinan";
+export type StatusViewpoint = "neutral" | "opd" | "bapperida" | "pembina_statistik" | "pimpinan";
 
 const STATUS_LABELS: Record<string, string> = {
   active: "Aktif", inactive: "Nonaktif", draft: "Draf", submitted: "Dikirim",
@@ -25,11 +25,6 @@ const POV_STATUS_LABELS: Partial<Record<StatusViewpoint, Record<string, string>>
     submitted: "Perlu Anda periksa",
     under_review: "Sedang Anda periksa",
     returned: "Dikembalikan ke OPD",
-  },
-  walidata: {
-    opd_verification: "Menunggu verifikasi OPD",
-    submitted: "Menunggu pemeriksaan BAPPERIDA",
-    under_review: "Sedang diperiksa BAPPERIDA",
   },
   pembina_statistik: {
     opd_verification: "Menunggu verifikasi OPD",

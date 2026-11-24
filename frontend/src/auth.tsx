@@ -15,7 +15,7 @@ interface AuthState {
   login(input: LoginInput): Promise<void>;
   logout(): Promise<void>;
   refresh(): Promise<void>;
-  startPreview(role: "bapperida" | "kominfo" | "pembina_statistik" | "opd" | "pimpinan", organizationId?: string): Promise<void>;
+  startPreview(role: "bapperida" | "pembina_statistik" | "opd" | "pimpinan", organizationId?: string): Promise<void>;
   stopPreview(): Promise<void>;
 }
 
@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const startPreview = useCallback(async (role: "bapperida" | "kominfo" | "pembina_statistik" | "opd" | "pimpinan", organizationId?: string) => {
+  const startPreview = useCallback(async (role: "bapperida" | "pembina_statistik" | "opd" | "pimpinan", organizationId?: string) => {
     setRolePreview(role, organizationId);
     try { await refresh(); }
     catch (error) { clearRolePreview(); await refresh(); throw error; }

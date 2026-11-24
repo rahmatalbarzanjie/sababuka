@@ -201,7 +201,7 @@ test("alamat dasar BPS memakai WebAPI resmi bila base_url tertimpa alamat halama
   assert.ok(buildBpsDomainUrl(bpsApiBase("https://kapuaskab.bps.go.id/halaman.html"), "KUNCI").startsWith("https://webapi.bps.go.id/v1/api/domain?"));
 });
 
-test("simpan profil integrasi memberi tipe eksplisit pada $7/$8 dan menggabung connection_config", async () => {
+test("simpan profil integrasi selalu manual dan menggabung connection_config", async () => {
   const statements: string[] = [];
   const fakeClient = {
     query: async <R extends QueryResultRow>(sql: string) => { statements.push(sql); return result<R>([{ source_id: "s1", id: "p1" }] as unknown as R[]); },
@@ -212,14 +212,15 @@ test("simpan profil integrasi memberi tipe eksplisit pada $7/$8 dan menggabung c
     connect: async () => fakeClient as never,
     end: async () => undefined,
   };
-  const input = { organization_id: "o1", code: "BPS_KAPUAS", name: "BPS WebAPI", connector_kind: "bps", base_url: "https://webapi.bps.go.id/v1/api", auth_type: "api_key", data_format: "json", sync_mode: "manual", verification_mode: "preview_required" } as never;
+  const input = { organization_id: "o1", code: "BPS_KAPUAS", name: "BPS WebAPI", connector_kind: "bps", base_url: "https://webapi.bps.go.id/v1/api", auth_type: "api_key", data_format: "json" } as never;
   const audit = { actorId: "u1", requestId: "r1", ipAddress: null, userAgent: null };
   const service = new ConnectorService(fakeDb, testConfig);
   await service.saveIntegrationProfile({ user: { id: "u1" } } as never, input, audit, "p1");
   await service.saveIntegrationProfile({ user: { id: "u1" } } as never, input, audit);
   const update = statements.find((sql) => sql.includes("UPDATE sababuka.data_source_integrations"));
   const insert = statements.find((sql) => sql.includes("INSERT INTO sababuka.data_source_integrations"));
-  assert.ok(update?.includes("$7::text") && update.includes("$8::int") && update.includes("CASE WHEN $7::text='scheduled'"));
-  assert.ok(insert?.includes("$7::text,$8::int") && insert.includes("CASE WHEN $7::text='scheduled'"));
+  assert.ok(update?.includes("sync_mode='manual'") && update.includes("sync_interval_minutes=NULL") && update.includes("verification_mode='preview_required'") && update.includes("next_sync_at=NULL"));
+  assert.ok(insert?.includes("'manual',NULL,'preview_required','draft'") && insert.includes(",NULL)"));
+  assert.equal(statements.some((sql) => sql.includes("scheduled") || sql.includes("auto_import")), false);
   assert.ok(statements.some((sql) => sql.includes("connection_config=COALESCE(connection_config,'{}'::jsonb) || $7::jsonb")), "connection_config harus digabung, bukan ditimpa");
 });

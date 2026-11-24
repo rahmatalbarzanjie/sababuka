@@ -195,6 +195,8 @@ export async function governanceRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Params: { version_id: string; action: "submit" | "approve" | "verify" | "activate" | "retire" | "return" }; Body?: { notes?: string | null } }>(
     "/indicator-versions/:version_id/actions/:action",
     {
+      // Aksi selain return tidak membawa body; body kosong dianggap objek kosong.
+      preValidation: async (request) => { request.body ??= {}; },
       schema: { params: { type: "object", additionalProperties: false, required: ["version_id", "action"], properties: {
         version_id: uuid, action: { type: "string", enum: ["submit", "approve", "verify", "activate", "retire", "return"] },
       } }, body: { type: "object", additionalProperties: false, properties: { notes: { type: ["string", "null"], maxLength: 2000 } } } },

@@ -25,7 +25,6 @@ type RoleScope = "global" | "organization" | "self" | "published";
 const roleScopeRules: Record<string, readonly RoleScope[]> = {
   superadmin: ["global"],
   bapperida: ["global"],
-  kominfo: ["global"],
   pembina_statistik: ["global"],
   opd: ["organization"],
   pimpinan: ["published"],
@@ -176,10 +175,11 @@ function InvitationResult({ invitation, onClose }: { invitation: { name: string;
 }
 
 function RoleAssignmentForm({ user, roles, organizations, onClose, onSaved }: { user: UserSummary; roles: Role[]; organizations: Organization[]; onClose(): void; onSaved(): void }) {
+  const activeRoles = roles.filter((role) => role.is_active);
   const approvalMode = user.status === "invited" && user.has_password;
-  const opdRole = roles.find((role) => role.code === "opd");
-  const [roleId, setRoleId] = useState((approvalMode ? opdRole : roles.find((role) => role.code !== "superadmin"))?.id ?? roles[0]?.id ?? "");
-  const selectedRole = roles.find((role) => role.id === roleId);
+  const opdRole = activeRoles.find((role) => role.code === "opd");
+  const [roleId, setRoleId] = useState((approvalMode ? opdRole : activeRoles.find((role) => role.code !== "superadmin"))?.id ?? activeRoles[0]?.id ?? "");
+  const selectedRole = activeRoles.find((role) => role.id === roleId);
   const allowedScopes = approvalMode ? (["organization"] as const) : selectedRole ? roleScopeRules[selectedRole.code] ?? [] : [];
   const [scope, setScope] = useState<RoleScope>(allowedScopes[0] ?? "organization");
   const [organizationId, setOrganizationId] = useState(user.requested_organization_id ?? user.organization_id ?? organizations[0]?.id ?? "");
@@ -187,7 +187,7 @@ function RoleAssignmentForm({ user, roles, organizations, onClose, onSaved }: { 
   const automaticRoles = selectedOrganization?.code === "BAPPERIDA"
     ? ["Admin/PIC OPD BAPPERIDA", "Verifikator BAPPERIDA"]
     : selectedOrganization?.code === "DISKOMINFOSANTIK"
-      ? ["Admin/PIC OPD Diskominfosantik", "Walidata Diskominfosantik"]
+      ? ["Admin/PIC OPD Diskominfosantik"]
       : selectedOrganization?.code === "BPS_KAPUAS"
         ? ["PIC data BPS Kabupaten Kapuas", "Pembina Data Statistik (BPS)"]
       : ["Admin/PIC OPD"];
@@ -225,7 +225,7 @@ function RoleAssignmentForm({ user, roles, organizations, onClose, onSaved }: { 
         <label className="field"><span>Instansi final</span><select data-field="organization_id" value={organizationId} onChange={(event) => setOrganizationId(event.target.value)}>{organizations.map((item) => <option key={item.id} value={item.id}>{item.code} - {item.name}</option>)}</select><small>Boleh berbeda dari instansi yang diklaim jika hasil verifikasi menunjukkan penugasan lain.</small></label>
         <section className="registration-review"><h3>Akses yang diberikan otomatis</h3><div>{automaticRoles.map((label) => <span key={label}>Peran<strong>{label}</strong></span>)}</div><p>Satu akun PIC dapat menjalankan tugas instansi dan tugas khususnya tanpa login terpisah.</p></section>
       </> : <>
-        <label className="field"><span>Peran final</span><select data-field="role_id" value={roleId} onChange={(event) => { const nextRoleId = event.target.value; const nextRole = roles.find((role) => role.id === nextRoleId); setRoleId(nextRoleId); setScope(roleScopeRules[nextRole?.code ?? ""]?.[0] ?? "organization"); }}>{roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</select></label>
+        <label className="field"><span>Peran final</span><select data-field="role_id" value={roleId} onChange={(event) => { const nextRoleId = event.target.value; const nextRole = activeRoles.find((role) => role.id === nextRoleId); setRoleId(nextRoleId); setScope(roleScopeRules[nextRole?.code ?? ""]?.[0] ?? "organization"); }}>{activeRoles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</select></label>
         <label className="field"><span>Lingkup akses</span><select data-field="scope" value={scope} onChange={(event) => setScope(event.target.value as RoleScope)}>{allowedScopes.map((item) => <option value={item} key={item}>{item === "organization" ? "Satu OPD" : item === "published" ? "Data terpublikasi" : item === "global" ? "Seluruh Kabupaten Kapuas" : "Data sendiri"}</option>)}</select></label>
         {scope === "organization" && <label className="field"><span>OPD</span><select data-field="organization_id" value={organizationId} onChange={(event) => setOrganizationId(event.target.value)}>{organizations.map((item) => <option key={item.id} value={item.id}>{item.code} - {item.name}</option>)}</select></label>}
       </>}

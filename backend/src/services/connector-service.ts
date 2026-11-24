@@ -1,5 +1,5 @@
 import { describeError } from "./error-text.js";
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import ExcelJS from "exceljs";
 import type { Database, QueryResultRow } from "../database.js";
 import { ApiError } from "../errors.js";
@@ -157,11 +157,7 @@ export interface IntegrationProfileInput {
   auth_type: "none" | "api_key" | "bearer" | "basic" | "oauth2";
   data_format: "json" | "csv" | "xlsx" | "html" | "database" | "manual";
   data_path?: string | null;
-  sync_mode: "manual" | "scheduled";
-  sync_interval_minutes?: number | null;
-  verification_mode: "preview_required" | "auto_import";
   notes?: string | null;
-  status?: "draft" | "active" | "paused";
 }
 
 export class ConnectorService {
@@ -223,9 +219,6 @@ export class ConnectorService {
   }
 
   async saveIntegrationProfile(auth: AuthContext, input: IntegrationProfileInput, audit: AuditContext, profileId?: string) {
-    if (input.sync_mode === "scheduled" && (!input.sync_interval_minutes || input.sync_interval_minutes < 60)) {
-      throw new ApiError(400, "VALIDATION_ERROR", "Interval sinkronisasi terjadwal minimal 60 menit.");
-    }
     if (!["file_upload", "manual"].includes(input.connector_kind) && !input.base_url) {
       throw new ApiError(400, "VALIDATION_ERROR", "Alamat sumber wajib diisi untuk jenis koneksi ini.");
     }
@@ -240,14 +233,14 @@ export class ConnectorService {
         sourceId = current.rows[0].source_id;
         await client.query(`UPDATE sababuka.data_sources SET code=$2,name=$3,source_type=$4,base_url=$5,owner_organization_id=$6,connection_config=COALESCE(connection_config,'{}'::jsonb) || $7::jsonb,updated_at=now() WHERE id=$1`,
           [sourceId, input.code, input.name, sourceType, input.base_url ?? null, input.organization_id, JSON.stringify({ connector_kind: input.connector_kind, endpoint_path: input.endpoint_path ?? null, data_path: input.data_path ?? null, data_format: input.data_format })]);
-        await client.query(`UPDATE sababuka.data_source_integrations SET connector_kind=$2,auth_type=$3,data_format=$4,endpoint_path=$5,data_path=$6,sync_mode=$7::text,sync_interval_minutes=$8::int,verification_mode=$9,status=$10,notes=$11,updated_by=$12,next_sync_at=CASE WHEN $7::text='scheduled' THEN now()+make_interval(mins=>$8::int) ELSE NULL END WHERE id=$1`,
-          [profileId, input.connector_kind, input.auth_type, input.data_format, input.endpoint_path ?? null, input.data_path ?? null, input.sync_mode, input.sync_mode === "scheduled" ? input.sync_interval_minutes : null, input.verification_mode, input.status ?? "draft", input.notes ?? null, auth.user.id]);
+        await client.query(`UPDATE sababuka.data_source_integrations SET connector_kind=$2,auth_type=$3,data_format=$4,endpoint_path=$5,data_path=$6,sync_mode='manual',sync_interval_minutes=NULL,verification_mode='preview_required',notes=$7,updated_by=$8,next_sync_at=NULL WHERE id=$1`,
+          [profileId, input.connector_kind, input.auth_type, input.data_format, input.endpoint_path ?? null, input.data_path ?? null, input.notes ?? null, auth.user.id]);
       } else {
         const source = await client.query<{ id: string }>(`INSERT INTO sababuka.data_sources (code,name,source_type,base_url,owner_organization_id,connection_config,credential_reference,created_by) VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8) RETURNING id::text`,
           [input.code, input.name, sourceType, input.base_url ?? null, input.organization_id, JSON.stringify({ connector_kind: input.connector_kind, endpoint_path: input.endpoint_path ?? null, data_path: input.data_path ?? null, data_format: input.data_format }), input.auth_type === "none" ? null : `${input.code}_CREDENTIAL`, auth.user.id]);
         sourceId = source.rows[0]!.id;
-        await client.query(`INSERT INTO sababuka.data_source_integrations (data_source_id,connector_kind,auth_type,data_format,endpoint_path,data_path,sync_mode,sync_interval_minutes,verification_mode,status,notes,created_by,updated_by,next_sync_at) VALUES ($1,$2,$3,$4,$5,$6,$7::text,$8::int,$9,$10,$11,$12,$12,CASE WHEN $7::text='scheduled' THEN now()+make_interval(mins=>$8::int) ELSE NULL END)`,
-          [sourceId, input.connector_kind, input.auth_type, input.data_format, input.endpoint_path ?? null, input.data_path ?? null, input.sync_mode, input.sync_mode === "scheduled" ? input.sync_interval_minutes : null, input.verification_mode, input.status ?? "draft", input.notes ?? null, auth.user.id]);
+        await client.query(`INSERT INTO sababuka.data_source_integrations (data_source_id,connector_kind,auth_type,data_format,endpoint_path,data_path,sync_mode,sync_interval_minutes,verification_mode,status,notes,created_by,updated_by,next_sync_at) VALUES ($1,$2,$3,$4,$5,$6,'manual',NULL,'preview_required','draft',$7,$8,$8,NULL)`,
+          [sourceId, input.connector_kind, input.auth_type, input.data_format, input.endpoint_path ?? null, input.data_path ?? null, input.notes ?? null, auth.user.id]);
       }
       await recordAudit(client, { ...audit, eventType: profileId ? "connector.integration_updated" : "connector.integration_created", entityType: "data_source", entityId: sourceId, organizationId: input.organization_id, afterData: { ...input, credentials: input.auth_type === "none" ? "not_required" : "managed_separately" } as unknown as JsonObject });
       await client.query("COMMIT");
@@ -449,7 +442,6 @@ export class ConnectorService {
     await recordAudit(this.db, { ...audit, eventType: "connector.connection_tested", entityType: "data_source", entityId: source.id, afterData: { reachable: profile.reachable, response_ms: profile.response_ms, candidate_summary: profile.candidate_summary }, metadata: { source_code: source.code } });
     if (!profile.reachable) {
       const notification = { type: "connector.connection_failed", title: "Sumber data tidak dapat dijangkau", message: `${source.name} gagal diperiksa. ${profile.error ?? "Periksa alamat, kredensial, dan kondisi layanan sumber."}`, entityType: "data_source", entityId: source.id };
-      await notifyRole(this.db, "kominfo", notification, audit.actorId ?? undefined);
       await notifyRole(this.db, "superadmin", notification, audit.actorId ?? undefined);
     }
     return profile;
@@ -745,7 +737,7 @@ export class ConnectorService {
     const sheetName = asText(transform.sheet_name);
     const worksheet = sheetName ? workbook.getWorksheet(sheetName) : workbook.worksheets[0];
     if (!worksheet) throw new ApiError(400, "SOURCE_INVALID", `Lembar Excel ${sheetName || "pertama"} tidak ditemukan.`);
-    if (transform.mode !== "ratio_percent_total_row") throw new ApiError(400, "SOURCE_INVALID", "Resource Excel memerlukan pola transformasi yang disetujui Walidata.");
+    if (transform.mode !== "ratio_percent_total_row") throw new ApiError(400, "SOURCE_INVALID", "Resource Excel memerlukan pola transformasi yang disetujui Developer.");
     const labelColumn = Number(transform.label_column ?? 2);
     const totalLabel = asText(transform.total_label || "JUMLAH").toUpperCase();
     const denominatorColumn = Number(transform.denominator_column);
@@ -782,42 +774,6 @@ export class ConnectorService {
     const format = configuredFormat || (raw.toLowerCase().includes(".csv") ? "csv" : "json");
     if (!["json", "csv"].includes(format)) throw new ApiError(409, "CONNECTOR_NOT_READY", "Format ini memerlukan unggah file atau adaptor khusus.");
     return { id: mapping.external_resource_id ?? mapping.external_dataset_id, url: raw, public_url: raw, format };
-  }
-
-  async runDueSchedules(): Promise<{ profiles: number; succeeded: number; failed: number }> {
-    await this.pruneExpiredStaging();
-    const due = await this.db.query<QueryResultRow & { id: string; source_id: string; actor_id: string; sync_interval_minutes: number; verification_mode: string }>(
-      `UPDATE sababuka.data_source_integrations p
-       SET last_sync_status='running',
-           next_sync_at=now()+make_interval(mins=>p.sync_interval_minutes), updated_at=now()
-       FROM sababuka.data_sources s
-       WHERE s.id=p.data_source_id AND s.is_active=true AND p.status='active'
-         AND p.sync_mode='scheduled' AND p.next_sync_at <= now()
-       RETURNING p.id::text, p.data_source_id::text AS source_id,
-                 COALESCE(p.updated_by,p.created_by,s.created_by)::text AS actor_id,
-                 p.sync_interval_minutes, p.verification_mode`,
-    );
-    let succeeded = 0; let failed = 0;
-    for (const profile of due.rows) {
-      try {
-        const mappings = await this.db.query<{ id: string }>(`SELECT id::text FROM sababuka.indicator_source_mappings WHERE source_id=$1 AND status='active' ORDER BY id`, [profile.source_id]);
-        if (!profile.actor_id) throw new Error("Akun pelaksana sinkronisasi tidak tersedia.");
-        const auth = { sessionId: "scheduler", csrfTokenHash: Buffer.alloc(0), user: { id: profile.actor_id, email: "scheduler@sababuka.local", full_name: "Penjadwal Integrasi SABABUKA", mfa_required: false, must_change_password: false, roles: [], permissions: [], organizations: [] } } satisfies AuthContext;
-        const audit: AuditContext = { actorId: profile.actor_id, requestId: `scheduler:${randomUUID()}`, ipAddress: null, userAgent: "SABABUKA integration scheduler" };
-        for (const mapping of mappings.rows) {
-          const run = await this.sync(auth, mapping.id, audit) as unknown as { id: string; status: string };
-          if (profile.verification_mode === "auto_import" && run.status === "ready") await this.importRun(auth, run.id, audit);
-        }
-        await this.db.query(`UPDATE sababuka.data_source_integrations SET last_sync_status='success',last_synced_at=now(),updated_at=now() WHERE id=$1`, [profile.id]);
-        succeeded += 1;
-      } catch {
-        await this.db.query(`UPDATE sababuka.data_source_integrations SET last_sync_status='failed',last_synced_at=now(),updated_at=now() WHERE id=$1`, [profile.id]);
-        await notifyRole(this.db, "kominfo", { type: "connector.schedule_failed", title: "Sinkronisasi terjadwal gagal", message: "Satu sumber data terjadwal gagal diproses. Buka Ruang Walidata untuk memeriksa koneksi dan mapping.", entityType: "data_source", entityId: profile.source_id });
-        await notifyRole(this.db, "superadmin", { type: "connector.schedule_failed", title: "Sinkronisasi terjadwal gagal", message: "Satu sumber data terjadwal gagal diproses dan memerlukan pemeriksaan Walidata.", entityType: "data_source", entityId: profile.source_id });
-        failed += 1;
-      }
-    }
-    return { profiles: due.rows.length, succeeded, failed };
   }
 
   private async resolveCkanResource(source: SourceRow, mapping: MappingRow) {
@@ -1172,7 +1128,9 @@ export class ConnectorService {
     try { return await this.importSatuDataPackageInner(auth, packageId, audit, refresh); }
     catch (error) {
       if (error instanceof ApiError) throw error;
-      return { package_id: packageId, status: "failed", reason: `Galat: ${describeError(error).slice(0, 240)}` };
+      const detail = describeError(error).slice(0, 240);
+      await recordAudit(this.db, { ...audit, eventType: "connector.bank_data_import_failed", entityType: "satudata_package", entityId: null, metadata: { source: "SATUDATA", package_id: packageId, reason: detail } });
+      return { package_id: packageId, status: "failed", reason: `Galat: ${detail}` };
     }
   }
 
@@ -1255,6 +1213,7 @@ export class ConnectorService {
     if (refresh && already.rows.length && observationCount === 0) return { package_id: packageId, title: pkg.title, status: "unchanged", observations: 0, district_observations: 0 };
     await this.db.query("SELECT sababuka.assign_responsible_opd()");
     for (const versionId of created) await this.publishIndicatorObservations(auth, versionId, audit);
+    await recordAudit(this.db, { ...audit, eventType: refresh ? "connector.bank_data_refreshed" : "connector.bank_data_imported", entityType: "satudata_package", entityId: null, metadata: { source: "SATUDATA", package_id: packageId, title: plainDash(pkg.title), indicators: created.length, observations: observationCount, district_observations: districtCount } });
     return { package_id: packageId, title: pkg.title, status: "imported", indicators: created.length, observations: observationCount, district_observations: districtCount };
   }
 
@@ -1299,6 +1258,7 @@ export class ConnectorService {
     catch (error) {
       if (error instanceof ApiError) throw error;
       const detail = describeError(error);
+      await recordAudit(this.db, { ...audit, eventType: "connector.bank_data_import_failed", entityType: "bps_variable", entityId: null, metadata: { source: "BPS", variable_id: variableId, reason: detail.slice(0, 240) } });
       return { variable_id: variableId, status: "failed", reason: `Galat database/kode: ${detail.slice(0, 240)}` };
     }
   }
@@ -1315,7 +1275,7 @@ export class ConnectorService {
     let foundData = false;
     let emptyRun = 0;
     // Dari tahun terbaru mundur; berhenti setelah dua jendela kosong berturut-turut sesudah data ditemukan.
-    // Mode refresh (sinkron otomatis) hanya mengambil beberapa tahun terakhir; impor awal mengambil seluruh riwayat.
+    // Perbarui manual mengambil beberapa tahun terakhir; impor awal mengambil seluruh riwayat.
     const firstYear = refresh ? new Date().getFullYear() - 5 : 2008;
     for (const window of bpsYearWindows(firstYear, new Date().getFullYear() + 1).reverse()) {
       const payload = await this.bpsJson(source, (key) => buildBpsDataUrl(bpsApiBase(source.base_url), domain, variableId, window, key));
@@ -1408,8 +1368,21 @@ export class ConnectorService {
     if (refresh && observationCount === 0) return { variable_id: variableId, title: merged.variable.title, status: "unchanged", observations: 0, district_observations: 0 };
     await this.db.query("SELECT sababuka.assign_responsible_opd()");
     for (const versionId of created) await this.publishIndicatorObservations(auth, versionId, audit);
-    await recordAudit(this.db, { ...audit, eventType: refresh ? "connector.bank_data_refreshed" : "connector.bank_data_imported", entityType: "bps_variable", entityId: null, metadata: { variable_id: variableId, indicators: created.length, observations: observationCount, district_observations: districtCount } });
+    await recordAudit(this.db, { ...audit, eventType: refresh ? "connector.bank_data_refreshed" : "connector.bank_data_imported", entityType: "bps_variable", entityId: null, metadata: { source: "BPS", variable_id: variableId, title: plainDash(merged.variable.title), indicators: created.length, observations: observationCount, district_observations: districtCount } });
     return { variable_id: variableId, title: merged.variable.title, status: "imported", indicators: created.length, observations: observationCount, district_observations: districtCount };
+  }
+
+  async listBankImportHistory() {
+    const result = await this.db.query(
+      `SELECT e.id::text, e.event_type, e.entity_type, e.metadata, e.occurred_at::text,
+              COALESCE(u.full_name, 'Sistem') AS actor_name
+       FROM sababuka.audit_events e
+       LEFT JOIN sababuka.users u ON u.id = e.actor_id
+       WHERE e.event_type IN ('connector.bank_data_imported', 'connector.bank_data_refreshed', 'connector.bank_data_import_failed')
+       ORDER BY e.occurred_at DESC
+       LIMIT 100`,
+    );
+    return { data: result.rows };
   }
 
   /** Terbitkan seluruh observasi valid sebuah indikator ke publikasi aktif (versi baru bila isinya berubah) agar tampil di dashboard Bupati. */

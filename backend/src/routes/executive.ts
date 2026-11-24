@@ -214,7 +214,7 @@ export async function executiveRoutes(app: FastifyInstance): Promise<void> {
     for (const item of reconciliation) recommendations.push({ severity: "high", indicator_id: item.indicator_id,
       title: `${item.indicator_name}: data perlu direkonsiliasi`, evidence: `${item.period_label} · ${item.geography_name}${item.sources.find((source) => source.quality_note)?.quality_note ? ` · ${item.sources.find((source) => source.quality_note)?.quality_note}` : ""}`,
       meaning: "Angka belum aman dijadikan dasar keputusan tunggal sebelum definisi, perhitungan, periode, dan sumber disamakan.",
-      action: "Tandai untuk rekonsiliasi BAPPERIDA bersama OPD pemilik dan Walidata; pertahankan seluruh versi serta catat nilai rujukan yang disepakati." });
+      action: "Tandai untuk rekonsiliasi BAPPERIDA bersama OPD pemilik; pertahankan seluruh versi serta catat nilai rujukan yang disepakati." });
 
     return { generated_at: new Date().toISOString(), methodology: {
       trend: "Membandingkan nilai antarperiode dan menilai arahnya sesuai karakter indikator (naik, turun, atau dipertahankan).",
@@ -271,7 +271,7 @@ export async function executiveRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.get("/executive/bank-data", async (request) => {
-    requirePermission(request, "executive_dashboard.view");
+    requirePermission(request, "bank_data.view");
     return new BankDataCatalogService(app.db).catalog();
   });
 

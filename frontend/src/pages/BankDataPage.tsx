@@ -1,8 +1,9 @@
-import { ArrowLeft, Database, Download, Search } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Database, Download, MessageSquareText, Search } from "lucide-react";
 import { useMemo, useState } from "react";
-import { api } from "../api";
+import { api, jsonBody } from "../api";
+import { useAuth } from "../auth";
 import { AppLink } from "../components/AppLink";
-import { Badge, EmptyState, ErrorState, PageLoading, useAsync } from "../components";
+import { Badge, EmptyState, ErrorState, Modal, Notice, PageLoading, Spinner, formatDate, useAsync } from "../components";
 import { indicatorPath, num } from "../insight";
 import { plain } from "../text";
 
@@ -15,6 +16,7 @@ interface CatalogResponse {
   summary: { series: number; observations: number; with_districts: number; max_districts: number; sectors: number; bps: number; satudata: number; first_year: number | null; last_year: number | null };
   items: CatalogItem[];
 }
+interface GuidanceNote { id: string; guidance_type: "standar" | "metadata" | "metodologi" | "konsistensi"; notes: string; snapshot_json: Record<string, unknown>; created_at: string; created_by_name: string; resolved_at: string | null; resolution_notes: string | null; resolved_by_name: string | null; status: "open" | "resolved" }
 
 const PAGE_SIZE = 25;
 const kindLabel = { bps: "BPS Kapuas dalam Angka", satudata: "Satu Data Kapuas" } as const;
@@ -33,12 +35,14 @@ function downloadCsv(items: CatalogItem[]) {
 
 /** Katalog seluruh seri Bank Data Kapuas: bukti bahwa sistem menyimpan data dalam jumlah besar, dapat ditelusuri dan diunduh. */
 export function BankDataPage() {
+  const { user } = useAuth();
   const data = useAsync(() => api<CatalogResponse>("/executive/bank-data"), []);
   const [query, setQuery] = useState("");
   const [sectorFilter, setSectorFilter] = useState("");
   const [sourceFilter, setSourceFilter] = useState("");
   const [districtOnly, setDistrictOnly] = useState(false);
   const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<CatalogItem | null>(null);
   const items = data.data?.items;
   const sectors = useMemo(() => [...new Set((items ?? []).map((item) => item.sector))].sort((a, b) => a.localeCompare(b, "id")), [items]);
   const filtered = useMemo(() => {
@@ -46,11 +50,11 @@ export function BankDataPage() {
     return [...(items ?? [])].sort((x, y) => y.observations - x.observations || x.name.localeCompare(y.name, "id")).filter((item) => (!needle || `${item.name} ${item.sector}`.toLowerCase().includes(needle))
       && (!sectorFilter || item.sector === sectorFilter) && (!sourceFilter || item.source_kind === sourceFilter) && (!districtOnly || item.districts > 0));
   }, [items, query, sectorFilter, sourceFilter, districtOnly]);
-  const back = <AppLink to="/dashboard" className="back-link"><ArrowLeft aria-hidden />Kembali ke Dashboard Eksekutif</AppLink>;
+  const back = user?.permissions.includes("executive_dashboard.view") ? <AppLink to="/dashboard" className="back-link"><ArrowLeft aria-hidden />Kembali ke Dashboard Analisis</AppLink> : null;
   if (data.loading) return <PageLoading />;
   if (data.error) return <ErrorState title="Bank Data belum dapat dimuat" onRetry={data.reload}>{data.error}</ErrorState>;
   const summary = data.data?.summary;
-  if (!summary || !items?.length) return <div className="exec">{back}<EmptyState title="Belum ada Bank Data terbit">Seri akan tampil setelah sinkron Bank Data berjalan.</EmptyState></div>;
+  if (!summary || !items?.length) return <div className="exec">{back}<EmptyState title="Belum ada Bank Data">Seri akan tampil setelah Developer menjalankan impor manual.</EmptyState></div>;
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const current = Math.min(page, pages);
   const shown = filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
@@ -67,7 +71,7 @@ export function BankDataPage() {
       <div><small>Bank Data Kabupaten Kapuas</small><h2><Database aria-hidden /> Seluruh data yang tersimpan</h2></div>
       <Badge tone="neutral">Bank Data · belum diverifikasi</Badge>
     </header>
-    <p className="muted">Data BPS Kapuas dalam Angka dan Satu Data Kapuas yang telah masuk ke sistem. Seri ini menjadi konteks dan pembanding bagi indikator RPJMD; belum diverifikasi OPD maupun BAPPERIDA. Pilih satu seri untuk melihat grafik, tabulasi per tahun dan kecamatan, serta tautan sumbernya.</p>
+    <p className="muted">Data BPS Kapuas dalam Angka dan Satu Data Kapuas yang telah masuk ke sistem. Seri ini menjadi konteks dan pembanding bagi indikator RPJMD; belum menjadi realisasi resmi OPD. Pilih satu seri untuk melihat ringkasan dan catatan pembinaan.</p>
     <ul className="bank-stats" aria-label="Ringkasan Bank Data">{stats.map(([value, label, note]) => <li key={label}><strong>{value}</strong><span>{label}</span><small>{note}</small></li>)}</ul>
     <section className="panel-card" aria-labelledby="katalog">
       <header className="card-head"><div><h2 id="katalog">Katalog seri data</h2><p>{count(filtered.length)} dari {count(items.length)} seri ditampilkan.</p></div>
@@ -79,13 +83,14 @@ export function BankDataPage() {
         <label className="bank-check"><input type="checkbox" checked={districtOnly} onChange={(event) => { setDistrictOnly(event.target.checked); setPage(1); }} />Ada rincian kecamatan</label>
       </div>
       {filtered.length === 0 ? <EmptyState title="Tidak ada seri yang cocok">Ubah kata kunci atau filter.</EmptyState> : <>
-        <div className="table-scroll"><table className="all-table"><thead><tr><th>Indikator</th><th>Sumber</th><th>Rentang</th><th>Nilai terbaru</th><th>Cakupan</th></tr></thead><tbody>
+        <div className="table-scroll"><table className="all-table"><thead><tr><th>Seri Data</th><th>Sumber</th><th>Rentang</th><th>Nilai terbaru</th><th>Cakupan</th><th><span className="sr-only">Tindakan</span></th></tr></thead><tbody>
           {shown.map((item) => <tr key={item.indicator_id}>
-            <td><strong><AppLink to={indicatorPath(item.indicator_id)}>{plain(item.name)}</AppLink></strong><small>{item.sector}</small></td>
+            <td><strong>{plain(item.name)}</strong><small>{item.sector}</small></td>
             <td><Badge tone="neutral">{item.source_kind === "bps" ? "BPS" : "Satu Data"}</Badge></td>
             <td className="num"><strong>{item.first_year === item.last_year ? item.first_year : `${item.first_year}-${item.last_year}`}</strong><small>{item.years} tahun</small></td>
             <td className="num">{item.latest_value === null ? "-" : <><strong>{num(item.latest_value)}</strong><small>{plain(item.unit)} · {item.latest_year}</small></>}</td>
             <td className="num"><strong>{count(item.observations)} nilai</strong><small>{item.districts > 0 ? `${item.districts} kecamatan` : "tingkat kabupaten"}</small></td>
+            <td><button type="button" className="button secondary compact" onClick={() => setSelected(item)}><MessageSquareText />Buka</button></td>
           </tr>)}
         </tbody></table></div>
         <nav className="bank-pager" aria-label="Halaman katalog">
@@ -95,5 +100,35 @@ export function BankDataPage() {
         </nav>
       </>}
     </section>
+    {selected && <GuidanceModal item={selected} canCreate={user?.permissions.includes("bank_data.note") ?? false} canResolve={user?.permissions.includes("bank_data.resolve_note") ?? false} canOpenIndicator={user?.permissions.includes("executive_dashboard.view") ?? false} onClose={() => setSelected(null)} />}
   </div>;
+}
+
+function GuidanceModal({ item, canCreate, canResolve, canOpenIndicator, onClose }: { item: CatalogItem; canCreate: boolean; canResolve: boolean; canOpenIndicator: boolean; onClose(): void }) {
+  const notes = useAsync(() => api<{ data: GuidanceNote[] }>(`/bank-data/${item.indicator_id}/guidance`), [item.indicator_id]);
+  const [type, setType] = useState<GuidanceNote["guidance_type"]>("metadata");
+  const [note, setNote] = useState("");
+  const [resolution, setResolution] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const create = async () => {
+    setBusy(true); setError("");
+    try { await api(`/bank-data/${item.indicator_id}/guidance`, { method: "POST", mutation: true, body: jsonBody({ guidance_type: type, notes: note.trim() }) }); setNote(""); notes.reload(); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Catatan belum dapat disimpan."); }
+    finally { setBusy(false); }
+  };
+  const resolve = async (id: string) => {
+    setBusy(true); setError("");
+    try { await api(`/bank-data/guidance/${id}/resolve`, { method: "POST", mutation: true, body: jsonBody({ resolution_notes: resolution[id]?.trim() }) }); setResolution((current) => ({ ...current, [id]: "" })); notes.reload(); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Tindak lanjut belum dapat disimpan."); }
+    finally { setBusy(false); }
+  };
+  return <Modal title="Detail dan catatan Bank Data" onClose={onClose} wide>
+    <div className="bank-guidance-summary"><div><Badge tone="neutral">{item.source_kind === "bps" ? "BPS" : "Satu Data"}</Badge><h3>{plain(item.name)}</h3><p>{plain(item.sector)} · {plain(item.unit)}</p></div><dl><div><dt>Rentang</dt><dd>{item.first_year}-{item.last_year}</dd></div><div><dt>Nilai</dt><dd>{count(item.observations)}</dd></div><div><dt>Wilayah</dt><dd>{item.districts ? `${item.districts} kecamatan` : "Kabupaten"}</dd></div></dl></div>
+    <Notice tone="info">Catatan pembinaan tidak mengubah nilai. Data tetap berlabel Bank Data - belum diverifikasi sampai melalui tata kelola yang sesuai.</Notice>
+    {error && <Notice tone="error">{error}</Notice>}
+    {canCreate && <section className="bank-guidance-form"><h3>Catatan pembinaan baru</h3><div className="form-grid"><label className="field"><span>Jenis catatan</span><select value={type} onChange={(event) => setType(event.target.value as GuidanceNote["guidance_type"])}><option value="standar">Standar</option><option value="metadata">Metadata</option><option value="metodologi">Metodologi</option><option value="konsistensi">Konsistensi</option></select></label><label className="field connector-wide"><span>Catatan</span><textarea rows={3} minLength={10} maxLength={4000} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Jelaskan temuan dan perbaikan yang disarankan." /></label></div><button type="button" className="button primary" disabled={busy || note.trim().length < 10} onClick={() => void create()}><MessageSquareText />Simpan catatan</button></section>}
+    <section className="bank-guidance-list"><h3>Riwayat catatan</h3>{notes.loading ? <Spinner /> : notes.error ? <ErrorState title="Catatan belum dapat dimuat" onRetry={notes.reload}>{notes.error}</ErrorState> : !notes.data?.data.length ? <EmptyState title="Belum ada catatan pembinaan">BPS dapat mencatat temuan standar, metadata, metodologi, atau konsistensi pada Seri Data ini.</EmptyState> : notes.data.data.map((entry) => <article key={entry.id}><header><span><Badge tone={entry.status === "resolved" ? "success" : "warning"}>{entry.status === "resolved" ? "Sudah ditindaklanjuti" : "Perlu ditinjau"}</Badge><strong>{entry.guidance_type[0]!.toUpperCase() + entry.guidance_type.slice(1)}</strong></span><small>{entry.created_by_name} · {formatDate(entry.created_at)}</small></header><p>{plain(entry.notes)}</p>{entry.status === "resolved" ? <div className="bank-guidance-resolution"><CheckCircle2 /><span><strong>Tindak lanjut oleh {entry.resolved_by_name}</strong><p>{plain(entry.resolution_notes ?? "")}</p><small>{entry.resolved_at ? formatDate(entry.resolved_at) : ""}</small></span></div> : canResolve && <div className="bank-guidance-resolve"><textarea aria-label="Catatan penyelesaian" rows={2} minLength={10} maxLength={4000} value={resolution[entry.id] ?? ""} onChange={(event) => setResolution((current) => ({ ...current, [entry.id]: event.target.value }))} placeholder="Jelaskan tindak lanjut yang sudah dilakukan." /><button type="button" className="button secondary" disabled={busy || (resolution[entry.id]?.trim().length ?? 0) < 10} onClick={() => void resolve(entry.id)}>Tandai selesai</button></div>}</article>)}</section>
+    <footer className="modal-actions">{canOpenIndicator && <AppLink to={indicatorPath(item.indicator_id)} className="button secondary">Buka lembar indikator</AppLink>}<button type="button" className="button primary" onClick={onClose}>Tutup</button></footer>
+  </Modal>;
 }

@@ -139,7 +139,7 @@ test(
       const superadminMenuCodes = new Set(
         availableMenus.filter((menu) => superadminMenuIds.includes(menu.id)).map((menu) => menu.code),
       );
-      for (const requiredCode of ["dashboard", "organizations", "users", "roles", "menus", "system-settings", "audit"]) {
+      for (const requiredCode of ["organizations", "users", "roles", "menus", "system-settings", "audit"]) {
         assert.ok(superadminMenuCodes.has(requiredCode), `Menu ${requiredCode} wajib tersedia untuk Superadmin`);
       }
 

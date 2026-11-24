@@ -16,7 +16,7 @@ if (!password || password.length < 16) {
 const demoUsers = [
   { email: "developer@sababuka.com", name: "Developer SABABUKA", role: "superadmin", organization: "KAPUAS", scope: "global" },
   { email: "bapperida@sababuka.com", name: "Admin BAPPERIDA", role: "bapperida", organization: "BAPPERIDA", scope: "global" },
-  { email: "kominfo@sababuka.com", name: "Admin KOMINFO", role: "kominfo", organization: "KAPUAS", scope: "global" },
+  { email: "kominfo@sababuka.com", name: "PIC Diskominfosantik", role: "opd", organization: "DISKOMINFOSANTIK", scope: "organization" },
   { email: "opd.dkpp@sababuka.com", name: "Operator OPD DKPP", role: "opd", organization: "DKPP", scope: "organization" },
   { email: "opd.dinkes@sababuka.com", name: "Operator OPD Dinas Kesehatan", role: "opd", organization: "DINKES", scope: "organization" },
   { email: "bupati@sababuka.com", name: "Bupati Kapuas", role: "pimpinan", organization: "KAPUAS", scope: "published" },

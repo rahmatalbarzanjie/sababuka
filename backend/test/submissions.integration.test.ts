@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import test from "node:test";
 import { buildApp } from "../src/app.js";
 import { createDatabase } from "../src/database.js";
@@ -99,8 +100,8 @@ test("form capaian OPD mendukung isi, submit, return, dan approve", { skip: !dat
     const reviewerNotifications = await db.query<{ count: number }>(`SELECT count(*)::int AS count FROM sababuka.notifications WHERE user_id = $1 AND notification_type = 'submission.submitted'`, [reviewer.rows[0]!.id]);
     assert.ok(reviewerNotifications.rows[0]!.count >= 1);
 
-    // Persetujuan BAPPERIDA menerbitkan capaian valid secara otomatis ke publikasi aktif.
-    const executive = await app.inject({ method: "GET", url: "/api/v1/executive/dashboard", headers: { cookie: pimpinanHeaders.cookie } });
+    // Persetujuan BAPPERIDA menerbitkan capaian valid otomatis; Dashboard Analisis dibaca BAPPERIDA.
+    const executive = await app.inject({ method: "GET", url: "/api/v1/executive/dashboard", headers: { cookie: bapperidaHeaders.cookie } });
     assert.equal(executive.statusCode, 200, executive.body);
     assert.ok(executive.json().metrics.approved_submissions >= 1);
     assert.ok(executive.json().items.some((item: { indicator_code: string }) => item.indicator_code === "IKP"));
@@ -109,13 +110,13 @@ test("form capaian OPD mendukung isi, submit, return, dan approve", { skip: !dat
       payload: { title: "Integration assistant" } });
     assert.equal(assistantSession.statusCode, 201, assistantSession.body);
     const answered = await app.inject({ method: "POST", url: `/api/v1/assistant/sessions/${assistantSession.json().id}/messages`, headers: pimpinanHeaders,
-      payload: { message: "Berapa nilai IKP tahun 2025?" } });
+      payload: { message: "Berapa nilai IKP tahun 2025?", client_message_id: randomUUID() } });
     assert.equal(answered.statusCode, 200, answered.body);
     assert.notEqual(answered.json().sufficiency, "insufficient");
     assert.ok(answered.json().citations.length >= 1);
     assert.match(answered.json().answer, /82,75/u);
     const refused = await app.inject({ method: "POST", url: `/api/v1/assistant/sessions/${assistantSession.json().id}/messages`, headers: pimpinanHeaders,
-      payload: { message: "Berapa jumlah kendaraan listrik tahun 2035?" } });
+      payload: { message: "Berapa jumlah kendaraan listrik tahun 2035?", client_message_id: randomUUID() } });
     assert.equal(refused.statusCode, 200, refused.body);
     assert.equal(refused.json().sufficiency, "insufficient");
     assert.equal(refused.json().citations.length, 0);

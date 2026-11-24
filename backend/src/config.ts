@@ -65,7 +65,6 @@ export function loadConfig(): AppConfig {
     connectorEncryptionKey,
     evidenceStoragePath: process.env.EVIDENCE_STORAGE_PATH ?? "./storage/evidence",
     evidenceMaxBytes: integerEnv("EVIDENCE_MAX_BYTES", 10_485_760, 1_024),
-    // Sinkron otomatis Bank Data (jam antar siklus); 0 = nonaktif. Bawaan 24 jam hanya di produksi.
     // Jumlah proxy tepercaya di depan API (produksi: Cloudflare dan nginx). Nilai 0 mengabaikan X-Forwarded-For.
     trustProxyHops: integerEnv("TRUST_PROXY_HOPS", nodeEnv === "production" ? 2 : 0, 0),
   };

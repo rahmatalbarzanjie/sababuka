@@ -5,7 +5,7 @@ import { allowedScopesForRole, assertRoleScope, registrationRoleCodesForOrganiza
 test("matriks role-scope mengikuti desain SABABUKA", () => {
   assert.deepEqual(allowedScopesForRole("superadmin"), ["global"]);
   assert.deepEqual(allowedScopesForRole("bapperida"), ["global"]);
-  assert.deepEqual(allowedScopesForRole("kominfo"), ["global"]);
+  assert.deepEqual(allowedScopesForRole("kominfo"), []);
   assert.deepEqual(allowedScopesForRole("opd"), ["organization"]);
   assert.deepEqual(allowedScopesForRole("pimpinan"), ["published"]);
   assert.deepEqual(allowedScopesForRole("role-tidak-dikenal"), []);
@@ -18,7 +18,7 @@ test("matriks role-scope mengikuti desain SABABUKA", () => {
 
 test("paket peran pendaftaran mengikuti instansi", () => {
   assert.deepEqual(registrationRoleCodesForOrganization("BAPPERIDA"), ["opd", "bapperida"]);
-  assert.deepEqual(registrationRoleCodesForOrganization("DISKOMINFOSANTIK"), ["opd", "kominfo"]);
+  assert.deepEqual(registrationRoleCodesForOrganization("DISKOMINFOSANTIK"), ["opd"]);
   assert.deepEqual(registrationRoleCodesForOrganization("BPS_KAPUAS"), ["opd", "pembina_statistik"]);
   assert.deepEqual(registrationRoleCodesForOrganization("DINKES"), ["opd"]);
 });
