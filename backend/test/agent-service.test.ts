@@ -18,7 +18,7 @@ const insights = [make("a", "Angka Melek Huruf", [90, 92, 94, 95, 96, 97], ["Din
 const agent = new AgentService({} as Database);
 
 test("alat tersedia lengkap dan prompt membatasi ruang lingkup Kapuas", () => {
-  assert.deepEqual(AGENT_TOOLS.map((tool) => tool.name).sort(), ["ambil_kecamatan", "ambil_tren", "analisis_silang", "capaian_target", "cari_indikator", "indikator_opd", "perubahan_terbesar", "ringkasan_fokus", "ringkasan_umum", "skor_opd"]);
+  assert.deepEqual(AGENT_TOOLS.map((tool) => tool.name).sort(), ["ambil_kecamatan", "ambil_tren", "analisis_silang", "capaian_target", "cari_indikator", "indikator_opd", "kondisi_opd", "perubahan_terbesar", "ringkasan_fokus", "ringkasan_umum", "skor_opd"]);
   assert.match(AGENT_SYSTEM_PROMPT, /HANYA hal yang berkaitan dengan Kabupaten Kapuas/);
 });
 
@@ -101,4 +101,23 @@ test("agen mencatat alasan bila model tidak tersedia", async () => {
   const service = new AgentService(db);
   assert.equal(await service.run("Berapa penduduk?", []), null);
   assert.equal(service.failure, "llm_tidak_tersedia");
+});
+
+test("kondisi_opd menggabungkan capaian target, tren, dan kelengkapan realisasi per OPD", () => {
+  const row = (name: string, opd: string, status: string, latest: number | null, target: number, gapPct: number | null) => ({ indicator_id: name, name, sector: "S", unit: "%", source_kind: "rpjmd", latest_year: latest === null ? null : 2025, latest_value: latest, target_year: 2025, target_value: target, gap: latest === null ? null : latest - target, gap_pct: gapPct, status, opds: [opd], follow_up: "x" });
+  const rows = [
+    row("A1", "Dinas Pendidikan", "tercapai", 7, 5, 40), row("A2", "Dinas Pendidikan", "tercapai", 9, 5, 80), row("A3", "Dinas Pendidikan", "tercapai", 6, 5, 20),
+    row("B1", "Dinas Pertanian", "belum_tercapai", 4, 8, -50), row("B2", "Dinas Pertanian", "belum_ada_data", null, 5, null), row("B3", "Dinas Pertanian", "belum_tercapai", 1, 2, -50),
+    row("C1", "Dinas Kecil", "tercapai", 7, 5, 40),
+  ] as never;
+  const result = agent.execute("kondisi_opd", {}, insights, rows).result as { opd: Array<{ nama: string; skor: number | null; kondisi: string; belum_ada_realisasi: number; tertinggal: Array<{ nama: string }> }> };
+  const byName = (name: string) => result.opd.find((entry) => entry.nama === name)!;
+  assert.equal(byName("Dinas Pendidikan").kondisi, "baik");
+  assert.equal(byName("Dinas Pertanian").belum_ada_realisasi, 1);
+  assert.equal(byName("Dinas Pertanian").tertinggal.length, 2);
+  assert.ok(byName("Dinas Pendidikan").skor! > byName("Dinas Pertanian").skor!);
+  assert.equal(byName("Dinas Kecil").skor, null, "kurang dari 3 indikator bertarget tidak diberi skor");
+  const single = agent.execute("kondisi_opd", { nama_opd: "pertanian" }, insights, rows).result as { opd: unknown[] };
+  assert.equal(single.opd.length, 1);
+  assert.match(AGENT_SYSTEM_PROMPT, /kondisi OPD/);
 });

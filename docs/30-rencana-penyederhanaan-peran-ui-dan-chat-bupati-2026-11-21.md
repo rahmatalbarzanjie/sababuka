@@ -722,3 +722,11 @@ Setiap PR wajib memiliki migration impact, test, screenshot untuk UI, rollback, 
 
 - Angka realisasi tampil sesuai input (1,234 tidak lagi menjadi 1,2340000000 pada isian): util `number-format.ts`, diterapkan pada form capaian, target indikator, publikasi, dan konsolidasi.
 - Bukti dukung dihapus dari pelaporan OPD (4 endpoint, UI unggah, panel, OpenAPI). Tabel dan berkas lama dipertahankan. Backup lokal saja sampai keputusan lanjutan pemilik.
+
+### 24 November 2026 - Kondisi dan perkembangan OPD di chat Bupati
+
+- Alat agen `kondisi_opd` dan modul `opd-performance.ts`: skor 0-100 per OPD utama dari capaian target (bobot 50), arah tren (30), kelengkapan realisasi (20), hanya dari data disetujui dan terbit. OPD dengan kurang dari 3 indikator bertarget atau tanpa satu pun realisasi terbit tidak diberi skor (belum dapat dinilai). Prompt agen menambah aturan evaluasi: kondisi, kekuatan, kelemahan, indikator tertinggal, realisasi belum terbit, langkah pembinaan; tanpa menyimpulkan penyebab atau kelalaian.
+- Jawaban aturan (tanpa model AI) untuk pertanyaan kondisi, perkembangan, atau evaluasi OPD memakai skor yang sama.
+- Migration 091 menghapus seluruh riwayat chat lama (permintaan pemilik); jumlah baris tercatat di audit `assistant.history_cleared`. Uji pada salinan lokal: 50 sesi dan 214 pesan terhapus.
+- Tampilan Bupati diperiksa di desktop, tablet, dan ponsel (tanpa overflow dan galat JS); judul sambutan memakai warna teks utama dan contoh pertanyaan menambah kondisi OPD.
+- Ditunda: ukuran ketepatan waktu pelaporan dan jumlah pengembalian karena belum ada tenggat pelaporan di sistem dan data impor tidak mencerminkan waktu kirim nyata.

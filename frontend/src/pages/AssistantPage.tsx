@@ -15,7 +15,7 @@ interface Answer { message_id: string; answer: string; citations: Citation[]; su
 interface ChatMessage { id: string; role: "user" | "assistant"; content: string; created_at?: string; answer?: Answer }
 interface SessionDetail extends Session { messages: ChatMessage[] }
 
-const EXAMPLES = ["Apa yang perlu saya perhatikan hari ini?", "Bagaimana tren kemiskinan di Kapuas?", "Kecamatan mana yang paling rendah angka melek hurufnya?"];
+const EXAMPLES = ["Apa yang perlu saya perhatikan hari ini?", "Bagaimana kondisi dan perkembangan OPD di Kapuas?", "Bagaimana tren kemiskinan di Kapuas?", "Kecamatan mana yang paling rendah angka melek hurufnya?"];
 const DRAFT_KEY = "sababuka.assistant.draft";
 
 export function AssistantPage() {
@@ -118,7 +118,7 @@ export function AssistantPage() {
       </header>
 
       <div className="chat-stream" ref={stream} aria-live="polite">
-        {loadingChat ? <div className="assistant-chat-loading"><Spinner /><span>Memuat percakapan...</span></div> : !messages.length && <div className="assistant-welcome"><SababukaAssistantMark className="assistant-welcome-mark" state="neutral" /><h2>Apa yang ingin Bapak ketahui?</h2><p>Tanyakan kondisi daerah, tren indikator, perbandingan kecamatan, atau rekomendasi tindak lanjut.</p><div className="assistant-suggestions">{EXAMPLES.map((example) => <button key={example} type="button" onClick={() => void ask(example)}>{example}</button>)}</div></div>}
+        {loadingChat ? <div className="assistant-chat-loading"><Spinner /><span>Memuat percakapan...</span></div> : !messages.length && <div className="assistant-welcome"><SababukaAssistantMark className="assistant-welcome-mark" state="neutral" /><h2>Apa yang ingin Bapak ketahui?</h2><p>Tanyakan kondisi daerah, tren indikator, perkembangan OPD, perbandingan kecamatan, atau rekomendasi tindak lanjut.</p><div className="assistant-suggestions">{EXAMPLES.map((example) => <button key={example} type="button" onClick={() => void ask(example)}>{example}</button>)}</div></div>}
         {messages.map((item, index) => <article key={item.id} className={`chat-message ${item.role}`} data-newest={index === messages.length - 1 ? "" : undefined}><span>{item.role === "assistant" ? <SababukaAssistantMark state={assistantState(item.answer)} /> : <UserRound />}</span><div>
           {item.role === "assistant" ? <RichText text={item.content} /> : <p className="chat-text">{item.content}</p>}
           {!!item.answer?.visuals?.length && <div className="chat-visuals">{item.answer.visuals.map((visual, position) => <VisualBlock key={`${item.id}-${position}`} visual={visual} />)}</div>}
