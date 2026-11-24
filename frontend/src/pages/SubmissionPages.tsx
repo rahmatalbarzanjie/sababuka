@@ -1,10 +1,11 @@
-import { BadgeCheck, BookCheck, CheckCircle2, ClipboardList, Download, FileCheck2, Plus, Save, Send, Trash2, Undo2, Upload } from "lucide-react";
+import { BadgeCheck, BookCheck, CheckCircle2, ClipboardList, Plus, Save, Send, Undo2 } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { api, apiPath, jsonBody } from "../api";
+import { api, jsonBody } from "../api";
 import { useAuth } from "../auth";
 import { Badge, capaianStatusLabel, RowLink, EmptyState, ErrorState, formatDate, formatDateOnly, formatTanggal, Modal, Notice, PageSizeControl, Pagination, SortableHeader, Spinner, useAsync, type SortDirection, type StatusViewpoint } from "../components";
 import { navigate } from "../router";
-import type { Organization, PageResponse, Period, StatisticalGuidanceNote, Submission, SubmissionEvidence, SubmissionObservation } from "../types";
+import { formatStoredNumber, trimNumericText } from "../utils/number-format";
+import type { Organization, PageResponse, Period, StatisticalGuidanceNote, Submission, SubmissionObservation } from "../types";
 
 function formatIndicatorValue(value: string | number | null | undefined, dataType: string, unit?: string | null) {
   if (value === null || value === undefined || value === "") return "-";
@@ -12,7 +13,7 @@ function formatIndicatorValue(value: string | number | null | undefined, dataTyp
   if (!["text", "boolean"].includes(dataType)) {
     const numericValue = Number(value);
     if (Number.isFinite(numericValue)) {
-      return `${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 4 }).format(numericValue)}${suffix}`;
+      return `${formatStoredNumber(numericValue)}${suffix}`;
     }
   }
   return `${String(value)}${suffix}`;
@@ -112,7 +113,6 @@ function CreateSubmission({ organizations, preferredOrganizationId, onClose, onC
 
 function SubmissionDetailModal({ id, review, guidance, statusViewpoint, permissions, writableOrganizationIds, onClose, onChanged }: { id: string; review: boolean; guidance: boolean; statusViewpoint: StatusViewpoint; permissions: string[]; writableOrganizationIds: string[]; onClose(): void; onChanged(): void }) {
   const detail = useAsync(() => api<Submission>(`/submissions/${id}`), [id]);
-  const evidence = useAsync(() => api<{ data: SubmissionEvidence[] }>(`/submissions/${id}/evidence`), [id]);
   const guidanceNotes = useAsync(() => api<{ data: StatisticalGuidanceNote[] }>(`/submissions/${id}/guidance`), [id]);
   const [values, setValues] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
@@ -123,12 +123,12 @@ function SubmissionDetailModal({ id, review, guidance, statusViewpoint, permissi
   const [guidanceType, setGuidanceType] = useState<StatisticalGuidanceNote["guidance_type"]>("methodology");
   const [guidanceIndicatorId, setGuidanceIndicatorId] = useState("");
   const [guidanceText, setGuidanceText] = useState("");
-  const [checks, setChecks] = useState({ values: false, evidence: false });
+  const [checks, setChecks] = useState({ values: false, source: false });
   const [affected, setAffected] = useState<Set<string>>(new Set());
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
   const itemEditable = (item: SubmissionObservation) => editable && (!detail.data?.partial_reopen || item.reopened === true);
-  const currentValue = (item: SubmissionObservation) => values[item.indicator_version_id] ?? String(item.numeric_value ?? item.text_value ?? "");
+  const currentValue = (item: SubmissionObservation) => values[item.indicator_version_id] ?? trimNumericText(item.numeric_value ?? item.text_value ?? "");
   const ownsSubmission = detail.data ? writableOrganizationIds.includes(detail.data.organization_id) : false;
   const editable = detail.data ? !review && !guidance && ownsSubmission && ["draft", "returned"].includes(detail.data.status) && permissions.includes("submission.update") : false;
 
@@ -169,21 +169,6 @@ function SubmissionDetailModal({ id, review, guidance, statusViewpoint, permissi
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Sebagian perubahan belum dapat disimpan."); }
     finally { setBusy(false); }
   };
-  const upload = async (file: File, indicatorVersionId: string) => {
-    setBusy(true); setError("");
-    try {
-      const form = new FormData(); form.append("file", file);
-      await api(`/submissions/${id}/evidence?indicator_version_id=${indicatorVersionId}`, { method: "POST", mutation: true, body: form });
-      evidence.reload();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Bukti dukung gagal diunggah."); }
-    finally { setBusy(false); }
-  };
-  const removeEvidence = async (evidenceId: string) => {
-    setBusy(true); setError("");
-    try { await api(`/submissions/${id}/evidence/${evidenceId}`, { method: "DELETE", mutation: true }); evidence.reload(); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Bukti dukung gagal dihapus."); }
-    finally { setBusy(false); }
-  };
   const act = async (action: "submit" | "start-review" | "return" | "approve" | "reopen", actionNotes: string | null = null) => {
     setBusy(true); setError("");
     try { const structuredNotes = action === "return" && affected.size ? `Indikator yang perlu diperbaiki: ${detail.data?.observations.filter((item) => affected.has(item.indicator_version_id)).map((item) => item.indicator_name).join(", ")}\n\n${actionNotes ?? ""}` : actionNotes; await api(`/submissions/${id}/actions/${action}`, { method: "POST", mutation: true, body: jsonBody({ notes: structuredNotes }) }); detail.reload(); onChanged(); }
@@ -222,12 +207,9 @@ function SubmissionDetailModal({ id, review, guidance, statusViewpoint, permissi
           {canReopenItem(item) && (openingId === item.indicator_version_id
             ? <div className="reopen-item"><label className="field"><span>Alasan membuka indikator ini (minimal 10 karakter)</span><textarea rows={2} value={openReason} onChange={(event) => setOpenReason(event.target.value)} /></label><div className="realization-actions"><button className="button secondary compact" disabled={busy} onClick={() => setOpeningId(null)}>Batal</button><button className="button primary compact" disabled={busy || openReason.trim().length < 10} onClick={() => void reopenIndicators([item.indicator_version_id], openReason.trim())}><Undo2 />Buka untuk OPD</button></div></div>
             : <div className="realization-actions"><button className="button secondary compact" disabled={busy} onClick={() => { setOpeningId(item.indicator_version_id); setOpenReason(DEFAULT_OPEN_REASON); }}><Undo2 />Buka kembali indikator ini</button></div>)}
-          {itemEditable(item) && <div className="realization-actions"><button className="button secondary compact" disabled={busy || !currentValue(item)} onClick={() => save(item)}><Save />Simpan indikator</button><label className="button secondary compact upload-button"><Upload />Bukti dukung<input type="file" accept=".pdf,.jpg,.jpeg,.png,.xlsx" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file, item.indicator_version_id); event.target.value = ""; }} /></label></div>}
+          {itemEditable(item) && <div className="realization-actions"><button className="button secondary compact" disabled={busy || !currentValue(item)} onClick={() => save(item)}><Save />Simpan indikator</button></div>}
           {itemEditable(item) && numericDeviation(item, currentValue(item)) && <Notice tone="warning">Nilai berbeda lebih dari 50% terhadap target. Periksa kembali satuan dan angka, lalu jelaskan penyebabnya pada catatan jika memang benar.</Notice>}
         </section>)}</div></>}
-      <section className="evidence-panel"><h3><FileCheck2 />Dokumen pendukung internal</h3><p>Lampirkan sumber perhitungan, rekap, atau dokumen pengesahan bila tersedia. PDF, JPG, PNG, atau XLSX; maksimum 10 MB. Dokumen hanya dapat dilihat instansi terkait serta petugas pemeriksaan dan pembinaan yang berwenang.</p>
-        {evidence.loading ? <Spinner /> : !evidence.data?.data.length ? <small>Belum ada bukti dukung.</small> : <div className="evidence-list">{evidence.data.data.map((item) => <div key={item.id}><span><strong>{item.original_filename}</strong><small>{item.indicator_code ?? "Umum"} - {(Number(item.byte_size) / 1024).toLocaleString("id-ID", { maximumFractionDigits: 1 })} KB</small></span><span><a className="icon-button" aria-label="Unduh bukti" href={apiPath(`/submissions/${id}/evidence/${item.id}/download`)}><Download /></a>{editable && <button className="icon-button danger-text" aria-label="Hapus bukti" onClick={() => removeEvidence(item.id)}><Trash2 /></button>}</span></div>)}</div>}
-      </section>
       <section className="evidence-panel statistical-guidance-panel"><h3><BookCheck />Rekomendasi Pembina Data Statistik</h3><p>Catatan BPS bersifat pembinaan. Nilai tidak berubah otomatis dan status pelaporan tetap diputuskan melalui alur daerah.</p>
         {guidanceNotes.loading ? <Spinner /> : guidanceNotes.error ? <Notice tone="error">{guidanceNotes.error.message}</Notice> : !guidanceNotes.data?.data.length ? <small>Belum ada rekomendasi statistik.</small> : <div className="guidance-note-list">{guidanceNotes.data.data.map((item) => <article key={item.id} className={item.resolved_at ? "resolved" : ""}><header><span><Badge tone={item.resolved_at ? "success" : "warning"}>{item.resolved_at ? "Ditindaklanjuti" : "Perlu ditinjau"}</Badge><strong>{({ standard: "Standar data", metadata: "Metadata", methodology: "Metodologi", consistency: "Konsistensi" } as const)[item.guidance_type]}</strong></span><small>{formatDateOnly(item.created_at)} - {item.created_by_name}</small></header>{item.indicator_name && <small>Indikator: {item.indicator_name}</small>}<p>{item.notes}</p>{item.resolution_notes && <small>Tindak lanjut: {item.resolution_notes}</small>}{ownsSubmission && !item.resolved_at && <button className="button secondary compact" disabled={busy} onClick={() => void resolveGuidance(item.id)}><CheckCircle2 />Tandai sudah ditindaklanjuti</button>}</article>)}</div>}
         {guidance && permissions.includes("statistical_guidance.comment") && <div className="guidance-form"><div className="form-grid"><label className="field"><span>Jenis pembinaan</span><select data-field="guidance_type" value={guidanceType} onChange={(event) => setGuidanceType(event.target.value as StatisticalGuidanceNote["guidance_type"])}><option value="standard">Standar data</option><option value="metadata">Metadata</option><option value="methodology">Metodologi</option><option value="consistency">Konsistensi</option></select></label><label className="field"><span>Indikator <small>(opsional)</small></span><select data-field="indicator_version_id" value={guidanceIndicatorId} onChange={(event) => setGuidanceIndicatorId(event.target.value)}><option value="">Seluruh pelaporan</option>{detail.data.observations.map((item) => <option key={item.indicator_version_id} value={item.indicator_version_id}>{item.indicator_name}</option>)}</select></label></div><label className="field"><span>Rekomendasi perbaikan</span><textarea rows={4} data-field="notes" value={guidanceText} onChange={(event) => setGuidanceText(event.target.value)} placeholder="Jelaskan standar atau metode yang perlu diperbaiki. Jangan mengubah nilai atas nama produsen data." /></label><button className="button primary" disabled={busy || guidanceText.trim().length < 3} onClick={() => void addGuidance()}><BookCheck />Simpan rekomendasi</button></div>}
@@ -239,7 +221,7 @@ function SubmissionDetailModal({ id, review, guidance, statusViewpoint, permissi
           <label className="field"><span>Alasan membuka kembali (wajib, minimal 10 karakter)</span><textarea rows={3} data-field="reopen-notes" value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} placeholder="Contoh: nilai 2024 keliru input, perlu dikoreksi sesuai laporan dinas." /></label>
           <footer><button className="button secondary" disabled={busy} onClick={() => { setReopenOpen(false); setReviewNotes(""); }}>Batal</button><button className="button primary" disabled={busy || reviewNotes.trim().length < 10} onClick={() => void act("reopen", reviewNotes.trim()).then(() => { setReopenOpen(false); setReviewNotes(""); })}><Undo2 />Tarik dan buka kembali</button></footer></>}
       </section>}
-      {review && detail.data.status === "under_review" && <section className="review-decision-panel"><header><span><CheckCircle2 /></span><div><h3>Keputusan pemeriksaan</h3><p>Gunakan checklist singkat ini agar keputusan mudah dipahami OPD dan dapat dipertanggungjawabkan.</p></div></header><label className="review-check"><input type="checkbox" checked={checks.values} onChange={(event) => setChecks((current) => ({ ...current, values: event.target.checked }))} /><span><strong>Nilai dan satuan sudah diperiksa</strong><small>Angka sesuai periode, target, dan konteks indikator.</small></span></label><label className="review-check"><input type="checkbox" checked={checks.evidence} onChange={(event) => setChecks((current) => ({ ...current, evidence: event.target.checked }))} /><span><strong>Sumber dan dokumen pendukung sudah diperiksa</strong><small>Catatan atau bukti cukup untuk menjelaskan asal data.</small></span></label><fieldset className="affected-indicators"><legend>Indikator yang perlu diperbaiki <small>(pilih untuk pengembalian)</small></legend>{detail.data.observations.map((item) => <label key={item.indicator_version_id}><input type="checkbox" checked={affected.has(item.indicator_version_id)} onChange={(event) => setAffected((current) => { const next = new Set(current); if (event.target.checked) next.add(item.indicator_version_id); else next.delete(item.indicator_version_id); return next; })} /><span>{item.indicator_name}</span></label>)}</fieldset><label className="field"><span>Catatan keputusan</span><textarea rows={4} data-field="notes" value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} placeholder="Jelaskan nilai, sumber, dokumen, atau bagian yang perlu diperbaiki." /></label><footer><button className="button secondary" disabled={busy || !reviewNotes.trim() || !affected.size} onClick={() => void act("return", reviewNotes.trim())}><Undo2 />Kembalikan indikator terpilih</button><button className="button primary" disabled={busy || !checks.values || !checks.evidence} onClick={() => void act("approve", reviewNotes.trim() || null)}><BadgeCheck />Setujui capaian</button></footer></section>}
+      {review && detail.data.status === "under_review" && <section className="review-decision-panel"><header><span><CheckCircle2 /></span><div><h3>Keputusan pemeriksaan</h3><p>Gunakan checklist singkat ini agar keputusan mudah dipahami OPD dan dapat dipertanggungjawabkan.</p></div></header><label className="review-check"><input type="checkbox" checked={checks.values} onChange={(event) => setChecks((current) => ({ ...current, values: event.target.checked }))} /><span><strong>Nilai dan satuan sudah diperiksa</strong><small>Angka sesuai periode, target, dan konteks indikator.</small></span></label><label className="review-check"><input type="checkbox" checked={checks.source} onChange={(event) => setChecks((current) => ({ ...current, source: event.target.checked }))} /><span><strong>Sumber dan catatan sudah diperiksa</strong><small>Catatan cukup untuk menjelaskan asal data.</small></span></label><fieldset className="affected-indicators"><legend>Indikator yang perlu diperbaiki <small>(pilih untuk pengembalian)</small></legend>{detail.data.observations.map((item) => <label key={item.indicator_version_id}><input type="checkbox" checked={affected.has(item.indicator_version_id)} onChange={(event) => setAffected((current) => { const next = new Set(current); if (event.target.checked) next.add(item.indicator_version_id); else next.delete(item.indicator_version_id); return next; })} /><span>{item.indicator_name}</span></label>)}</fieldset><label className="field"><span>Catatan keputusan</span><textarea rows={4} data-field="notes" value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} placeholder="Jelaskan nilai, sumber, dokumen, atau bagian yang perlu diperbaiki." /></label><footer><button className="button secondary" disabled={busy || !reviewNotes.trim() || !affected.size} onClick={() => void act("return", reviewNotes.trim())}><Undo2 />Kembalikan indikator terpilih</button><button className="button primary" disabled={busy || !checks.values || !checks.source} onClick={() => void act("approve", reviewNotes.trim() || null)}><BadgeCheck />Setujui capaian</button></footer></section>}
       <footer className="detail-actions">
         {action && action !== "approve" && <button className="button primary" disabled={busy || (action === "submit" && !detail.data.row_count)} onClick={() => void act(action)}>{action === "submit" ? <Send /> : <ClipboardList />}{action === "submit" ? "Kirim ke BAPPERIDA" : "Mulai pemeriksaan"}</button>}
       </footer>

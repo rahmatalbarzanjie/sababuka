@@ -274,21 +274,6 @@ export interface Submission {
   observations: SubmissionObservation[];
 }
 
-export interface SubmissionEvidence {
-  id: string;
-  batch_id: string;
-  indicator_version_id: string | null;
-  indicator_code: string | null;
-  indicator_name: string | null;
-  original_filename: string;
-  mime_type: string;
-  byte_size: string;
-  checksum_sha256: string;
-  uploaded_by: string;
-  uploaded_by_name: string;
-  uploaded_at: string;
-}
-
 export interface StatisticalGuidanceNote {
   id: string;
   batch_id: string;

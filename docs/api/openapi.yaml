@@ -920,69 +920,6 @@ paths:
         "403": {$ref: "#/components/responses/Forbidden"}
         "413": {$ref: "#/components/responses/UploadTooLarge"}
         "415": {$ref: "#/components/responses/UnsupportedFile"}
-  /submissions/{submission_id}/evidence:
-    get:
-      tags: [Submissions]
-      operationId: listSubmissionEvidence
-      summary: Daftar bukti dukung privat sesuai scope
-      parameters:
-        - $ref: "#/components/parameters/SubmissionId"
-      responses:
-        "200": {description: Daftar metadata bukti dukung}
-        "403": {$ref: "#/components/responses/Forbidden"}
-    post:
-      tags: [Submissions]
-      operationId: uploadSubmissionEvidence
-      summary: Unggah PDF, JPG, PNG, atau XLSX maksimum 10 MB
-      parameters:
-        - $ref: "#/components/parameters/SubmissionId"
-        - name: indicator_version_id
-          in: query
-          schema: {$ref: "#/components/schemas/Uuid"}
-        - $ref: "#/components/parameters/CsrfToken"
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [file]
-              properties:
-                file: {type: string, format: binary}
-      responses:
-        "201": {description: Bukti tersimpan dengan checksum SHA-256}
-        "413": {$ref: "#/components/responses/UploadTooLarge"}
-        "415": {$ref: "#/components/responses/UnsupportedFile"}
-  /submissions/{submission_id}/evidence/{evidence_id}:
-    delete:
-      tags: [Submissions]
-      operationId: deleteSubmissionEvidence
-      summary: Soft-delete bukti dukung pada form yang masih dapat diubah
-      parameters:
-        - $ref: "#/components/parameters/SubmissionId"
-        - name: evidence_id
-          in: path
-          required: true
-          schema: {$ref: "#/components/schemas/Uuid"}
-        - $ref: "#/components/parameters/CsrfToken"
-      responses:
-        "204": {description: Bukti dihapus}
-        "409": {$ref: "#/components/responses/InvalidTransition"}
-  /submissions/{submission_id}/evidence/{evidence_id}/download:
-    get:
-      tags: [Submissions]
-      operationId: downloadSubmissionEvidence
-      summary: Unduh bukti dukung privat sesuai scope
-      parameters:
-        - $ref: "#/components/parameters/SubmissionId"
-        - name: evidence_id
-          in: path
-          required: true
-          schema: {$ref: "#/components/schemas/Uuid"}
-      responses:
-        "200": {description: Isi berkas bukti dukung}
-        "403": {$ref: "#/components/responses/Forbidden"}
-        "404": {$ref: "#/components/responses/NotFound"}
   /submissions/{submission_id}/actions/{action}:
     post:
       tags: [Submissions]

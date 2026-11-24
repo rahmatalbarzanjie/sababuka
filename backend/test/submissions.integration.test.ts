@@ -64,26 +64,9 @@ test("form capaian OPD mendukung isi, submit, return, dan approve", { skip: !dat
     assert.equal(saved.statusCode, 200, saved.body);
     assert.equal(Number(saved.json().numeric_value), 82.75);
 
-    const boundary = "----sababuka-integration-boundary";
-    const pdf = Buffer.from("%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\n%%EOF", "utf8");
-    const multipart = Buffer.concat([
-      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="bukti-uji.pdf"\r\nContent-Type: application/pdf\r\n\r\n`),
-      pdf, Buffer.from(`\r\n--${boundary}--\r\n`),
-    ]);
-    const uploaded = await app.inject({ method: "POST", url: `/api/v1/submissions/${created.json().id}/evidence?indicator_version_id=${indicator.version_id}`,
-      headers: { ...opdHeaders, "content-type": `multipart/form-data; boundary=${boundary}` }, payload: multipart });
-    assert.equal(uploaded.statusCode, 201, uploaded.body);
-    assert.equal(uploaded.json().original_filename, "bukti-uji.pdf");
-    assert.equal(Number(uploaded.json().byte_size), pdf.length);
-
-    const evidence = await app.inject({ method: "GET", url: `/api/v1/submissions/${created.json().id}/evidence`, headers: { cookie: opdHeaders.cookie } });
-    assert.equal(evidence.statusCode, 200, evidence.body);
-    assert.equal(evidence.json().data.length, 1);
-    const downloaded = await app.inject({ method: "GET", url: `/api/v1/submissions/${created.json().id}/evidence/${uploaded.json().id}/download`, headers: { cookie: opdHeaders.cookie } });
-    assert.equal(downloaded.statusCode, 200, downloaded.body);
-    assert.equal(downloaded.rawPayload.equals(pdf), true);
-    const removed = await app.inject({ method: "DELETE", url: `/api/v1/submissions/${created.json().id}/evidence/${uploaded.json().id}`, headers: opdHeaders });
-    assert.equal(removed.statusCode, 204, removed.body);
+    // Bukti dukung dihapus dari fitur pelaporan: endpoint lama tidak ada lagi.
+    const evidenceGone = await app.inject({ method: "GET", url: `/api/v1/submissions/${created.json().id}/evidence`, headers: { cookie: opdHeaders.cookie } });
+    assert.equal(evidenceGone.statusCode, 404, evidenceGone.body);
 
     const reviewer = await db.query<{ id: string }>(`INSERT INTO sababuka.users (email, full_name, status) VALUES ('reviewer.integration@sababuka.test', 'Reviewer Integration', 'active') RETURNING id::text`);
     await db.query(`INSERT INTO sababuka.user_role_assignments (user_id, role_id, scope_type) SELECT $1, id, 'global' FROM sababuka.roles WHERE code = 'bapperida'`, [reviewer.rows[0]!.id]);
