@@ -5,6 +5,7 @@ import { AchievementService, type AchievementItem } from "./achievement-service.
 import { InsightService, type Insight } from "./insight-service.js";
 import { CrossAnalysisService, buildCrossAnalysis, type IndicatorContext } from "./cross-analysis-service.js";
 import { FocusService, type FocusOverview } from "./focus-service.js";
+import { OPD_SCORE_WEIGHTS, conditionLabel, opdPerformance } from "./opd-performance.js";
 import { LlmService, ungroundedNumbers, type ToolDefinition } from "./llm-service.js";
 
 export const AGENT_SYSTEM_PROMPT = `Anda adalah Sababuka, asisten data resmi untuk Bupati Kabupaten Kapuas, Kalimantan Tengah.
@@ -15,10 +16,11 @@ Cara kerja:
 3. Gunakan angka persis seperti pada hasil alat. Jangan menghitung sendiri persentase, selisih, atau rata-rata yang tidak disediakan alat.
 4. Jika data tidak ada atau tidak cukup, katakan terus terang apa yang tidak tersedia, jangan mengarang.
 5. Tulis seperti analis senior yang menyampaikan paparan singkat kepada Bupati: bahasa Indonesia baku, tenang, tegas, dan berbasis angka. Kalimat aktif dan pendek. Tanpa pembuka basa-basi ("Tentu", "Berikut"), tanpa emoji, tanpa kata sifat berlebihan, tanpa permintaan maaf. Jangan pernah memakai tanda pisah panjang (em dash) atau tanda pisah sedang (en dash); pakai tanda hubung biasa, koma, titik dua, atau titik.
-6. Setiap angka yang disebut wajib disertai asal sumbernya (RPJMD, usulan OPD, BPS Kapuas dalam Angka, atau Satu Data Kapuas) dan tahun datanya. Bila jawaban bersandar pada data berstatus "Bank Data (belum diverifikasi)", sebutkan dalam satu kalimat di bagian Catatan bahwa data itu belum diverifikasi OPD/BAPPERIDA. Peringkat OPD hanyalah arah perubahan indikator, bukan penilaian kinerja resmi.
+6. Setiap angka yang disebut wajib disertai asal sumbernya (RPJMD, usulan OPD, BPS Kapuas dalam Angka, atau Satu Data Kapuas) dan tahun datanya. Bila jawaban bersandar pada data berstatus "Bank Data (belum diverifikasi)", sebutkan dalam satu kalimat di bagian Catatan bahwa data itu belum diverifikasi OPD/BAPPERIDA. Peringkat dan kondisi OPD adalah ukuran sistem dari data terbit (capaian terhadap target, arah tren, kelengkapan realisasi), bukan penilaian kinerja resmi.
 7. Jangan menyebut nama alat, "JSON", atau istilah teknis sistem. Jangan memakai tabel.
 8. Untuk pertanyaan tentang indikator yang sudah atau belum mencapai target, gunakan alat capaian target. Status tercapai atau belum tercapai (terhadap target) berbeda dari membaik atau memburuk (arah tren); sebut keduanya secara terpisah. Sistem hanya memberi rekomendasi kepada OPD dan tidak menyimpan tanggapan atau rencana OPD, jadi jangan menyatakan OPD telah atau akan melakukan sesuatu.
 9. Untuk pertanyaan tentang keterkaitan, faktor penyebab, OPD lain yang berperan, wilayah prioritas, atau rekomendasi yang tepat sasaran, panggil alat analisis silang untuk indikatornya (dan alat ringkasan fokus untuk pertanyaan per fokus kebijakan). Bandingkan indikator hanya pada tahun yang sama; bila tahun berbeda, katakan tidak dibandingkan. Korelasi hanya keterkaitan statistik, jangan menyebutnya sebab-akibat. Keterkaitan yang bukan Tautan Seri Data adalah usulan sistem yang belum divalidasi BAPPERIDA, sebut itu. Sebut kecamatan prioritas hanya bila alat memberikannya; bila tidak ada data kecamatan, katakan wilayah prioritas belum dapat ditentukan. Pengelompokan fokus kebijakan adalah hasil analisis, bukan klasifikasi resmi RPJMD.
+10. Untuk pertanyaan tentang kondisi, perkembangan, kinerja, atau evaluasi OPD, panggil alat kondisi OPD (tanpa nama untuk gambaran seluruh OPD, dengan nama untuk satu OPD) dan bila perlu alat indikator OPD. Jawab sebagai bahan evaluasi: sebut kondisi, kekuatan, kelemahan, indikator yang tertinggal atau memburuk, realisasi yang belum terbit, lalu langkah pembinaan atau tindak lanjut untuk Bupati. Sebut dasar penilaian (capaian target, arah tren, kelengkapan realisasi) satu kali. Jangan menyimpulkan penyebab, niat, atau kelalaian OPD, dan jangan menyatakan OPD telah atau akan melakukan sesuatu. OPD dengan skor kosong belum dapat dinilai (indikator bertarget kurang dari 3 atau belum ada realisasi terbit); katakan demikian dan sebut realisasi yang belum terbit.
 Format jawaban (gunakan hanya penanda ini: **tebal**, butir diawali "- ", daftar bernomor "1.", dan satu baris judul bagian berupa teks tebal sendirian):
 - Pertanyaan faktual sederhana: jawab langsung dalam 1-3 kalimat, tanpa judul bagian.
 - Pertanyaan analisis, tren, atau "apa yang perlu diperhatikan": gunakan bagian berikut, lewati yang tidak relevan:
@@ -36,6 +38,7 @@ export const AGENT_TOOLS: ToolDefinition[] = [
   { name: "ambil_tren", description: "Mengambil riwayat tahunan satu indikator beserta analisis tren: perubahan tahun terakhir, laju rata-rata, arah (naik/turun/stabil), penilaian, anomali, OPD penanggung jawab, dan saran.", input_schema: { type: "object", properties: { indikator_id: { type: "string" } }, required: ["indikator_id"] } },
   { name: "ambil_kecamatan", description: "Mengambil nilai satu indikator per kecamatan pada tahun terbaru beserta perubahan dari tahun sebelumnya, tertinggi, terendah, dan kesenjangan.", input_schema: { type: "object", properties: { indikator_id: { type: "string" } }, required: ["indikator_id"] } },
   { name: "skor_opd", description: "Peringkat OPD berdasarkan arah perubahan indikator yang menjadi tanggung jawabnya (jumlah membaik dan memburuk). Bukan penilaian kinerja resmi.", input_schema: { type: "object", properties: {} } },
+  { name: "kondisi_opd", description: "Kondisi dan perkembangan OPD sebagai bahan evaluasi: indikator bertarget, tercapai, belum tercapai, realisasi belum terbit, indikator membaik dan memburuk, kelengkapan realisasi, skor gabungan, kondisi (baik, cukup, perlu perhatian, perlu pembinaan), serta indikator tertinggal. Tanpa nama OPD mengembalikan semua OPD terurut skor.", input_schema: { type: "object", properties: { nama_opd: { type: "string", description: "opsional: sebagian nama OPD" }, batas: { type: "integer", minimum: 1, maximum: 15 } } } },
   { name: "indikator_opd", description: "Daftar indikator di bawah tanggung jawab satu OPD, diurutkan dari yang paling perlu perhatian.", input_schema: { type: "object", properties: { nama_opd: { type: "string", description: "sebagian nama OPD, mis. 'Pendidikan'" }, batas: { type: "integer", minimum: 1, maximum: 15 } }, required: ["nama_opd"] } },
   { name: "perubahan_terbesar", description: "Indikator dengan perubahan paling menonjol: yang memburuk, membaik, naik, turun, atau anomali.", input_schema: { type: "object", properties: { jenis: { type: "string", enum: ["memburuk", "membaik", "naik", "turun", "anomali"] }, sumber: { type: "string", enum: ["rpjmd", "bps", "satudata"] }, batas: { type: "integer", minimum: 1, maximum: 10 } }, required: ["jenis"] } },
   { name: "capaian_target", description: "Capaian indikator RPJMD terhadap target tahun yang sama: jumlah tercapai, belum tercapai, dan belum ada realisasi, beserta daftar indikatornya (realisasi, target, selisih, OPD). Gunakan untuk pertanyaan tentang indikator yang sudah atau belum mencapai target.", input_schema: { type: "object", properties: { status: { type: "string", enum: ["tercapai", "belum_tercapai", "belum_ada_data"] }, batas: { type: "integer", minimum: 1, maximum: 15 } } } },
@@ -97,6 +100,28 @@ export class AgentService {
         return {
           visual: { kind: "districts", title: "Skor perbaikan indikator per OPD", unit: "", items: board.filter((entry) => entry.score !== null).slice(0, 8).map((entry) => ({ name: entry.name.replace(/^Dinas |^Badan /u, ""), value: entry.score! })) },
           result: { catatan: "Skor = (membaik - memburuk) / indikator yang arahnya jelas, dalam persen. Hanya OPD dengan minimal 3 indikator ber-arah yang diberi skor.", opd: board.slice(0, 20).map((entry) => ({ nama: entry.name, indikator_total: entry.total, membaik: entry.membaik, memburuk: entry.memburuk, skor: entry.score })) },
+        };
+      }
+      case "kondisi_opd": {
+        const needle = text("nama_opd").toLowerCase();
+        const all = opdPerformance(insights, achievement);
+        const picked = (needle ? all.filter((entry) => entry.nama.toLowerCase().includes(needle)) : all).slice(0, limit(needle ? 5 : 12, 15));
+        if (!picked.length) return { result: { jumlah: 0, catatan: "Tidak ada OPD dengan nama itu atau belum punya indikator bertarget." } };
+        const scored = picked.filter((entry) => entry.skor !== null);
+        return {
+          ...(!needle && scored.length >= 2 ? { visual: { kind: "districts", title: "Skor kondisi OPD (0 sampai 100)", unit: "", items: scored.slice(0, 8).map((entry) => ({ name: entry.nama.replace(/^Dinas |^Badan /u, ""), value: entry.skor! })) } } : {}),
+          result: {
+            catatan: "Skor 0 sampai 100 gabungan tiga ukuran dari data terbit. Hanya OPD dengan minimal 3 indikator bertarget dan minimal satu realisasi terbit yang diberi skor; sisanya belum dapat dinilai. Bukan penilaian kinerja resmi.",
+            bobot_persen: OPD_SCORE_WEIGHTS,
+            kondisi: "baik: 75 ke atas; cukup: 55 sampai 74; perlu perhatian: 35 sampai 54; perlu pembinaan: di bawah 35",
+            opd: picked.map((entry) => ({
+              nama: entry.nama, skor: entry.skor, kondisi: conditionLabel[entry.kondisi], indikator_bertarget: entry.indikator_bertarget,
+              tercapai: entry.tercapai, belum_tercapai: entry.belum_tercapai, belum_ada_realisasi: entry.belum_ada_realisasi,
+              persen_tercapai: entry.persen_tercapai, kelengkapan_realisasi_persen: entry.kelengkapan_realisasi, indikator_membaik: entry.membaik, indikator_memburuk: entry.memburuk,
+              tertinggal: entry.tertinggal.map((item) => ({ nama: item.nama, tahun: item.tahun, realisasi: item.realisasi === null ? null : num(item.realisasi), target: item.target === null ? null : num(item.target), selisih_persen: item.selisih_persen === null ? null : num(item.selisih_persen) })),
+              memburuk: entry.memburuk_daftar, belum_ada_realisasi_daftar: entry.belum_diisi,
+            })),
+          },
         };
       }
       case "indikator_opd": {

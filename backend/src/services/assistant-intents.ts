@@ -1,6 +1,7 @@
 import type { Insight } from "./insight-service.js";
 import { formatPct } from "./trend-engine.js";
 import type { AchievementItem } from "./achievement-service.js";
+import { conditionLabel, opdPerformance } from "./opd-performance.js";
 
 const STOP = new Set(["apa", "apakah", "berapa", "bagaimana", "gimana", "dan", "atau", "yang", "dari", "untuk", "pada", "di", "ke", "tahun", "data", "capaian", "indikator", "tampilkan", "jelaskan", "nilai", "tolong", "dong", "saya", "kita", "kapuas", "kabupaten", "ini", "itu", "ada", "saja", "mana", "siapa", "sih", "lagi", "terbaru", "sekarang", "tren", "perkembangan", "kondisi", "rekomendasi", "saran", "kecamatan", "wilayah", "opd", "dinas", "bertanggung", "jawab", "penanggung", "dengan", "oleh", "akan", "bisa", "mohon", "lihat", "beri", "berikan"]);
 
@@ -16,7 +17,7 @@ export function parseIntent(question: string): Intent {
   const year = text.match(/(?:^|\D)((?:19|20)\d{2})(?!\d)/u);
   const tokens = tokenize(question);
   return {
-    rankOpd: /(opd|dinas|badan|instansi|perangkat daerah).{0,40}(paling|terbaik|terburuk|kinerja|baik|buruk|peringkat|ranking|prestasi|bagus|jelek)|(paling|terbaik|terburuk|kinerja|peringkat|ranking).{0,40}(opd|dinas|badan|instansi)/u.test(text),
+    rankOpd: /(opd|dinas|badan|instansi|perangkat daerah).{0,40}(paling|terbaik|terburuk|kinerja|baik|buruk|peringkat|ranking|prestasi|bagus|jelek|kondisi|perkembangan|evaluasi)|(paling|terbaik|terburuk|kinerja|peringkat|ranking|kondisi|perkembangan|evaluasi).{0,40}(opd|dinas|badan|instansi)/u.test(text),
     overview: /ringkas|rangkum|gambaran|overview|laporan|apa saja|perlu perhatian|prioritas|kabar|situasi|kondisi (umum|kabupaten)/u.test(text) || tokens.length === 0,
     district: /kecamatan|wilayah|daerah mana|peta|sebaran/u.test(text),
     opd: /\bopd\b|dinas|bertanggung|penanggung|siapa yang/u.test(text),
@@ -84,6 +85,22 @@ export function opdScoreboard(insights: Insight[]): OpdScore[] {
   return [...groups.values()].map((entry) => ({ ...entry, score: entry.assessable >= 3 ? Math.round(((entry.membaik - entry.memburuk) / entry.assessable) * 100) : null }));
 }
 
+/** Jawaban aturan untuk kondisi OPD bila model tidak tersedia: skor gabungan capaian target, arah tren, dan kelengkapan realisasi. */
+function opdConditionReply(insights: Insight[], achievement: AchievementItem[]): AssistantReply | null {
+  const scored = opdPerformance(insights, achievement).filter((entry) => entry.skor !== null);
+  if (scored.length < 2) return null;
+  const line = (entry: (typeof scored)[number]) => `${entry.nama}: skor ${entry.skor}, ${conditionLabel[entry.kondisi]} (${entry.tercapai} tercapai, ${entry.belum_tercapai} belum tercapai, ${entry.belum_ada_realisasi} belum ada realisasi, ${entry.membaik} membaik, ${entry.memburuk} memburuk)`;
+  const best = scored.slice(0, 3); const worst = scored.slice(-3).reverse();
+  const caveat = "Skor 0 sampai 100 menggabungkan capaian terhadap target (bobot 50), arah tren (30), dan kelengkapan realisasi (20) dari data terbit. Ini ukuran sistem, bukan penilaian kinerja resmi.";
+  const list = (items: typeof scored) => items.map((entry) => `- ${line(entry)}`).join("\n");
+  const answer = [`**Kondisi terbaik**\n${list(best)}`, `**Perlu perhatian**\n${list(worst)}`, `**Dasar penilaian**\n${caveat}`].join("\n\n");
+  return {
+    facts: { mode: "kondisi_opd", terbaik: best, perlu_perhatian: worst, catatan: caveat }, answer,
+    visuals: [{ kind: "districts", title: "Skor kondisi OPD (0 sampai 100)", unit: "", items: scored.slice(0, 8).map((entry) => ({ name: entry.nama.replace(/^Dinas |^Badan /u, ""), value: entry.skor! })) }],
+    suggestions: [`Bagaimana kondisi dan perkembangan ${worst[0]!.nama}?`, "Indikator apa yang belum mencapai target?"], sources: [], sufficiency: "partial",
+  };
+}
+
 function opdReply(insights: Insight[]): AssistantReply {
   const board = opdScoreboard(insights);
   const ranked = board.filter((entry) => entry.score !== null).sort((a, b) => b.score! - a.score! || b.assessable - a.assessable);
@@ -128,7 +145,7 @@ function targetReply(achievement: AchievementItem[]): AssistantReply {
 
 export function buildReply(question: string, insights: Insight[], achievement: AchievementItem[] = []): AssistantReply {
   const intent = parseIntent(question);
-  if (intent.rankOpd) return opdReply(insights);
+  if (intent.rankOpd) return opdConditionReply(insights, achievement) ?? opdReply(insights);
   const matches = intent.overview && !intent.tokens.length ? [] : matchInsights(intent.tokens, insights);
   const total = insights.length;
   if (intent.target && !matches.length) return targetReply(achievement);
