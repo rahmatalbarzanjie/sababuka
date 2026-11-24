@@ -1351,6 +1351,165 @@ paths:
               schema: {$ref: "#/components/schemas/AssistantAnswer"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "422": {$ref: "#/components/responses/BusinessRuleViolation"}
+  /assistant/briefing:
+    get:
+      tags: [Assistant]
+      operationId: getAssistantBriefing
+      summary: Membaca briefing harian Bupati
+      description: Membutuhkan `assistant.use`. Tiga hal yang layak diketahui hari ini, dihitung dari data terbit. Status baca per pengguna dan per hari (WIB).
+      responses:
+        "200":
+          description: Briefing hari ini
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/AssistantBriefing"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /assistant/briefing/{key}/read:
+    post:
+      tags: [Assistant]
+      operationId: markAssistantBriefingRead
+      summary: Menandai satu butir briefing sebagai dibaca
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema: {type: string, enum: [perhatian, target, opd]}
+        - $ref: "#/components/parameters/CsrfToken"
+      responses:
+        "200":
+          description: Tercatat
+          content:
+            application/json:
+              schema: {type: object, required: [ok], properties: {ok: {type: boolean}}}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /assistant/pins:
+    get:
+      tags: [Assistant]
+      operationId: listAssistantPins
+      summary: Membaca indikator pantauan milik pengguna
+      responses:
+        "200":
+          description: Indikator pantauan
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/AssistantPin"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /assistant/pins/{indicator_id}:
+    put:
+      tags: [Assistant]
+      operationId: addAssistantPin
+      summary: Memantau satu indikator terbit (maksimal 12)
+      parameters:
+        - name: indicator_id
+          in: path
+          required: true
+          schema: {$ref: "#/components/schemas/Uuid"}
+        - $ref: "#/components/parameters/CsrfToken"
+      responses:
+        "200":
+          description: Daftar pantauan terbaru
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/AssistantPin"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {description: Pantauan penuh}
+    delete:
+      tags: [Assistant]
+      operationId: removeAssistantPin
+      summary: Berhenti memantau satu indikator
+      parameters:
+        - name: indicator_id
+          in: path
+          required: true
+          schema: {$ref: "#/components/schemas/Uuid"}
+        - $ref: "#/components/parameters/CsrfToken"
+      responses:
+        "200":
+          description: Daftar pantauan terbaru
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/AssistantPin"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /assistant/notes:
+    get:
+      tags: [Assistant]
+      operationId: listAssistantNotes
+      summary: Membaca catatan pribadi pengguna
+      description: Catatan hanya terlihat oleh pemiliknya dan tidak dikirim ke OPD.
+      responses:
+        "200":
+          description: Catatan terbaru
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/AssistantNote"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    post:
+      tags: [Assistant]
+      operationId: createAssistantNote
+      summary: Menyimpan catatan pribadi
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content: {type: string, minLength: 2, maxLength: 1000}
+                session_id: {$ref: "#/components/schemas/Uuid"}
+      responses:
+        "201":
+          description: Catatan tersimpan
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/AssistantNote"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /assistant/notes/{note_id}:
+    delete:
+      tags: [Assistant]
+      operationId: deleteAssistantNote
+      summary: Menghapus catatan pribadi
+      parameters:
+        - name: note_id
+          in: path
+          required: true
+          schema: {$ref: "#/components/schemas/Uuid"}
+        - $ref: "#/components/parameters/CsrfToken"
+      responses:
+        "200":
+          description: Terhapus
+          content:
+            application/json:
+              schema: {type: object, required: [ok], properties: {ok: {type: boolean}}}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
   /executive/bank-data:
     get:
       tags: [Executive]
@@ -2881,6 +3040,49 @@ components:
         recent:
           type: array
           items: {type: object, additionalProperties: true}
+    AssistantBriefing:
+      type: object
+      required: [date, items]
+      properties:
+        date: {type: string, format: date}
+        items:
+          type: array
+          items:
+            type: object
+            required: [key, tone, title, detail, question, read]
+            properties:
+              key: {type: string, enum: [perhatian, target, opd]}
+              tone: {type: string, enum: [warn, bad, info]}
+              title: {type: string}
+              detail: {type: string}
+              question: {type: string}
+              read: {type: boolean}
+    AssistantPin:
+      type: object
+      required: [indicator_id, name, unit, latest_year, latest_value, assessment, series]
+      properties:
+        indicator_id: {$ref: "#/components/schemas/Uuid"}
+        name: {type: string}
+        unit: {type: string}
+        latest_year: {type: integer}
+        latest_value: {type: number}
+        assessment: {type: string}
+        series:
+          type: array
+          items:
+            type: object
+            required: [year, value]
+            properties:
+              year: {type: integer}
+              value: {type: number}
+    AssistantNote:
+      type: object
+      required: [id, content, created_at]
+      properties:
+        id: {$ref: "#/components/schemas/Uuid"}
+        content: {type: string}
+        session_id: {type: [string, "null"], format: uuid}
+        created_at: {type: string}
     AssistantSession:
       type: object
       required: [id, status, started_at]
