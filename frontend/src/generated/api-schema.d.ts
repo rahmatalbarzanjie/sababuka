@@ -1070,6 +1070,116 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/assistant/briefing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Membaca briefing harian Bupati
+         * @description Membutuhkan `assistant.use`. Tiga hal yang layak diketahui hari ini, dihitung dari data terbit. Status baca per pengguna dan per hari (WIB).
+         */
+        get: operations["getAssistantBriefing"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assistant/briefing/{key}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Menandai satu butir briefing sebagai dibaca */
+        post: operations["markAssistantBriefingRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assistant/pins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Membaca indikator pantauan milik pengguna */
+        get: operations["listAssistantPins"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assistant/pins/{indicator_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Memantau satu indikator terbit (maksimal 12) */
+        put: operations["addAssistantPin"];
+        post?: never;
+        /** Berhenti memantau satu indikator */
+        delete: operations["removeAssistantPin"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assistant/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Membaca catatan pribadi pengguna
+         * @description Catatan hanya terlihat oleh pemiliknya dan tidak dikirim ke OPD.
+         */
+        get: operations["listAssistantNotes"];
+        put?: never;
+        /** Menyimpan catatan pribadi */
+        post: operations["createAssistantNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assistant/notes/{note_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Menghapus catatan pribadi */
+        delete: operations["deleteAssistantNote"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/executive/bank-data": {
         parameters: {
             query?: never;
@@ -2254,6 +2364,39 @@ export interface components {
             recent: {
                 [key: string]: unknown;
             }[];
+        };
+        AssistantBriefing: {
+            /** Format: date */
+            date: string;
+            items: {
+                /** @enum {string} */
+                key: "perhatian" | "target" | "opd";
+                /** @enum {string} */
+                tone: "warn" | "bad" | "info";
+                title: string;
+                detail: string;
+                question: string;
+                read: boolean;
+            }[];
+        };
+        AssistantPin: {
+            indicator_id: components["schemas"]["Uuid"];
+            name: string;
+            unit: string;
+            latest_year: number;
+            latest_value: number;
+            assessment: string;
+            series: {
+                year: number;
+                value: number;
+            }[];
+        };
+        AssistantNote: {
+            id: components["schemas"]["Uuid"];
+            content: string;
+            /** Format: uuid */
+            session_id?: string | null;
+            created_at: string;
         };
         AssistantSession: {
             id: components["schemas"]["Uuid"];
@@ -4187,6 +4330,225 @@ export interface operations {
             };
             403: components["responses"]["Forbidden"];
             422: components["responses"]["BusinessRuleViolation"];
+        };
+    };
+    getAssistantBriefing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Briefing hari ini */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssistantBriefing"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    markAssistantBriefingRead: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path: {
+                key: "perhatian" | "target" | "opd";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tercatat */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ok: boolean;
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listAssistantPins: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Indikator pantauan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AssistantPin"][];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    addAssistantPin: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path: {
+                indicator_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Daftar pantauan terbaru */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AssistantPin"][];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            /** @description Pantauan penuh */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    removeAssistantPin: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path: {
+                indicator_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Daftar pantauan terbaru */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AssistantPin"][];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listAssistantNotes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Catatan terbaru */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AssistantNote"][];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createAssistantNote: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    content: string;
+                    session_id?: components["schemas"]["Uuid"];
+                };
+            };
+        };
+        responses: {
+            /** @description Catatan tersimpan */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssistantNote"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    deleteAssistantNote: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path: {
+                note_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Terhapus */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ok: boolean;
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     listBankData: {
