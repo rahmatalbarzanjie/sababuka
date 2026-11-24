@@ -1,4 +1,4 @@
-/* Dashboard Eksekutif */
+/* Dashboard Analisis BAPPERIDA */
 :root { --exec-good: #15803d; --exec-good-soft: #e3f4ea; --exec-bad: #b91c1c; --exec-bad-soft: #fde8e8; --exec-warn: #a16207; --exec-neutral: #94a3b8; }
 html[data-theme="dark"] { --exec-good: #4ade80; --exec-good-soft: #12301f; --exec-bad: #f87171; --exec-bad-soft: #3a1717; --exec-warn: #facc15; --exec-neutral: #64748b; }
 .exec { display: grid; gap: 22px; padding-bottom: 72px; }

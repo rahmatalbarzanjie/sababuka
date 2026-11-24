@@ -82,7 +82,7 @@ function ImportPreview({ source, id, title, onClose, onDone }: { source: Source;
             </div>
               {data.newer_than_system ? <Notice tone="info">Sumber memiliki data sampai {data.year_max}, lebih baru dari sistem ({data.existing.year_max}). Impor ulang akan menambah tahun yang belum ada.</Notice>
                 : <Notice tone="success">Sistem sudah memuat tahun terbaru sumber. Impor ulang hanya memperbarui nilai yang berubah.</Notice>}</>
-            : <Notice tone="info">Belum ada di sistem. Impor akan langsung terbit ke dashboard dan peta dengan label "Bank Data · belum diverifikasi".</Notice>}
+            : <Notice tone="info">Belum ada di sistem. Impor akan menambahkan seri ke Bank Data dengan label "Bank Data · belum diverifikasi". Data tidak menjadi realisasi resmi OPD.</Notice>}
         </section>
         {data.note && <section><h3>Catatan sumber</h3><p className="muted">{plain(data.note)}</p></section>}
         {data.sample.length > 0 && <section><h3>Contoh nilai</h3><div className="table-scroll"><table className="all-table"><thead><tr><th>Tahun</th><th>Wilayah</th><th>Seri</th><th>Nilai</th></tr></thead>
@@ -107,7 +107,7 @@ export function BankDataImportPanel() {
   const sdRows = (packages.data?.data ?? []).filter((item) => !needle || `${item.title} ${item.organization}`.toLowerCase().includes(needle));
   const submit = () => { setSubmitted(query); setPage(1); };
   return <section className="connector-panel bank-import" aria-labelledby="bank-import-title">
-    <header className="panel-heading"><div><h2 id="bank-import-title">Impor Bank Data</h2><p>Impor dilakukan manual oleh Developer. Pilih variabel atau tabel, periksa metadata dan cakupan tahunnya, lalu impor. Data langsung terbit berlabel "Bank Data · belum diverifikasi".</p></div></header>
+    <header className="panel-heading"><div><h2 id="bank-import-title">Impor Bank Data</h2><p>Impor dilakukan manual oleh Developer. Pilih variabel atau tabel, periksa metadata dan cakupan tahunnya, lalu impor. Hasil masuk ke Bank Data dengan label "Bank Data · belum diverifikasi" dan tidak menjadi realisasi resmi OPD.</p></div></header>
     <div className="chip-row" role="group" aria-label="Sumber data">
       <button type="button" className={`chip${source === "bps" ? " active" : ""}`} aria-pressed={source === "bps"} onClick={() => { setSource("bps"); setPage(1); }}>BPS Kapuas dalam Angka</button>
       <button type="button" className={`chip${source === "satudata" ? " active" : ""}`} aria-pressed={source === "satudata"} onClick={() => setSource("satudata")}>Satu Data Kapuas</button>

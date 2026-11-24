@@ -64,8 +64,8 @@ export function DatasetPage() {
 
   return <div className="dataset-page">
     <section className="dataset-intro">
-      <div><h2>Temukan data tanpa masuk ke ruang teknis</h2><p>Dataset adalah kumpulan data yang sudah diberi identitas, pemilik, sumber, dan versi. Pengambilan data mentah serta pemetaannya tetap dikelola di Pusat Sinkronisasi.</p></div>
-      {canOpenSync && <button className="button primary" onClick={() => navigate("/connectors")}><ServerCog />{canManageSources ? "Kelola sumber data" : "Pantau sinkronisasi"}<ArrowRight /></button>}
+      <div><h2>Temukan data tanpa masuk ke ruang teknis</h2><p>Dataset adalah kumpulan data yang sudah diberi identitas, pemilik, sumber, dan versi. Developer mengatur sumber dan impor manual, sedangkan BAPPERIDA menetapkan pemetaannya.</p></div>
+      {canOpenSync && <button className="button primary" onClick={() => navigate("/connectors")}><ServerCog />{canManageSources ? "Kelola sumber dan impor" : "Buka pemetaan Seri Data"}<ArrowRight /></button>}
     </section>
 
     <section className="dataset-summary" aria-label="Ringkasan katalog dataset">
@@ -83,7 +83,7 @@ export function DatasetPage() {
 
       {datasets.loading ? <div className="panel-loading"><Spinner label="Memuat katalog" /></div>
         : datasets.error ? <ErrorState title="Katalog dataset belum dapat dimuat" onRetry={datasets.reload}>{datasets.error}</ErrorState>
-        : !rows.length ? <EmptyState title={query ? "Dataset tidak ditemukan" : "Belum ada dataset"} action={canManageSources ? <button className="button primary" onClick={() => navigate("/connectors")}>Daftarkan sumber data</button> : undefined}>{query ? "Coba kata pencarian yang lebih umum." : (canManageSources ? "Dataset akan tampil setelah sumber terdaftar dan proses sinkronisasi membentuk versi dataset." : "Dataset dibentuk Walidata dari sumber resmi (Satu Data, BPS Kapuas, website OPD). Data yang Anda isi sendiri dikirim lewat Pelaporan Realisasi dan tidak perlu didaftarkan di sini.")}</EmptyState>
+        : !rows.length ? <EmptyState title={query ? "Dataset tidak ditemukan" : "Belum ada dataset"} action={canManageSources ? <button className="button primary" onClick={() => navigate("/connectors")}>Daftarkan sumber data</button> : undefined}>{query ? "Coba kata pencarian yang lebih umum." : (canManageSources ? "Dataset akan tampil setelah sumber didaftarkan dan data dipilih untuk impor manual." : "Dataset berasal dari sumber resmi seperti Satu Data, BPS Kapuas, atau website OPD. Data yang diisi OPD tetap dikirim melalui Pelaporan Realisasi.")}</EmptyState>
         : <>
           <div className="table-scroll dataset-table"><table><thead><tr><th>Dataset</th><th>Sumber dan pemilik</th><th>Versi</th><th>Keterhubungan</th><th>Status</th><th>Diperbarui</th></tr></thead><tbody>{rows.map((item) => <tr key={item.id}>
             <td><strong>{item.title}</strong><small>{item.code}{metadataTopic(item.metadata) ? ` - ${metadataTopic(item.metadata)}` : ""}</small></td>

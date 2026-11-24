@@ -1292,6 +1292,28 @@ paths:
               schema: {$ref: "#/components/schemas/OperationsDashboard"}
         "403": {$ref: "#/components/responses/Forbidden"}
   /assistant/sessions:
+    get:
+      tags: [Assistant]
+      operationId: listAssistantSessions
+      summary: Membaca riwayat chat milik pengguna
+      description: Membutuhkan `assistant.use`. Riwayat selalu dibatasi pada pengguna aktif.
+      parameters:
+        - name: archived
+          in: query
+          schema: {type: boolean, default: false}
+      responses:
+        "200":
+          description: Daftar sesi aktif atau arsip
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/AssistantSession"}
+        "403": {$ref: "#/components/responses/Forbidden"}
     post:
       tags: [Assistant]
       operationId: createAssistantSession
@@ -1313,6 +1335,53 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/AssistantSession"}
         "403": {$ref: "#/components/responses/Forbidden"}
+  /assistant/sessions/{session_id}:
+    get:
+      tags: [Assistant]
+      operationId: getAssistantSession
+      summary: Membaca satu chat dan pesannya
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema: {$ref: "#/components/schemas/Uuid"}
+      responses:
+        "200":
+          description: Sesi dan pesan milik pengguna
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/AssistantSessionDetail"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    patch:
+      tags: [Assistant]
+      operationId: updateAssistantSession
+      summary: Mengganti judul atau mengarsipkan chat
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema: {$ref: "#/components/schemas/Uuid"}
+        - $ref: "#/components/parameters/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              minProperties: 1
+              properties:
+                title: {type: string, minLength: 1, maxLength: 255}
+                status: {type: string, enum: [active, archived]}
+      responses:
+        "200":
+          description: Sesi diperbarui
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/AssistantSession"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
   /assistant/sessions/{session_id}/messages:
     post:
       tags: [Assistant]
@@ -1333,9 +1402,10 @@ paths:
           application/json:
             schema:
               type: object
-              required: [message]
+              required: [message, client_message_id]
               properties:
-                message: {type: string, minLength: 1, maxLength: 4000}
+                message: {type: string, minLength: 2, maxLength: 4000}
+                client_message_id: {$ref: "#/components/schemas/Uuid"}
       responses:
         "200":
           description: Jawaban beserta sitasi data
@@ -1344,6 +1414,81 @@ paths:
               schema: {$ref: "#/components/schemas/AssistantAnswer"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "422": {$ref: "#/components/responses/BusinessRuleViolation"}
+  /executive/bank-data:
+    get:
+      tags: [Executive]
+      operationId: listBankData
+      summary: Membaca katalog Bank Data
+      description: Membutuhkan `bank_data.view`.
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /bank-data/{indicator_id}/guidance:
+    get:
+      tags: [BankData]
+      operationId: listBankDataGuidance
+      summary: Membaca catatan pembinaan satu Seri Data
+      parameters:
+        - name: indicator_id
+          in: path
+          required: true
+          schema: {$ref: "#/components/schemas/Uuid"}
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    post:
+      tags: [BankData]
+      operationId: createBankDataGuidance
+      summary: Membuat catatan pembinaan BPS
+      description: Membutuhkan `bank_data.note`. Catatan tidak mengubah nilai.
+      parameters:
+        - name: indicator_id
+          in: path
+          required: true
+          schema: {$ref: "#/components/schemas/Uuid"}
+        - $ref: "#/components/parameters/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [guidance_type, notes]
+              properties:
+                guidance_type: {type: string, enum: [standar, metadata, metodologi, konsistensi]}
+                notes: {type: string, minLength: 10, maxLength: 4000}
+      responses:
+        "201": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /bank-data/guidance/{note_id}/resolve:
+    post:
+      tags: [BankData]
+      operationId: resolveBankDataGuidance
+      summary: Menandai catatan pembinaan sudah ditindaklanjuti
+      description: Membutuhkan `bank_data.resolve_note`. Tindakan tidak mengubah nilai.
+      parameters:
+        - name: note_id
+          in: path
+          required: true
+          schema: {$ref: "#/components/schemas/Uuid"}
+        - $ref: "#/components/parameters/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [resolution_notes]
+              properties:
+                resolution_notes: {type: string, minLength: 10, maxLength: 4000}
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
   /audit/events:
     get:
       tags: [Audit]
@@ -1472,7 +1617,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: {type: object, additionalProperties: true}
+            schema: {$ref: "#/components/schemas/IntegrationProfileInput"}
       responses:
         "201": {$ref: "#/components/responses/ConnectorObject"}
         "400": {$ref: "#/components/responses/ValidationError"}
@@ -1493,7 +1638,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: {type: object, additionalProperties: true}
+            schema: {$ref: "#/components/schemas/IntegrationProfileInput"}
       responses:
         "200": {$ref: "#/components/responses/ConnectorObject"}
         "400": {$ref: "#/components/responses/ValidationError"}
@@ -1545,9 +1690,7 @@ paths:
       tags: [Connectors]
       operationId: createConnectorMapping
       summary: Membuat mapping (status draf)
-      description: |
-        Hanya Superadmin dengan `connector.manage`. Tahun data yang diterima
-        2024-2029; target RPJMD tetap 2025-2029.
+      description: Membutuhkan `connector.map`. Pemetaan substansi hanya dilakukan BAPPERIDA.
       parameters:
         - $ref: "#/components/parameters/CsrfToken"
       requestBody:
@@ -1574,51 +1717,6 @@ paths:
           in: path
           required: true
           schema: {type: string, enum: [approve, activate, retire]}
-      responses:
-        "200": {$ref: "#/components/responses/ConnectorObject"}
-        "403": {$ref: "#/components/responses/Forbidden"}
-        "404": {$ref: "#/components/responses/NotFound"}
-        "409": {$ref: "#/components/responses/InvalidTransition"}
-  /connectors/mappings/{mapping_id}/sync:
-    post:
-      tags: [Connectors]
-      operationId: syncConnectorMapping
-      summary: Mengambil data ke staging privat (preview)
-      parameters:
-        - $ref: "#/components/parameters/CsrfToken"
-        - name: mapping_id
-          in: path
-          required: true
-          schema: {$ref: "#/components/schemas/Uuid"}
-      responses:
-        "200": {$ref: "#/components/responses/ConnectorObject"}
-        "403": {$ref: "#/components/responses/Forbidden"}
-        "404": {$ref: "#/components/responses/NotFound"}
-  /connectors/runs/{run_id}:
-    get:
-      tags: [Connectors]
-      operationId: getConnectorRun
-      summary: Detail satu proses sinkronisasi
-      parameters:
-        - name: run_id
-          in: path
-          required: true
-          schema: {$ref: "#/components/schemas/Uuid"}
-      responses:
-        "200": {$ref: "#/components/responses/ConnectorObject"}
-        "403": {$ref: "#/components/responses/Forbidden"}
-        "404": {$ref: "#/components/responses/NotFound"}
-  /connectors/runs/{run_id}/import:
-    post:
-      tags: [Connectors]
-      operationId: importConnectorRun
-      summary: Mengimpor hasil preview yang disetujui
-      parameters:
-        - $ref: "#/components/parameters/CsrfToken"
-        - name: run_id
-          in: path
-          required: true
-          schema: {$ref: "#/components/schemas/Uuid"}
       responses:
         "200": {$ref: "#/components/responses/ConnectorObject"}
         "403": {$ref: "#/components/responses/Forbidden"}
@@ -1731,6 +1829,77 @@ paths:
       operationId: listBpsChecks
       summary: Riwayat uji koneksi BPS (10 terakhir)
       description: Hanya Superadmin dengan `connector_secret.view`.
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /connectors/bank-data/bps/{variable_id}/preview:
+    get:
+      tags: [Connectors]
+      operationId: previewBankDataBps
+      summary: Memeriksa metadata dan contoh nilai variabel BPS sebelum impor
+      parameters:
+        - name: variable_id
+          in: path
+          required: true
+          schema: {type: string, pattern: "^[0-9]{1,8}$"}
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /connectors/bank-data/bps/{variable_id}/import:
+    post:
+      tags: [Connectors]
+      operationId: importBankDataBps
+      summary: Menjalankan satu impor manual variabel BPS
+      description: Hanya Developer dengan `connector.manage`. Tidak ada impor otomatis.
+      parameters:
+        - name: variable_id
+          in: path
+          required: true
+          schema: {type: string, pattern: "^[0-9]{1,8}$"}
+        - name: refresh
+          in: query
+          schema: {type: boolean, default: false}
+        - $ref: "#/components/parameters/CsrfToken"
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /connectors/bank-data/satudata/{package_id}/preview:
+    get:
+      tags: [Connectors]
+      operationId: previewBankDataSatuData
+      summary: Memeriksa metadata dan contoh nilai tabel Satu Data sebelum impor
+      parameters:
+        - name: package_id
+          in: path
+          required: true
+          schema: {type: string, pattern: "^[A-Za-z0-9-]{8,100}$"}
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /connectors/bank-data/satudata/{package_id}/import:
+    post:
+      tags: [Connectors]
+      operationId: importBankDataSatuData
+      summary: Menjalankan satu impor manual tabel Satu Data
+      description: Hanya Developer dengan `connector.manage`. Tidak ada impor otomatis.
+      parameters:
+        - name: package_id
+          in: path
+          required: true
+          schema: {type: string, pattern: "^[A-Za-z0-9-]{8,100}$"}
+        - name: refresh
+          in: query
+          schema: {type: boolean, default: false}
+        - $ref: "#/components/parameters/CsrfToken"
+      responses:
+        "200": {$ref: "#/components/responses/ConnectorObject"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /connectors/bank-data/import-history:
+    get:
+      tags: [Connectors]
+      operationId: listBankDataImportHistory
+      summary: Membaca riwayat audit impor manual
+      description: Hanya Developer dengan `connector.manage`.
       responses:
         "200": {$ref: "#/components/responses/ConnectorObject"}
         "403": {$ref: "#/components/responses/Forbidden"}
@@ -2082,7 +2251,7 @@ components:
           required: [active, role_code, organization_id, organization_name, original_full_name, original_email]
           properties:
             active: {type: boolean, const: true}
-            role_code: {type: string, enum: [bapperida, kominfo, pembina_statistik, opd, pimpinan]}
+            role_code: {type: string, enum: [bapperida, pembina_statistik, opd, pimpinan]}
             organization_id:
               oneOf:
                 - $ref: "#/components/schemas/Uuid"
@@ -2783,6 +2952,40 @@ components:
         title: {type: [string, "null"]}
         status: {type: string, enum: [active, closed, archived]}
         started_at: {$ref: "#/components/schemas/Timestamp"}
+        updated_at: {$ref: "#/components/schemas/Timestamp"}
+        message_count: {type: integer, minimum: 0}
+    IntegrationProfileInput:
+      type: object
+      additionalProperties: false
+      required: [organization_id, code, name, connector_kind, auth_type, data_format]
+      properties:
+        organization_id: {$ref: "#/components/schemas/Uuid"}
+        code: {type: string, minLength: 2, maxLength: 64, pattern: "^[A-Z0-9][A-Z0-9._-]*$"}
+        name: {type: string, minLength: 3, maxLength: 255}
+        connector_kind: {type: string, enum: [api_json, ckan, bps, csv_url, file_upload, database_view, html_scrape, manual]}
+        base_url: {type: [string, "null"], format: uri, maxLength: 2000}
+        endpoint_path: {type: [string, "null"], maxLength: 2000}
+        auth_type: {type: string, enum: [none, api_key, bearer, basic, oauth2]}
+        data_format: {type: string, enum: [json, csv, xlsx, html, database, manual]}
+        data_path: {type: [string, "null"], maxLength: 255}
+        notes: {type: [string, "null"], maxLength: 4000}
+    AssistantSessionDetail:
+      allOf:
+        - $ref: "#/components/schemas/AssistantSession"
+        - type: object
+          required: [messages]
+          properties:
+            messages:
+              type: array
+              items:
+                type: object
+                required: [id, role, content]
+                properties:
+                  id: {$ref: "#/components/schemas/Uuid"}
+                  role: {type: string, enum: [user, assistant]}
+                  content: {type: string}
+                  created_at: {$ref: "#/components/schemas/Timestamp"}
+                  answer: {$ref: "#/components/schemas/AssistantAnswer"}
     AssistantAnswer:
       type: object
       required: [message_id, answer, citations, sufficiency]
@@ -2796,12 +2999,20 @@ components:
             type: object
             required: [publication_item_id, label]
             properties:
-              publication_item_id: {$ref: "#/components/schemas/Uuid"}
+              publication_item_id: {type: string}
               label: {type: string}
               indicator: {type: string}
               period: {type: string}
               organization: {type: string}
               source: {type: string}
+              indicator_id: {type: string, format: uuid}
+              source_url: {type: [string, "null"], format: uri}
+        visuals:
+          type: array
+          items: {type: object, additionalProperties: true}
+        suggestions:
+          type: array
+          items: {type: string}
     AuditEvent:
       type: object
       required: [id, event_type, entity_type, occurred_at]

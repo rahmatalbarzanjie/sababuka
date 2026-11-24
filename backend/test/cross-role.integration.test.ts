@@ -12,16 +12,23 @@ test("akses dan menu lintas role mengikuti permission serta scope", { skip: !dat
   const db = createDatabase(databaseUrl!); const passwordHash = await hashPassword(password);
   const app = await buildApp({ config: { ...testConfig, databaseUrl: databaseUrl! }, db, logger: false });
   try {
-    const organizations = await db.query<{ id: string; code: string }>(`SELECT id::text, code FROM sababuka.organizations WHERE code IN ('DKPP','DINKES')`);
+    const organizations = await db.query<{ id: string; code: string }>(`SELECT id::text, code FROM sababuka.organizations WHERE code IN ('DKPP','DINKES','DISKOMINFOSANTIK')`);
     const dkpp = organizations.rows.find((item) => item.code === "DKPP")!.id;
+    const diskominfo = organizations.rows.find((item) => item.code === "DISKOMINFOSANTIK")!.id;
     const users: Record<string, string> = {};
-    for (const role of ["bapperida", "kominfo", "pembina_statistik", "opd", "pimpinan"] as const) {
-      const email = `${role}.qa@sababuka.test`;
-      const user = await db.query<{ id: string }>(`INSERT INTO sababuka.users (email, full_name, password_hash, status, must_change_password, mfa_required) VALUES ($1,$2,$3,'active',false,false) RETURNING id::text`, [email, `QA ${role}`, passwordHash]);
-      users[role] = user.rows[0]!.id;
-      const scope = role === "opd" ? "organization" : role === "pimpinan" ? "published" : "global";
-      await db.query(`INSERT INTO sababuka.user_role_assignments (user_id, role_id, organization_id, scope_type) SELECT $1,id,$2,$3 FROM sababuka.roles WHERE code=$4`, [user.rows[0]!.id, role === "opd" ? dkpp : null, scope, role]);
-      if (role === "opd") await db.query(`INSERT INTO sababuka.organization_memberships (user_id, organization_id, is_primary) VALUES ($1,$2,true)`, [user.rows[0]!.id, dkpp]);
+    const identities = [
+      { key: "bapperida", role: "bapperida", organization: null, scope: "global" },
+      { key: "pembina_statistik", role: "pembina_statistik", organization: null, scope: "global" },
+      { key: "opd", role: "opd", organization: dkpp, scope: "organization" },
+      { key: "diskominfo", role: "opd", organization: diskominfo, scope: "organization" },
+      { key: "pimpinan", role: "pimpinan", organization: null, scope: "published" },
+    ] as const;
+    for (const identity of identities) {
+      const email = `${identity.key}.qa@sababuka.test`;
+      const user = await db.query<{ id: string }>(`INSERT INTO sababuka.users (email, full_name, password_hash, status, must_change_password, mfa_required) VALUES ($1,$2,$3,'active',false,false) RETURNING id::text`, [email, `QA ${identity.key}`, passwordHash]);
+      users[identity.key] = user.rows[0]!.id;
+      await db.query(`INSERT INTO sababuka.user_role_assignments (user_id, role_id, organization_id, scope_type) SELECT $1,id,$2,$3 FROM sababuka.roles WHERE code=$4`, [user.rows[0]!.id, identity.organization, identity.scope, identity.role]);
+      if (identity.organization) await db.query(`INSERT INTO sababuka.organization_memberships (user_id, organization_id, is_primary) VALUES ($1,$2,true)`, [user.rows[0]!.id, identity.organization]);
     }
     const login = async (role: string) => {
       const response = await app.inject({ method: "POST", url: "/api/v1/auth/login", payload: { identifier: `${role}.qa@sababuka.test`, password } });
@@ -44,7 +51,7 @@ test("akses dan menu lintas role mengikuti permission serta scope", { skip: !dat
     assert.equal(forbiddenCategory.statusCode, 403, forbiddenCategory.body);
 
     const bapperida = await login("bapperida"); const bappMenu = await menuCodes(bapperida.cookie);
-    assert.deepEqual([...bappMenu].sort(), ["assistant", "audit", "connectors", "consolidation", "governance", "operations", "publications", "reviews"]);
+    assert.deepEqual([...bappMenu].sort(), ["assistant", "audit", "bank-data", "connectors", "consolidation", "dashboard", "governance", "operations", "publications", "reviews"]);
     const bappMe = await app.inject({ method: "GET", url: "/api/v1/me", headers: { cookie: bapperida.cookie } });
     assert.equal(bappMe.statusCode, 200, bappMe.body);
     assert.ok(!bappMe.json().permissions.includes("indicator.submit"));
@@ -54,21 +61,21 @@ test("akses dan menu lintas role mengikuti permission serta scope", { skip: !dat
     assert.equal(forbiddenSystem.statusCode, 403, forbiddenSystem.body);
 
     const pimpinan = await login("pimpinan"); const pimpinanMenu = await menuCodes(pimpinan.cookie);
-    assert.deepEqual([...pimpinanMenu].sort(), ["assistant", "dashboard"]);
+    assert.deepEqual(pimpinanMenu, ["assistant"]);
     assert.ok(!pimpinanMenu.includes("executive"));
     assert.ok(!pimpinanMenu.includes("submissions") && !pimpinanMenu.includes("audit"));
-    assert.equal((await app.inject({ method: "GET", url: "/api/v1/executive/dashboard", headers: { cookie: pimpinan.cookie } })).statusCode, 200);
+    assert.equal((await app.inject({ method: "GET", url: "/api/v1/executive/dashboard", headers: { cookie: pimpinan.cookie } })).statusCode, 403);
     assert.equal((await app.inject({ method: "GET", url: "/api/v1/submissions", headers: { cookie: pimpinan.cookie } })).statusCode, 403);
     assert.equal((await app.inject({ method: "GET", url: "/api/v1/audit/events", headers: { cookie: pimpinan.cookie } })).statusCode, 403);
     assert.equal((await app.inject({ method: "POST", url: "/api/v1/assistant/sessions", headers: { cookie: pimpinan.cookie, "x-csrf-token": pimpinan.csrf }, payload: { title: "QA" } })).statusCode, 201);
 
-    const kominfo = await login("kominfo"); const kominfoMenu = await menuCodes(kominfo.cookie);
-    assert.deepEqual([...kominfoMenu].sort(), ["assistant", "audit", "connectors", "consolidation", "dashboard"]);
-    assert.ok(!kominfoMenu.includes("operations") && !kominfoMenu.includes("submissions"));
-    assert.equal((await app.inject({ method: "GET", url: "/api/v1/audit/events", headers: { cookie: kominfo.cookie } })).statusCode, 200);
-    assert.equal((await app.inject({ method: "POST", url: "/api/v1/publications", headers: { cookie: kominfo.cookie, "x-csrf-token": kominfo.csrf }, payload: { publication_key: "QA", publication_number: "QA-1", title: "Tidak boleh" } })).statusCode, 403);
+    const diskominfoOpd = await login("diskominfo"); const diskominfoMenu = await menuCodes(diskominfoOpd.cookie);
+    assert.deepEqual(diskominfoMenu, opdMenu);
+    assert.equal((await app.inject({ method: "GET", url: "/api/v1/connectors/integrations", headers: { cookie: diskominfoOpd.cookie } })).statusCode, 403);
+    assert.equal((await app.inject({ method: "POST", url: "/api/v1/publications", headers: { cookie: diskominfoOpd.cookie, "x-csrf-token": diskominfoOpd.csrf }, payload: { publication_key: "QA", publication_number: "QA-1", title: "Tidak boleh" } })).statusCode, 403);
 
     const pembina = await login("pembina_statistik"); const pembinaMenu = await menuCodes(pembina.cookie);
-    assert.deepEqual(pembinaMenu, ["statistical-guidance", "governance", "submissions"]);
+    assert.deepEqual(pembinaMenu, ["bank-data"]);
+    assert.equal((await app.inject({ method: "GET", url: "/api/v1/executive/bank-data", headers: { cookie: pembina.cookie } })).statusCode, 200);
   } finally { await app.close(); await db.end(); }
 });

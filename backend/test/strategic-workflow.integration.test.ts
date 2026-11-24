@@ -170,9 +170,8 @@ test("alur kategori, indikator, OPD, publikasi, dan dashboard berjalan lintas pe
       payload: { notes: "Data lolos pengujian lintas peran." },
     });
     assert.equal(approved.statusCode, 200, approved.body);
-
-    // Persetujuan BAPPERIDA menerbitkan capaian valid secara otomatis ke publikasi aktif.
-    const dashboard = await app.inject({ method: "GET", url: "/api/v1/executive/dashboard", headers: { cookie: pimpinan.cookie } });
+    // Persetujuan BAPPERIDA menerbitkan capaian valid otomatis; Dashboard Analisis dibaca BAPPERIDA (Bupati memakai Tanya Sababuka).
+    const dashboard = await app.inject({ method: "GET", url: "/api/v1/executive/dashboard", headers: { cookie: bapperida.cookie } });
     assert.equal(dashboard.statusCode, 200, dashboard.body);
     const item = dashboard.json().items.find((entry: { indicator_code: string }) => entry.indicator_code === `FLOW_${suffix}`);
     assert.ok(item);

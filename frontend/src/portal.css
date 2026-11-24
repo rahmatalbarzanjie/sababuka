@@ -160,7 +160,6 @@ html[data-theme="dark"] .workspace.portal .tab.active .tab-count.neutral { backg
   .portal-hero h2 { font-size: 26px; }
   .portal-search { max-width: none; }
 }
-}
 @media (prefers-reduced-motion: reduce) { .portal-card { transition: none; } }
 
 /* Tanya Sababuka di dalam portal */
@@ -434,10 +433,15 @@ html:not([data-theme="dark"]) .workspace.portal { --exec-good: #116a34; }
 .workspace.portal .page-shell { max-width: none; margin: 0; padding-inline: var(--portal-edge); }
 .workspace.portal .workspace-footer { padding-inline: var(--portal-edge); }
 .workspace.portal.portal-chat .page-header { max-width: 860px; margin-inline: auto; }
+.workspace.portal.portal-chat .page-shell { padding-top: 18px; padding-bottom: 18px; }
+.workspace.portal.portal-chat .workspace-footer { display: none; }
+.workspace.portal.portal-chat .assistant-chat-layout { height: calc(100dvh - 106px); min-height: 0; }
 @media (max-width: 900px) {
   .workspace.portal .topbar { padding-inline: 14px; }
   .workspace.portal .page-shell { padding-inline: 16px; }
   .workspace.portal .workspace-footer { padding-inline: 16px; }
+  .workspace.portal.portal-chat .page-shell { padding: 0; }
+  .workspace.portal.portal-chat .assistant-chat-layout { height: calc(100dvh - 70px); min-height: 0; }
 }
 .workspace.portal .workspace-footer { width: 100%; max-width: none; margin: 0; }
 .portal-lockup .sababuka-lockup-copy small { display: none; }

@@ -8,10 +8,10 @@ interface PicIdentity { name: string; position: string; email: string; whatsapp:
 interface BaselineIndicatorIdentity extends QueryResultRow { code: string; name: string; unit: string }
 interface ProfileRow extends QueryResultRow { id: string | null; organization_id: string; organization_code: string; organization_name: string; response_json: JsonObject; pic_identity?: PicIdentity | null; technical_status: string; planning_status: string; technical_notes: string | null; planning_notes: string | null; submitted_at: string | null; updated_at: string | null; active_account_count?: number; indicator_count?: number; issue_count?: number; issue_names?: string[]; focus_names?: string[] }
 
-const reviewRoles = new Set(["superadmin", "bapperida", "kominfo"]);
+const reviewRoles = new Set(["superadmin", "bapperida"]);
 const administrationRoles = new Set(["superadmin"]);
 const planningReviewRoles = new Set(["superadmin", "bapperida"]);
-const technicalReviewRoles = new Set(["superadmin", "kominfo"]);
+const technicalReviewRoles = new Set(["superadmin"]);
 
 function role(auth: AuthContext, allowed: Set<string>): boolean { return auth.user.roles.some((item) => allowed.has(item.code)); }
 function hasOrganization(auth: AuthContext, organizationId: string): boolean { return auth.user.organizations.some((item) => item.id === organizationId); }

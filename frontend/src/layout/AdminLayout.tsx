@@ -47,7 +47,6 @@ import { formatTanggal, Modal } from "../components";
 import { SababukaLockup } from "../branding/SababukaBrand";
 import { applyTheme, readTheme, type ThemeMode } from "../theme";
 import { CommandPalette, type PaletteItem } from "./CommandPalette";
-import { goDashboard, INDICATOR_GROUP, useDashTab } from "../portalNav";
 
 const iconByCode: Record<string, typeof LayoutDashboard> = {
   organizations: Building2,
@@ -82,7 +81,6 @@ const roleLabels: Record<string, string> = {
   superadmin: "Pengelola Sistem",
   pimpinan: "Bupati",
   bapperida: "Verifikator BAPPERIDA",
-  kominfo: "Walidata Diskominfosantik",
   pembina_statistik: "Pembina Data Statistik (BPS)",
   opd: "Admin/PIC OPD",
 };
@@ -130,29 +128,18 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
   const guidanceEntries = useMemo(() => menu.filter((item) => item.code === "statistical-guidance" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const auditEntries = useMemo(() => menu.filter((item) => item.code === "audit" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
   const isPimpinan = user?.roles.some((role) => role.code === "pimpinan") ?? false;
+  const contextualMenuLabel = useCallback((entry: MenuItem) => entry.code === "connectors"
+    ? isSuperadmin ? "Sumber dan Impor" : "Pemetaan Seri Data"
+    : isPimpinan && entry.code === "publications" ? "Rilis Data" : entry.label, [isPimpinan, isSuperadmin]);
   const assistantEntries = useMemo(() => menu.filter((item) => item.code === "assistant" && item.route_name && supportedRoutes.has(item.route_name)), [menu]);
-  const dashTab = useDashTab();
-  const portalItems = useMemo(() => {
-    if (!isPimpinan) return [] as Array<{ id: string; label: string; aria?: string; icon: typeof LayoutDashboard; active: boolean; run(): void }>;
-    const onDash = pathname === "/dashboard";
-    const items: Array<{ id: string; label: string; aria?: string; icon: typeof LayoutDashboard; active: boolean; run(): void }> = [];
-    if (primaryEntries.length > 0) {
-      items.push({ id: "ringkasan", label: "Beranda", icon: LayoutDashboard, active: onDash && dashTab === "ringkasan", run: () => goDashboard("ringkasan") });
-      items.push({ id: "peta", label: "Wilayah", icon: MapPinned, active: onDash && dashTab === "peta", run: () => goDashboard("peta") });
-      items.push({ id: "indikator", label: "Indikator", icon: ListChecks, active: onDash && INDICATOR_GROUP.includes(dashTab), run: () => goDashboard("indikator") });
-    }
-    if (assistantEntries.length > 0) items.push({ id: "assistant", label: "Tanya", aria: "Tanya Sababuka", icon: Bot, active: pathname === "/assistant", run: () => go("/assistant") });
-    return items;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPimpinan, pathname, dashTab, primaryEntries.length, assistantEntries.length]);
   const accountEntries = useMemo<MenuItem[]>(() => user && !user.simulation?.active ? [{ code: "my-account", label: "Akun saya", icon: "user", route_name: "/admin/profile", navigation_disabled: false, display_order: 9999, children: [] }] : [], [user, adminEntries]);
   const navigationSections = useMemo(() => [
     { code: "system", label: "Administrasi sistem", entries: systemEntries },
-    { code: "primary", label: "Ruang Bupati", entries: primaryEntries },
+    { code: "primary", label: "Dashboard Analisis", entries: primaryEntries },
     { code: "assistant", label: "Asisten", entries: assistantEntries },
     { code: "analysis", label: "Data konteks", entries: analysisEntries },
     { code: "governance", label: "Tata kelola data", entries: governanceEntries },
-    { code: "sources", label: "Walidata", entries: sourceEntries },
+    { code: "sources", label: isSuperadmin ? "Sumber dan Impor" : "Pemetaan Seri Data", entries: sourceEntries },
     { code: "operations", label: isPimpinan ? "Rilis resmi" : isBapperida && !isSuperadmin ? "Pelaporan dan publikasi" : "Pelaporan capaian", entries: operationalEntries },
     { code: "consolidation", label: "Konsolidasi sumber", entries: consolidationEntries },
     { code: "guidance", label: "Pembinaan statistik", entries: guidanceEntries },
@@ -162,18 +149,18 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
   ].filter((section) => section.entries.length > 0).sort((a, b) => Math.min(...a.entries.map((entry) => entry.display_order)) - Math.min(...b.entries.map((entry) => entry.display_order))), [accountEntries, assistantEntries, adminEntries, analysisEntries, auditEntries, consolidationEntries, guidanceEntries, governanceEntries, isBapperida, isPimpinan, isSuperadmin, operationalEntries, primaryEntries, sourceEntries, systemEntries]);
   const areaLabel = ["/admin", "/admin/opd-monitoring"].includes(pathname) ? "Administrasi Sistem"
     : pathname.startsWith("/admin") ? "Konfigurasi Internal"
-    : ["/dashboard", "/assistant"].includes(pathname) ? "Ruang Bupati"
-    : ["/dashboard/bank-data"].includes(pathname) ? "Data Konteks"
-    : pathname === "/connectors" ? "Walidata Diskominfosantik"
+    : pathname === "/dashboard" ? "Analisis BAPPERIDA"
+    : pathname === "/assistant" ? "Tanya Sababuka"
+    : ["/dashboard/bank-data"].includes(pathname) ? "Bank Data"
+    : pathname === "/connectors" ? (isSuperadmin ? "Sumber dan Impor" : "Pemetaan Seri Data")
     : pathname.startsWith("/governance") ? "Tata Kelola Data"
     : ["/operations", "/submissions", "/reviews", "/publications"].includes(pathname) ? "Pelaporan dan Verifikasi"
     : "Ruang Kerja SABABUKA";
+  const displayTitle = pathname === "/connectors" ? (isSuperadmin ? "Sumber dan Impor" : "Pemetaan Seri Data") : title;
   const initials = user?.full_name.split(/\s+/u).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "SA";
   const roleCode = user?.roles[0]?.code ?? "opd";
   const help = roleHelp[roleCode] ?? roleHelp.opd;
-  const roleLabel = isBapperida && isOpd ? "Verifikator BAPPERIDA + PIC OPD"
-    : (user?.roles.some((role) => role.code === "kominfo") && isOpd) ? "Walidata + PIC OPD"
-    : roleLabels[roleCode] ?? "Pengguna";
+  const roleLabel = isBapperida && isOpd ? "Verifikator BAPPERIDA + PIC OPD" : roleLabels[roleCode] ?? "Pengguna";
 
   useEffect(() => {
     applyTheme(theme);
@@ -300,12 +287,13 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     } finally { setNotificationLoading(false); }
   }, []);
   useEffect(() => {
+    if (isPimpinan) return;
     void loadNotifications();
     const refresh = () => { void loadNotifications(); };
     const timer = window.setInterval(refresh, 20_000);
     window.addEventListener("sababuka:notifications-changed", refresh);
     return () => { window.clearInterval(timer); window.removeEventListener("sababuka:notifications-changed", refresh); };
-  }, [user?.id, pathname, loadNotifications]);
+  }, [user?.id, pathname, loadNotifications, isPimpinan]);
 
   useEffect(() => {
     if (!isSuperadmin) return;
@@ -332,22 +320,22 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     await api("/notifications/read-all", { method: "POST", mutation: true });
     await loadNotifications();
   };
-  const enterPreview = async (role: "bapperida" | "kominfo" | "pembina_statistik" | "opd" | "pimpinan", organizationId?: string) => {
+  const enterPreview = async (role: "bapperida" | "pembina_statistik" | "opd" | "pimpinan", organizationId?: string) => {
     setPreviewBusy(true); setPreviewError(null);
     try {
       await startPreview(role, organizationId);
       setProfileOpen(false);
-      navigate(role === "pimpinan" ? "/dashboard" : role === "kominfo" ? "/connectors" : role === "pembina_statistik" ? "/guidance" : "/operations");
+      navigate(role === "pimpinan" ? "/assistant" : role === "pembina_statistik" ? "/dashboard/bank-data" : "/operations");
     } catch (error) { setPreviewError(error instanceof Error ? error.message : "Mode bertindak sebagai tidak dapat dibuka."); }
     finally { setPreviewBusy(false); }
   };
   const leavePreview = async () => { setPreviewBusy(true); await stopPreview(); setPreviewBusy(false); setProfileOpen(false); navigate("/admin"); };
   const doLogout = async () => { await logout(); navigate("/login"); };
   const paletteItems = useMemo<PaletteItem[]>(() => [
-    ...navigationSections.flatMap((section) => section.entries.filter((entry) => entry.route_name && !entry.navigation_disabled).map((entry) => ({ id: `menu-${entry.code}`, label: entry.label, group: section.label, hint: entry.route_name ?? undefined, run: () => navigate(entry.route_name!) }))),
+    ...navigationSections.flatMap((section) => section.entries.filter((entry) => entry.route_name && !entry.navigation_disabled).map((entry) => ({ id: `menu-${entry.code}`, label: contextualMenuLabel(entry), group: section.label, hint: entry.route_name ?? undefined, run: () => navigate(entry.route_name!) }))),
     { id: "act-theme", label: theme === "dark" ? "Gunakan tema terang" : "Gunakan tema gelap", group: "Tindakan", run: () => setTheme((value) => value === "dark" ? "light" : "dark") },
     { id: "act-help", label: "Buka bantuan penggunaan", group: "Tindakan", run: () => setHelpOpen(true) },
-  ], [navigationSections, theme]);
+  ], [contextualMenuLabel, navigationSections, theme]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setPaletteOpen((open) => !open); }
@@ -362,7 +350,7 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
       <nav>
         {navigationSections.map((section) => <div className="nav-section" key={section.code}><div className="nav-label">{section.label}</div>{section.entries.map((entry) => {
           const Icon = iconByCode[entry.code] ?? Settings2;
-          const label = isPimpinan && entry.code === "publications" ? "Rilis Data" : entry.label;
+          const label = contextualMenuLabel(entry);
           return <button key={entry.code} className={`nav-link ${pathname === entry.route_name ? "active" : ""}`} aria-current={pathname === entry.route_name ? "page" : undefined} title={collapsed ? label : entry.navigation_disabled ? `${label} - ${entry.badge ?? "Belum tersedia"}` : undefined} disabled={entry.navigation_disabled} aria-disabled={entry.navigation_disabled} onClick={() => { if (!entry.navigation_disabled) go(entry.route_name!); }}><Icon /><span>{label}</span>{entry.badge && <small className="nav-badge">{entry.badge}</small>}</button>;
         })}</div>)}
       </nav>
@@ -372,14 +360,14 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
     <section className="workspace-main">
       <header className="topbar">
         <button ref={mobileTriggerRef} className="icon-button mobile-trigger" aria-label="Buka menu" aria-haspopup="true" aria-expanded={mobile} onClick={() => setMobile(true)}><Menu /></button>
-        {isPimpinan && <><div className="portal-brand"><SababukaLockup className="portal-lockup" /></div><nav className="portal-nav" aria-label="Menu Bupati">{portalItems.map((item) => { const Icon = item.icon; return <button key={item.id} type="button" className={`portal-link${item.active ? " active" : ""}`} aria-current={item.active ? "page" : undefined} aria-label={item.aria} onClick={item.run}><Icon aria-hidden /><span>{item.label}</span></button>; })}</nav></>}
-        <nav className="topbar-context" aria-label="Lokasi halaman" title={subtitle}><span>{areaLabel}</span><i aria-hidden>/</i><strong tabIndex={-1}>{title}</strong></nav>
+        {isPimpinan && <div className="portal-brand"><SababukaLockup className="portal-lockup" /></div>}
+        <nav className="topbar-context" aria-label="Lokasi halaman" title={subtitle}><span>{areaLabel}</span><i aria-hidden>/</i><strong tabIndex={-1}>{displayTitle}</strong></nav>
         <div className="topbar-actions">
           {actions}
-          <button className="icon-button palette-trigger" aria-label="Cari menu (Ctrl+K)" title="Cari menu (Ctrl+K)" aria-haspopup="dialog" onClick={() => setPaletteOpen(true)}><Search /></button>
+          {!isPimpinan && <button className="icon-button palette-trigger" aria-label="Cari menu (Ctrl+K)" title="Cari menu (Ctrl+K)" aria-haspopup="dialog" onClick={() => setPaletteOpen(true)}><Search /></button>}
           <button className="icon-button theme-toggle" aria-label={theme === "dark" ? "Gunakan tema terang" : "Gunakan tema gelap"} title={theme === "dark" ? "Tema terang" : "Tema gelap"} onClick={() => setTheme((value) => value === "dark" ? "light" : "dark")}>{theme === "dark" ? <Sun /> : <Moon />}</button>
           <button ref={helpTriggerRef} className="icon-button" aria-label="Buka bantuan penggunaan" aria-haspopup="dialog" aria-expanded={helpOpen} onClick={() => setHelpOpen(true)}><HelpCircle /></button>
-          {!isRolePreview && <div className="notification-wrap" ref={notificationRef}>
+          {!isRolePreview && !isPimpinan && <div className="notification-wrap" ref={notificationRef}>
             <button className="icon-button notification" aria-label={`Buka notifikasi${unreadNotifications ? `, ${unreadNotifications} belum dibaca` : ""}`} aria-haspopup="dialog" aria-expanded={notificationOpen} onClick={() => { setNotificationOpen((value) => !value); setProfileOpen(false); if (!notificationOpen) void loadNotifications(); }}><Bell />{unreadNotifications > 0 && <span className="notification-count">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}</button>
             {notificationOpen && <section className="notification-popover" aria-label="Notifikasi terbaru">
               <header><div><strong>Notifikasi</strong><small>{unreadNotifications ? `${unreadNotifications} belum dibaca` : "Semua sudah dibaca"}</small></div>{unreadNotifications > 0 && <button type="button" onClick={() => void markAllNotificationsRead()}><CheckCheck />Tandai dibaca</button>}</header>
@@ -395,14 +383,14 @@ export function AdminLayout({ pathname, title, subtitle, actions, children }: { 
             <button className="profile-button" aria-haspopup="menu" aria-expanded={profileOpen} onClick={() => setProfileOpen((value) => !value)}><span className="avatar">{initials}</span><span><strong>{user?.full_name}</strong><small>{roleLabel}</small></span><ChevronDown /></button>
             {profileOpen && <div className="profile-popover"><div className="profile-identity"><UserRound /><span><strong>{user?.simulation?.original_email ?? user?.email}</strong><small>{isRolePreview ? `Bertindak sebagai: ${roleLabels[user?.roles[0]?.code ?? ""] ?? "Peran"}` : user?.organizations[0]?.name ?? "Lingkup global"}</small></span></div>
               {isRolePreview ? <div className="profile-preview-return"><small>BERTINDAK SEBAGAI PERAN LAIN</small><button disabled={previewBusy} onClick={() => void leavePreview()}><RotateCcw />Kembali ke Developer</button></div>
-                : isSuperadmin && <div className="profile-preview"><small>BERTINDAK SEBAGAI PERAN</small><p>Gunakan menu dan kewenangan peran ini tanpa login ulang. Perubahan tercatat atas nama Developer.</p>{previewError && <span className="profile-preview-error">{previewError}</span>}<button disabled={previewBusy} onClick={() => void enterPreview("bapperida")}><Eye />BAPPERIDA</button><button disabled={previewBusy} onClick={() => void enterPreview("kominfo")}><Eye />Walidata Diskominfosantik</button><button disabled={previewBusy} onClick={() => void enterPreview("pembina_statistik")}><Eye />Pembina Statistik BPS</button><button disabled={previewBusy} onClick={() => void enterPreview("pimpinan")}><Eye />Bupati</button><label><span>Pratinjau OPD</span><select value={previewOrganizationId} onChange={(event) => setPreviewOrganizationId(event.target.value)}><option value="">Pilih OPD</option>{previewOrganizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.short_name ? `${organization.short_name} - ` : ""}{organization.name}</option>)}</select></label><button disabled={previewBusy || !previewOrganizationId} onClick={() => void enterPreview("opd", previewOrganizationId)}><Eye />Masuk sebagai OPD terpilih</button></div>}
+                : isSuperadmin && <div className="profile-preview"><small>BERTINDAK SEBAGAI PERAN</small><p>Gunakan menu dan kewenangan peran ini tanpa login ulang. Perubahan tercatat atas nama Developer.</p>{previewError && <span className="profile-preview-error">{previewError}</span>}<button disabled={previewBusy} onClick={() => void enterPreview("bapperida")}><Eye />BAPPERIDA</button><button disabled={previewBusy} onClick={() => void enterPreview("pembina_statistik")}><Eye />Pembina Statistik BPS</button><button disabled={previewBusy} onClick={() => void enterPreview("pimpinan")}><Eye />Bupati</button><label><span>Pratinjau OPD</span><select value={previewOrganizationId} onChange={(event) => setPreviewOrganizationId(event.target.value)}><option value="">Pilih OPD</option>{previewOrganizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.short_name ? `${organization.short_name} - ` : ""}{organization.name}</option>)}</select></label><button disabled={previewBusy || !previewOrganizationId} onClick={() => void enterPreview("opd", previewOrganizationId)}><Eye />Masuk sebagai OPD terpilih</button></div>}
               {!isRolePreview && <button onClick={() => go("/admin/profile")}><ShieldCheck />Akun saya</button>}<button className="danger-text" onClick={doLogout}><LogOut />Keluar</button></div>}
           </div>
         </div>
       </header>
       {isRolePreview && <div className="role-preview-banner"><Eye /><span><strong>Anda bertindak sebagai peran lain</strong><small>Semua perubahan berlaku nyata dan tercatat atas nama Developer. Peran saat ini: {roleLabels[user?.roles[0]?.code ?? ""] ?? "pengguna"}{user?.simulation?.organization_name ? ` - ${user.simulation.organization_name}` : ""}.</small></span><button disabled={previewBusy} onClick={() => void leavePreview()}><RotateCcw />Kembali ke Developer</button></div>}
-      <main id="main-content" ref={mainRef} className="page-shell" tabIndex={-1} aria-label={`${title}. ${subtitle}`}>
-        {pathname !== "/governance/indicators" && <header className="page-header"><div><h1>{title}</h1><p>{subtitle}</p></div>{actions && <div className="page-actions">{actions}</div>}</header>}
+      <main id="main-content" ref={mainRef} className="page-shell" tabIndex={-1} aria-label={`${displayTitle}. ${subtitle}`}>
+        {pathname !== "/governance/indicators" && !(isPimpinan && pathname === "/assistant") && <header className="page-header"><div><h1>{displayTitle}</h1><p>{subtitle}</p></div>{actions && <div className="page-actions">{actions}</div>}</header>}
         {children}
       </main>
       <footer className="workspace-footer">
@@ -426,9 +414,8 @@ const roleHelp: Record<string, { title: string; intro: string; steps: string[] }
   superadmin: { title: "Panduan Pengelola Sistem", intro: "Pastikan akun, organisasi, dan hak akses siap sebelum pengguna memulai pekerjaan substansi.", steps: ["Periksa pendaftaran PIC pada menu Pengguna.", "Tetapkan OPD dan peran dengan lingkup akses minimum.", "Pantau konfigurasi dan audit tanpa mengambil alih keputusan substansi BAPPERIDA atau OPD."] },
   bapperida: { title: "Panduan BAPPERIDA", intro: "Mulai dari Beranda Tugas untuk melihat keputusan yang menunggu Anda.", steps: ["Finalisasi kelompok isu dan indikator RPJMD.", "Verifikasi pelaporan yang dikirim OPD dan beri koreksi yang spesifik.", "Kurasi hanya capaian yang layak sebelum diterbitkan kepada Bupati."] },
   opd: { title: "Panduan Operator OPD", intro: "Kartu Tugas Saya menunjukkan pekerjaan yang perlu Anda selesaikan lebih dahulu.", steps: ["Verifikasi indikator yang menjadi tanggung jawab OPD.", "Mulai pelaporan untuk periode berjalan dan isi realisasi.", "Lampirkan dokumen pendukung, simpan perubahan, lalu kirim ke BAPPERIDA."] },
-  kominfo: { title: "Panduan Walidata", intro: "Diskominfosantik menjaga kualitas teknis dan aliran data lintas OPD.", steps: ["Daftarkan profil sumber data OPD.", "Petakan kolom sumber ke indikator yang sudah aktif.", "Periksa preview dan hasil validasi sebelum mengimpor atau menjadwalkan sinkronisasi."] },
-  pembina_statistik: { title: "Panduan Pembina Data Statistik", intro: "BPS membina standar dan kualitas statistik tanpa mengambil alih data milik OPD.", steps: ["Telaah standar, metadata, metodologi, dan konsistensi data.", "Berikan rekomendasi yang dapat ditindaklanjuti PIC instansi.", "Masukkan data hanya untuk indikator yang memang ditugaskan kepada BPS Kabupaten Kapuas."] },
-  pimpinan: { title: "Panduan Bupati", intro: "Informasi di ruang ini hanya berasal dari data yang sudah diterbitkan.", steps: ["Gunakan filter untuk memilih kelompok isu atau OPD.", "Buka Rilis Data untuk melihat paket resmi dan sumbernya.", "Gunakan Asisten Data untuk bertanya berdasarkan data yang tersedia."] },
+  pembina_statistik: { title: "Panduan Pembina Data Statistik", intro: "BPS memantau Bank Data dan memberikan catatan pembinaan tanpa mengubah nilai.", steps: ["Cari Seri Data yang perlu ditelaah pada Bank Data.", "Periksa sumber, metadata, metodologi, dan konsistensi data.", "Berikan catatan pembinaan yang spesifik agar dapat ditindaklanjuti pengelola data."] },
+  pimpinan: { title: "Panduan Bupati", intro: "Tanya Sababuka hanya menggunakan data yang sudah disetujui dan dipublikasikan.", steps: ["Buat chat baru untuk topik yang berbeda.", "Tulis pertanyaan tentang kondisi, tren, wilayah, atau indikator.", "Buka riwayat chat untuk melanjutkan pembahasan tanpa mengulang pertanyaan."] },
 };
 
 export function NotFoundPage() {

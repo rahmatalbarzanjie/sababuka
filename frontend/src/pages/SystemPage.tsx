@@ -25,10 +25,10 @@ interface BpsSecretStatus {
 
 function featureImpact(flag: FeatureFlag): string {
   const impacts: Record<string, string> = {
-    executive_dashboard: "Menampilkan ruang analisis dan ringkasan untuk Bupati.",
-    assistant: "Menampilkan Asisten Data bagi peran yang memiliki izin.",
-    connector: "Mengaktifkan integrasi, mapping, preview, dan sinkronisasi Walidata.",
-    publication: "Mengaktifkan proses kurasi dan penayangan data ke Bupati.",
+    executive_dashboard: "Menampilkan Dashboard Analisis untuk BAPPERIDA.",
+    assistant: "Menampilkan Tanya Sababuka bagi Bupati.",
+    connector: "Mengaktifkan pengaturan sumber, impor manual, dan pemetaan BAPPERIDA.",
+    publication: "Mengaktifkan proses kurasi data untuk analisis dan Tanya Sababuka.",
   };
   return impacts[flag.code] ?? "Perubahan berlaku pada menu atau proses yang terkait dengan fitur ini.";
 }

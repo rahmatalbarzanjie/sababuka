@@ -1066,7 +1066,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Membaca riwayat chat milik pengguna
+         * @description Membutuhkan `assistant.use`. Riwayat selalu dibatasi pada pengguna aktif.
+         */
+        get: operations["listAssistantSessions"];
         put?: never;
         /**
          * Membuat sesi Asisten AI
@@ -1077,6 +1081,24 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/assistant/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Membaca satu chat dan pesannya */
+        get: operations["getAssistantSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Mengganti judul atau mengarsipkan chat */
+        patch: operations["updateAssistantSession"];
         trace?: never;
     };
     "/assistant/sessions/{session_id}/messages": {
@@ -1094,6 +1116,67 @@ export interface paths {
          *     Jika data tidak cukup, respons menyatakan keterbatasan dan tidak mengarang angka.
          */
         post: operations["sendAssistantMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/executive/bank-data": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Membaca katalog Bank Data
+         * @description Membutuhkan `bank_data.view`.
+         */
+        get: operations["listBankData"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bank-data/{indicator_id}/guidance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Membaca catatan pembinaan satu Seri Data */
+        get: operations["listBankDataGuidance"];
+        put?: never;
+        /**
+         * Membuat catatan pembinaan BPS
+         * @description Membutuhkan `bank_data.note`. Catatan tidak mengubah nilai.
+         */
+        post: operations["createBankDataGuidance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bank-data/guidance/{note_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Menandai catatan pembinaan sudah ditindaklanjuti
+         * @description Membutuhkan `bank_data.resolve_note`. Tindakan tidak mengubah nilai.
+         */
+        post: operations["resolveBankDataGuidance"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1300,8 +1383,7 @@ export interface paths {
         put?: never;
         /**
          * Membuat mapping (status draf)
-         * @description Hanya Superadmin dengan `connector.manage`. Tahun data yang diterima
-         *     2024-2029; target RPJMD tetap 2025-2029.
+         * @description Membutuhkan `connector.map`. Pemetaan substansi hanya dilakukan BAPPERIDA.
          */
         post: operations["createConnectorMapping"];
         delete?: never;
@@ -1321,57 +1403,6 @@ export interface paths {
         put?: never;
         /** Menyetujui, mengaktifkan, atau menonaktifkan mapping */
         post: operations["transitionConnectorMapping"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/connectors/mappings/{mapping_id}/sync": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Mengambil data ke staging privat (preview) */
-        post: operations["syncConnectorMapping"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/connectors/runs/{run_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Detail satu proses sinkronisasi */
-        get: operations["getConnectorRun"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/connectors/runs/{run_id}/import": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Mengimpor hasil preview yang disetujui */
-        post: operations["importConnectorRun"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1494,6 +1525,100 @@ export interface paths {
          * @description Hanya Superadmin dengan `connector_secret.view`.
          */
         get: operations["listBpsChecks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connectors/bank-data/bps/{variable_id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Memeriksa metadata dan contoh nilai variabel BPS sebelum impor */
+        get: operations["previewBankDataBps"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connectors/bank-data/bps/{variable_id}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Menjalankan satu impor manual variabel BPS
+         * @description Hanya Developer dengan `connector.manage`. Tidak ada impor otomatis.
+         */
+        post: operations["importBankDataBps"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connectors/bank-data/satudata/{package_id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Memeriksa metadata dan contoh nilai tabel Satu Data sebelum impor */
+        get: operations["previewBankDataSatuData"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connectors/bank-data/satudata/{package_id}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Menjalankan satu impor manual tabel Satu Data
+         * @description Hanya Developer dengan `connector.manage`. Tidak ada impor otomatis.
+         */
+        post: operations["importBankDataSatuData"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connectors/bank-data/import-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Membaca riwayat audit impor manual
+         * @description Hanya Developer dengan `connector.manage`.
+         */
+        get: operations["listBankDataImportHistory"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1706,7 +1831,7 @@ export interface components {
                 /** @constant */
                 active: true;
                 /** @enum {string} */
-                role_code: "bapperida" | "kominfo" | "pembina_statistik" | "opd" | "pimpinan";
+                role_code: "bapperida" | "pembina_statistik" | "opd" | "pimpinan";
                 organization_id: components["schemas"]["Uuid"] | null;
                 organization_name: string | null;
                 original_full_name: string;
@@ -2188,6 +2313,34 @@ export interface components {
             /** @enum {string} */
             status: "active" | "closed" | "archived";
             started_at: components["schemas"]["Timestamp"];
+            updated_at?: components["schemas"]["Timestamp"];
+            message_count?: number;
+        };
+        IntegrationProfileInput: {
+            organization_id: components["schemas"]["Uuid"];
+            code: string;
+            name: string;
+            /** @enum {string} */
+            connector_kind: "api_json" | "ckan" | "bps" | "csv_url" | "file_upload" | "database_view" | "html_scrape" | "manual";
+            /** Format: uri */
+            base_url?: string | null;
+            endpoint_path?: string | null;
+            /** @enum {string} */
+            auth_type: "none" | "api_key" | "bearer" | "basic" | "oauth2";
+            /** @enum {string} */
+            data_format: "json" | "csv" | "xlsx" | "html" | "database" | "manual";
+            data_path?: string | null;
+            notes?: string | null;
+        };
+        AssistantSessionDetail: components["schemas"]["AssistantSession"] & {
+            messages: {
+                id: components["schemas"]["Uuid"];
+                /** @enum {string} */
+                role: "user" | "assistant";
+                content: string;
+                created_at?: components["schemas"]["Timestamp"];
+                answer?: components["schemas"]["AssistantAnswer"];
+            }[];
         };
         AssistantAnswer: {
             message_id: components["schemas"]["Uuid"];
@@ -2195,13 +2348,21 @@ export interface components {
             /** @enum {string} */
             sufficiency: "sufficient" | "partial" | "insufficient";
             citations: {
-                publication_item_id: components["schemas"]["Uuid"];
+                publication_item_id: string;
                 label: string;
                 indicator?: string;
                 period?: string;
                 organization?: string;
                 source?: string;
+                /** Format: uuid */
+                indicator_id?: string;
+                /** Format: uri */
+                source_url?: string | null;
             }[];
+            visuals?: {
+                [key: string]: unknown;
+            }[];
+            suggestions?: string[];
         };
         AuditEvent: {
             id: components["schemas"]["Uuid"];
@@ -4035,6 +4196,31 @@ export interface operations {
             403: components["responses"]["Forbidden"];
         };
     };
+    listAssistantSessions: {
+        parameters: {
+            query?: {
+                archived?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Daftar sesi aktif atau arsip */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AssistantSession"][];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
     createAssistantSession: {
         parameters: {
             query?: never;
@@ -4065,6 +4251,65 @@ export interface operations {
             403: components["responses"]["Forbidden"];
         };
     };
+    getAssistantSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sesi dan pesan milik pengguna */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssistantSessionDetail"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateAssistantSession: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path: {
+                session_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title?: string;
+                    /** @enum {string} */
+                    status?: "active" | "archived";
+                };
+            };
+        };
+        responses: {
+            /** @description Sesi diperbarui */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssistantSession"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     sendAssistantMessage: {
         parameters: {
             query?: never;
@@ -4081,6 +4326,7 @@ export interface operations {
             content: {
                 "application/json": {
                     message: string;
+                    client_message_id: components["schemas"]["Uuid"];
                 };
             };
         };
@@ -4096,6 +4342,87 @@ export interface operations {
             };
             403: components["responses"]["Forbidden"];
             422: components["responses"]["BusinessRuleViolation"];
+        };
+    };
+    listBankData: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listBankDataGuidance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                indicator_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createBankDataGuidance: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path: {
+                indicator_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    guidance_type: "standar" | "metadata" | "metodologi" | "konsistensi";
+                    notes: string;
+                };
+            };
+        };
+        responses: {
+            201: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    resolveBankDataGuidance: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path: {
+                note_id: components["schemas"]["Uuid"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    resolution_notes: string;
+                };
+            };
+        };
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     listAuditEvents: {
@@ -4251,9 +4578,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    [key: string]: unknown;
-                };
+                "application/json": components["schemas"]["IntegrationProfileInput"];
             };
         };
         responses: {
@@ -4276,9 +4601,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    [key: string]: unknown;
-                };
+                "application/json": components["schemas"]["IntegrationProfileInput"];
             };
         };
         responses: {
@@ -4370,61 +4693,6 @@ export interface operations {
             path: {
                 mapping_id: components["schemas"]["Uuid"];
                 action: "approve" | "activate" | "retire";
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: components["responses"]["ConnectorObject"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["InvalidTransition"];
-        };
-    };
-    syncConnectorMapping: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
-                "X-CSRF-Token": components["parameters"]["CsrfToken"];
-            };
-            path: {
-                mapping_id: components["schemas"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: components["responses"]["ConnectorObject"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    getConnectorRun: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                run_id: components["schemas"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: components["responses"]["ConnectorObject"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    importConnectorRun: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
-                "X-CSRF-Token": components["parameters"]["CsrfToken"];
-            };
-            path: {
-                run_id: components["schemas"]["Uuid"];
             };
             cookie?: never;
         };
@@ -4557,6 +4825,89 @@ export interface operations {
         };
     };
     listBpsChecks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    previewBankDataBps: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                variable_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    importBankDataBps: {
+        parameters: {
+            query?: {
+                refresh?: boolean;
+            };
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path: {
+                variable_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    previewBankDataSatuData: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                package_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    importBankDataSatuData: {
+        parameters: {
+            query?: {
+                refresh?: boolean;
+            };
+            header: {
+                /** @description Token CSRF terikat ke sesi untuk seluruh operasi mutasi. */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path: {
+                package_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ConnectorObject"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listBankDataImportHistory: {
         parameters: {
             query?: never;
             header?: never;

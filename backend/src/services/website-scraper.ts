@@ -4,7 +4,7 @@ import * as playwright from "playwright";
 import { ApiError } from "../errors.js";
 
 const ALLOWED_HOST_SUFFIXES = [".kapuaskab.go.id"];
-const USER_AGENT = "SABABUKA-WalidataBot/1.0 (+https://satudata.kapuaskab.go.id)";
+const USER_AGENT = "SABABUKA-DeveloperBot/1.0 (+https://satudata.kapuaskab.go.id)";
 const BLOCKED_STATUS = new Set([401, 403, 407, 429]);
 const { chromium } = playwright as unknown as { chromium: { launch(options: Record<string, unknown>): Promise<any> } };
 type Browser = Awaited<ReturnType<typeof chromium.launch>>;

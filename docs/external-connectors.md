@@ -2,6 +2,8 @@
 
 SABABUKA memakai konektor eksplisit untuk menghubungkan indikator tahunan dengan sumber resmi. Konektor tidak mencocokkan judul secara otomatis dan tidak menimpa data manual.
 
+> Status 21 November 2026: impor Bank Data hanya dilakukan manual oleh Developer. BAPPERIDA mengelola pemetaan Seri Data ke indikator RPJMD. Diskominfosantik adalah OPD biasa dan tidak memiliki peran Walidata. Route preview sinkronisasi lama tidak lagi dibuka pada API aktif. Bagian teknis lama di bawah dipertahankan hanya sebagai konteks histori sampai pembersihan service dan tabel selesai melalui migration terpisah.
+
 ## Sumber yang tersedia
 
 - **Satu Data Kapuas** memakai katalog CKAN. Pencarian katalog tersedia dari menu Konektor dan mengambil metadata paket/resource. Resource CSV atau JSON harus dipilih dan dipetakan ke indikator tertentu.
@@ -28,9 +30,9 @@ Konektor hanya bertugas mengambil realisasi dari sumber resmi. Target RPJMD/Rens
 
 ## Hak akses
 
-Ruang konektor, mapping kandidat, dan isi preview staging hanya dapat dibuka oleh akun Developer atau Superadmin dengan role `superadmin` berscope `global`. Pemeriksaan ini diterapkan pada API, bukan hanya dengan menyembunyikan menu. Walidata, BPS, OPD, BAPPERIDA, dan pimpinan tidak dapat membaca nilai mentah staging.
+Pengaturan sumber, secret, katalog impor, pratinjau impor, dan isi staging hanya dapat dibuka oleh akun Developer atau Superadmin dengan role `superadmin` berscope `global`. Pemeriksaan ini diterapkan pada API, bukan hanya dengan menyembunyikan menu. BPS, OPD, BAPPERIDA, dan Bupati tidak dapat membaca nilai mentah staging. BAPPERIDA memakai bagian pemetaan Seri Data tanpa mendapat kewenangan impor atau secret.
 
-Mapping kandidat boleh dibuat untuk indikator berstatus `opd_verification`. Mapping draf boleh menjalankan preview, tetapi tidak dapat disetujui, diaktifkan, dijadwalkan, atau diimpor sampai indikator berstatus `approved` atau `active`. Preview tidak menulis ke `data_batches`, `observations`, dashboard Bupati, maupun publikasi.
+Mapping kandidat boleh dibuat untuk indikator berstatus `opd_verification`. Mapping draf tidak dapat disetujui atau diaktifkan sampai indikator berstatus `approved` atau `active`. Pemetaan tidak menjalankan impor, tidak menulis ke `data_batches` atau `observations`, dan tidak menerbitkan data kepada Bupati.
 
 ## Rujukan data untuk OPD (hanya-baca)
 
@@ -59,7 +61,7 @@ Detail teknis:
 ## Retensi dan penghapusan staging
 
 - Nilai mentah pada `connector_staging_values` disimpan maksimal 90 hari sejak connector run dibuat.
-- Pembersihan diperiksa otomatis oleh scheduler backend setiap menit, serta saat daftar mapping dibuka, preview baru dijalankan, atau riwayat preview dibaca.
+- Pembersihan tidak memakai scheduler konektor. Pemeriksaan retensi dilakukan pada tindakan manual yang relevan dan pekerjaan pemeliharaan Developer.
 - Setelah masa retensi, nilai mentah dihapus dan `staging_purged_at` dicatat.
 - Ringkasan run, checksum, URL sumber, waktu pengambilan, dan audit event tetap disimpan untuk ketertelusuran.
 - Jika preview masih dibutuhkan setelah masa retensi, Developer harus mengambil ulang sumber untuk membuat run baru.
@@ -78,7 +80,7 @@ Nilai dari sumber berbeda untuk slot yang sama (indikator, periode, wilayah, dim
 - **Sumber baru dengan nilai lain** setelah keputusan membuka konflik kembali.
 - **Dashboard Bupati hanya memuat data tervalidasi:** konflik terbuka menahan capaian dari kandidat kurasi dan dari penambahan ke publikasi; capaian yang tidak dipilih (`not_chosen`) tidak tampil di dashboard dan analisis Bupati. Publikasi yang sudah aktif tidak ditarik otomatis saat konflik baru muncul; konflik itu terlihat di menu konsolidasi sampai diputuskan.
 
-Izin: `consolidation.view` (OPD, BAPPERIDA, Walidata, Superadmin) dan `consolidation.resolve` (OPD pemilik indikator, BAPPERIDA, Superadmin). API: `GET /consolidation/conflicts`, `POST /consolidation/decisions`.
+Izin: `consolidation.view` (OPD, BAPPERIDA, Superadmin) dan `consolidation.resolve` (OPD pemilik indikator, BAPPERIDA, Superadmin). API: `GET /consolidation/conflicts`, `POST /consolidation/decisions`.
 
 ### Galat validasi per kolom
 

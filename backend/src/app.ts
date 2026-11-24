@@ -22,6 +22,7 @@ import { operationRoutes } from "./routes/operations.js";
 import { connectorRoutes } from "./routes/connectors.js";
 import { consolidationRoutes } from "./routes/consolidation.js";
 import { opdProfileRoutes } from "./routes/opd-profiles.js";
+import { bankDataGuidanceRoutes } from "./routes/bank-data-guidance.js";
 
 export interface BuildAppOptions {
   config: AppConfig;
@@ -151,6 +152,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
       await api.register(connectorRoutes);
       await api.register(consolidationRoutes);
       await api.register(opdProfileRoutes);
+      await api.register(bankDataGuidanceRoutes);
     },
     { prefix: "/api/v1" },
   );

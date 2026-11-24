@@ -84,7 +84,7 @@ export function IndicatorDetailPage({ id }: { id: string }) {
   }, [item]);
   if (data.loading) return <PageLoading />;
   if (data.error) return <ErrorState title="Detail indikator belum dapat dimuat" onRetry={data.reload}>{data.error}</ErrorState>;
-  const back = <AppLink to="/dashboard" className="back-link"><ArrowLeft aria-hidden />Kembali ke Dashboard Eksekutif</AppLink>;
+  const back = <AppLink to="/dashboard" className="back-link"><ArrowLeft aria-hidden />Kembali ke Dashboard Analisis</AppLink>;
   if (!item) return <div className="exec">{back}<EmptyState title="Indikator tidak ditemukan">Indikator belum memiliki data terpublikasi atau tidak tersedia untuk peran Anda.</EmptyState></div>;
   const tone = toneOf(item.assessment);
   const verified = isVerified(item.source_kind);

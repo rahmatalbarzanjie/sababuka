@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { navigate } from "./router";
 
-/** Bagian Dashboard Eksekutif. Menu atas Bupati memetakan ke bagian ini lewat hash alamat, jadi tautan lama tetap berlaku. */
+/** Bagian Dashboard Analisis BAPPERIDA. Tautan lama tetap dipertahankan untuk kompatibilitas. */
 export type DashTab = "ringkasan" | "capaian" | "peta" | "indikator" | "tren" | "fokus";
 export const DASH_TABS: DashTab[] = ["ringkasan", "capaian", "peta", "indikator", "tren", "fokus"];
 /** Bagian yang berada di bawah menu Indikator (dipilih lewat chip). */

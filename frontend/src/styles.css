@@ -1112,7 +1112,7 @@ td small { color: var(--muted); margin-top: 3px; }
   .connector-results .button { width: 100%; }
 }
 
-/* Dashboard sistem dan pipeline sinkronisasi: data operasional, bukan kartu kesiapan statis. */
+/* Dashboard sistem dan sumber data: data operasional, bukan kartu kesiapan statis. */
 .system-health-banner { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; margin-bottom: 14px; padding: 18px 20px; border: 1px solid #b9d7cb; border-radius: 8px; background: var(--ui-surface, var(--white)); }
 .system-health-banner.attention { border-color: #ead09b; }
 .system-health-banner > span:first-child { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; color: var(--teal-700); background: var(--teal-100); }
@@ -1424,6 +1424,40 @@ td small { color: var(--muted); margin-top: 3px; }
   .publication-detail .detail-grid { grid-template-columns: 1fr 1fr; }
 }
 .assistant-workspace { display: grid; gap: 16px; }
+.connector-role-page { display: grid; gap: 18px; }
+.source-profile-list { display: grid; gap: 8px; }
+.source-profile-list > article { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.source-profile-list > article > div { min-width: 0; display: grid; gap: 2px; }
+.source-profile-list p { margin: 3px 0 0; overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.bank-guidance-summary { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.bank-guidance-summary h3 { margin: 8px 0 2px; }
+.bank-guidance-summary p { margin: 0; color: var(--muted); }
+.bank-guidance-summary dl { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(90px, 1fr)); gap: 8px; }
+.bank-guidance-summary dl > div { padding: 10px 12px; border-radius: 9px; background: var(--soft); }
+.bank-guidance-summary dt { color: var(--muted); font-size: 12px; }
+.bank-guidance-summary dd { margin: 2px 0 0; font-weight: 700; }
+.bank-guidance-form, .bank-guidance-list { display: grid; gap: 12px; padding-top: 16px; border-top: 1px solid var(--line); }
+.bank-guidance-form h3, .bank-guidance-list h3 { margin: 0; }
+.bank-guidance-form > .button { justify-self: start; }
+.bank-guidance-list > article { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.bank-guidance-list > article > header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.bank-guidance-list > article > header > span { display: flex; align-items: center; gap: 8px; }
+.bank-guidance-list > article > header small { color: var(--muted); }
+.bank-guidance-list > article > p, .bank-guidance-resolution p { margin: 0; line-height: 1.55; }
+.bank-guidance-resolution { display: flex; align-items: flex-start; gap: 9px; padding: 11px; border-radius: 9px; background: var(--teal-100); }
+.bank-guidance-resolution svg { width: 18px; flex: none; color: var(--teal-700); }
+.bank-guidance-resolution span { display: grid; gap: 3px; }
+.bank-guidance-resolution small { color: var(--muted); }
+.bank-guidance-resolve { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 10px; }
+.bank-guidance-resolve textarea { resize: vertical; }
+@media (max-width: 720px) {
+  .source-profile-list > article { grid-template-columns: auto minmax(0, 1fr); }
+  .source-profile-list > article > .badge, .source-profile-list > article > .button { grid-column: 2; justify-self: start; }
+  .bank-guidance-summary { display: grid; }
+  .bank-guidance-summary dl { grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+  .bank-guidance-list > article > header { align-items: flex-start; flex-direction: column; }
+  .bank-guidance-resolve { grid-template-columns: 1fr; }
+}
 .assistant-panel { padding: 0; overflow: hidden; }
 .assistant-panel > header { display: flex; align-items: center; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--line); }
 .assistant-panel > header h2, .assistant-panel > header p { margin: 0; }
