@@ -162,3 +162,9 @@ test("angka desimal pada hasil alat wilayah ditulis gaya Indonesia agar lolos pe
   const json = JSON.stringify(agent.execute("wilayah_prioritas", { mode: "pertumbuhan" }, insights, [], { contexts: new Map(), focus: null, districts, districtDetails: new Map() }).result);
   assert.deepEqual(ungroundedNumbers("Timpah: skor pertumbuhan -44,9 dan 59,7 persen indikator perlu perhatian, 10,5 persen unggul.", json), []);
 });
+
+test("localizeNumbers menulis desimal gaya Indonesia dan membiarkan bilangan bulat", async () => {
+  const { localizeNumbers } = await import("../src/services/agent-service.js");
+  assert.deepEqual(localizeNumbers({ korelasi: -0.49, gini: 0.287, tahun: 2025, jumlah: 7991, daftar: [{ nilai: 5.25 }], teks: "0.5", kosong: null }), { korelasi: "-0,49", gini: "0,287", tahun: 2025, jumlah: 7991, daftar: [{ nilai: "5,25" }], teks: "0.5", kosong: null });
+  assert.deepEqual(ungroundedNumbers("Korelasi -0,49 dan 5,25 persen", JSON.stringify(localizeNumbers({ a: -0.49, b: 5.25 }))), []);
+});

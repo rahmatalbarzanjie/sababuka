@@ -57,6 +57,13 @@ export const AGENT_TOOLS: ToolDefinition[] = [
 ];
 
 const num = (value: number) => new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(value);
+/** Angka desimal pada hasil alat ditulis gaya Indonesia (koma) agar seragam dengan jawaban dan lolos pemeriksaan angka; bilangan bulat tetap. */
+export function localizeNumbers(value: unknown): unknown {
+  if (typeof value === "number") return Number.isInteger(value) ? value : new Intl.NumberFormat("id-ID", { maximumFractionDigits: 3 }).format(value);
+  if (Array.isArray(value)) return value.map(localizeNumbers);
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, localizeNumbers(item)]));
+  return value;
+}
 const optNum = (value: number | null) => value === null ? null : num(value);
 const pct = (value: number | null) => value === null ? null : `${value > 0 ? "+" : ""}${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 }).format(value)}%`;
 const statusData = (insight: Insight) => insight.layer === "kinerja" ? (insight.source_kind === "rpjmd" ? "RPJMD (indikator resmi)" : "Indikator OPD") : "Bank Data (belum diverifikasi)";
@@ -261,7 +268,7 @@ export class AgentService {
           toolsUsed.push(String(call.name));
           if (outcome.visual && visuals.length < 3 && !visuals.some((visual) => visual.title === outcome.visual!.title)) visuals.push(outcome.visual);
           if (outcome.focus && !focus.includes(outcome.focus)) focus.push(outcome.focus);
-          const json = JSON.stringify(outcome.result).slice(0, 9000);
+          const json = JSON.stringify(localizeNumbers(outcome.result)).slice(0, 9000);
           evidence.push(json);
           return { type: "tool_result", tool_use_id: call.id, content: json };
         });
@@ -275,7 +282,7 @@ export class AgentService {
       if (bad.length && corrections < 2) {
         corrections += 1;
         messages.push({ role: "assistant", content: answer });
-        messages.push({ role: "user", content: `Angka berikut tidak ada pada hasil data: ${bad.join(", ")}. Tulis ulang jawaban hanya dengan angka yang tertulis pada hasil data (tanpa menghitung sendiri). Jika angka itu memang diperlukan tetapi tidak tersedia, katakan datanya tidak ada.` });
+        messages.push({ role: "user", content: `Angka berikut tidak ada pada hasil data: ${bad.join(", ")}. Tulis ulang jawaban hanya dengan angka yang tertulis pada hasil data (tanpa menghitung sendiri). Jika angka itu memang diperlukan tetapi tidak tersedia, katakan datanya tidak ada. Balas hanya dengan jawaban akhir untuk Bupati, tanpa menyebut koreksi ini, penulisan ulang, atau perbedaan format angka.` });
         continue;
       }
       if (bad.length) { this.failure = "angka_tidak_terverifikasi"; this.failureDetail = `Angka tidak terverifikasi: ${bad.join(", ")}`.slice(0, 200); return null; }
