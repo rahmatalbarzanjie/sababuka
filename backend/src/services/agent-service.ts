@@ -7,6 +7,11 @@ import { CrossAnalysisService, buildCrossAnalysis, type IndicatorContext } from 
 import { FocusService, type FocusOverview } from "./focus-service.js";
 import { OPD_SCORE_WEIGHTS, conditionLabel, opdPerformance } from "./opd-performance.js";
 import { LlmService, ungroundedNumbers, type ToolDefinition } from "./llm-service.js";
+import { DistrictSummaryService } from "./district-summary-service.js";
+
+type DistrictList = Awaited<ReturnType<DistrictSummaryService["list"]>>;
+type DistrictDetail = NonNullable<Awaited<ReturnType<DistrictSummaryService["detail"]>>>;
+interface Knowledge { contexts: Map<string, IndicatorContext>; focus: FocusOverview | null; districts?: DistrictList | null; districtDetails?: Map<string, DistrictDetail> }
 
 export const AGENT_SYSTEM_PROMPT = `Anda adalah Sababuka, asisten data resmi untuk Bupati Kabupaten Kapuas, Kalimantan Tengah.
 Ruang lingkup: HANYA hal yang berkaitan dengan Kabupaten Kapuas (kondisi, data, tren, kecamatan, OPD, kebijakan daerah) yang dapat dijawab dari data yang tersimpan di Sababuka. Jika pertanyaan di luar itu (daerah lain, topik umum, pemrograman, hiburan, dan sejenisnya), tolak dengan sopan dalam satu kalimat dan tawarkan topik Kapuas yang bisa Anda bantu.
@@ -21,6 +26,9 @@ Cara kerja:
 8. Untuk pertanyaan tentang indikator yang sudah atau belum mencapai target, gunakan alat capaian target. Status tercapai atau belum tercapai (terhadap target) berbeda dari membaik atau memburuk (arah tren); sebut keduanya secara terpisah. Sistem hanya memberi rekomendasi kepada OPD dan tidak menyimpan tanggapan atau rencana OPD, jadi jangan menyatakan OPD telah atau akan melakukan sesuatu.
 9. Untuk pertanyaan tentang keterkaitan, faktor penyebab, OPD lain yang berperan, wilayah prioritas, atau rekomendasi yang tepat sasaran, panggil alat analisis silang untuk indikatornya (dan alat ringkasan fokus untuk pertanyaan per fokus kebijakan). Bandingkan indikator hanya pada tahun yang sama; bila tahun berbeda, katakan tidak dibandingkan. Korelasi hanya keterkaitan statistik, jangan menyebutnya sebab-akibat. Keterkaitan yang bukan Tautan Seri Data adalah usulan sistem yang belum divalidasi BAPPERIDA, sebut itu. Sebut kecamatan prioritas hanya bila alat memberikannya; bila tidak ada data kecamatan, katakan wilayah prioritas belum dapat ditentukan. Pengelompokan fokus kebijakan adalah hasil analisis, bukan klasifikasi resmi RPJMD.
 10. Untuk pertanyaan tentang kondisi, perkembangan, kinerja, atau evaluasi OPD, panggil alat kondisi OPD (tanpa nama untuk gambaran seluruh OPD, dengan nama untuk satu OPD) dan bila perlu alat indikator OPD. Jawab sebagai bahan evaluasi: sebut kondisi, kekuatan, kelemahan, indikator yang tertinggal atau memburuk, realisasi yang belum terbit, lalu langkah pembinaan atau tindak lanjut untuk Bupati. Sebut dasar penilaian (capaian target, arah tren, kelengkapan realisasi) satu kali. Jangan menyimpulkan penyebab, niat, atau kelalaian OPD, dan jangan menyatakan OPD telah atau akan melakukan sesuatu. OPD dengan skor kosong belum dapat dinilai (indikator bertarget kurang dari 3 atau belum ada realisasi terbit); katakan demikian dan sebut realisasi yang belum terbit.
+11. Untuk pertanyaan tentang kecamatan atau wilayah mana yang perlu perhatian, panggil alat wilayah prioritas (mode kondisi atau pertumbuhan, sebut mode yang dipakai) dan, untuk satu kecamatan, isi nama kecamatannya. Peringkat itu posisi relatif antarkecamatan dari indikator berdimensi kecamatan yang tersedia; sebut jumlah indikator dasarnya dan bahwa sebagian besar bersumber Bank Data BPS yang belum diverifikasi. Jangan menjawab pertanyaan wilayah dengan indikator tingkat kabupaten.
+12. Jawab persis hal yang ditanyakan Bupati, tidak melebar ke topik lain. Pada pertanyaan tentang satu topik (mis. kemiskinan, stunting, pendidikan), cari dengan beberapa kata kunci dan sinonim (mis. "tingkat kemiskinan", "penduduk miskin", "garis kemiskinan") sebelum menyatakan data tidak ada; alat pencarian juga memuat indikator RPJMD bertarget yang baru punya satu tahun data. Jangan menambahkan pernyataan umum di luar hasil alat (teori, kebiasaan umum, perbandingan dengan daerah lain).
+13. Bila hasil alat memuat "peringatan" pada sebuah indikator (nilai 0 atau perubahan sangat besar dalam satu tahun), sebut peringatan itu di bagian Catatan dan jangan menjadikan angka tersebut dasar kesimpulan utama tanpa menyebutnya, termasuk pada daftar yang memburuk, membaik, atau terbesar. Minta OPD terkait atau BAPPERIDA memverifikasi.
 Format jawaban (gunakan hanya penanda ini: **tebal**, butir diawali "- ", daftar bernomor "1.", dan satu baris judul bagian berupa teks tebal sendirian):
 - Pertanyaan faktual sederhana: jawab langsung dalam 1-3 kalimat, tanpa judul bagian.
 - Pertanyaan analisis, tren, atau "apa yang perlu diperhatikan": gunakan bagian berikut, lewati yang tidak relevan:
@@ -34,9 +42,10 @@ Format jawaban (gunakan hanya penanda ini: **tebal**, butir diawali "- ", daftar
 - Panjang total biasanya di bawah 170 kata. Tulis nama indikator persis seperti pada data. Pakai pemisah ribuan Indonesia dan koma desimal seperti pada data.`;
 
 export const AGENT_TOOLS: ToolDefinition[] = [
-  { name: "cari_indikator", description: "Mencari indikator di Bank Data Sababuka (RPJMD, BPS/Kapuas dalam Angka, Satu Data) berdasarkan kata kunci nama atau tema. Mengembalikan daftar indikator dengan id, nilai terbaru, dan OPD.", input_schema: { type: "object", properties: { kata_kunci: { type: "string", description: "mis. 'kemiskinan', 'produksi padi', 'melek huruf'" }, sumber: { type: "string", enum: ["rpjmd", "bps", "satudata"], description: "opsional: batasi sumber" }, batas: { type: "integer", minimum: 1, maximum: 10 } }, required: ["kata_kunci"] } },
+  { name: "cari_indikator", description: "Mencari indikator di Bank Data Sababuka (RPJMD, BPS/Kapuas dalam Angka, Satu Data) berdasarkan kata kunci nama atau tema. Mengembalikan daftar indikator dengan id, nilai terbaru, dan OPD, serta indikator RPJMD bertarget yang baru punya satu tahun data (tanpa id tren).", input_schema: { type: "object", properties: { kata_kunci: { type: "string", description: "mis. 'kemiskinan', 'produksi padi', 'melek huruf'" }, sumber: { type: "string", enum: ["rpjmd", "bps", "satudata"], description: "opsional: batasi sumber" }, batas: { type: "integer", minimum: 1, maximum: 10 } }, required: ["kata_kunci"] } },
   { name: "ambil_tren", description: "Mengambil riwayat tahunan satu indikator beserta analisis tren: perubahan tahun terakhir, laju rata-rata, arah (naik/turun/stabil), penilaian, anomali, OPD penanggung jawab, dan saran.", input_schema: { type: "object", properties: { indikator_id: { type: "string" } }, required: ["indikator_id"] } },
   { name: "ambil_kecamatan", description: "Mengambil nilai satu indikator per kecamatan pada tahun terbaru beserta perubahan dari tahun sebelumnya, tertinggi, terendah, dan kesenjangan.", input_schema: { type: "object", properties: { indikator_id: { type: "string" } }, required: ["indikator_id"] } },
+  { name: "wilayah_prioritas", description: "Kecamatan yang perlu perhatian, dihitung dari indikator berdimensi kecamatan (posisi relatif antarkecamatan dan arah tren). Mode kondisi: indikator unggul dikurangi indikator perlu perhatian. Mode pertumbuhan: indikator membaik dikurangi memburuk. Dengan nama kecamatan mengembalikan indikator yang perlu perhatian di kecamatan itu.", input_schema: { type: "object", properties: { mode: { type: "string", enum: ["kondisi", "pertumbuhan"] }, nama_kecamatan: { type: "string", description: "opsional: nama kecamatan" }, batas: { type: "integer", minimum: 1, maximum: 17 } } } },
   { name: "skor_opd", description: "Peringkat OPD berdasarkan arah perubahan indikator yang menjadi tanggung jawabnya (jumlah membaik dan memburuk). Bukan penilaian kinerja resmi.", input_schema: { type: "object", properties: {} } },
   { name: "kondisi_opd", description: "Kondisi dan perkembangan OPD sebagai bahan evaluasi: indikator bertarget, tercapai, belum tercapai, realisasi belum terbit, indikator membaik dan memburuk, kelengkapan realisasi, skor gabungan, kondisi (baik, cukup, perlu perhatian, perlu pembinaan), serta indikator tertinggal. Tanpa nama OPD mengembalikan semua OPD terurut skor.", input_schema: { type: "object", properties: { nama_opd: { type: "string", description: "opsional: sebagian nama OPD" }, batas: { type: "integer", minimum: 1, maximum: 15 } } } },
   { name: "indikator_opd", description: "Daftar indikator di bawah tanggung jawab satu OPD, diurutkan dari yang paling perlu perhatian.", input_schema: { type: "object", properties: { nama_opd: { type: "string", description: "sebagian nama OPD, mis. 'Pendidikan'" }, batas: { type: "integer", minimum: 1, maximum: 15 } }, required: ["nama_opd"] } },
@@ -51,9 +60,18 @@ const num = (value: number) => new Intl.NumberFormat("id-ID", { maximumFractionD
 const pct = (value: number | null) => value === null ? null : `${value > 0 ? "+" : ""}${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 }).format(value)}%`;
 const statusData = (insight: Insight) => insight.layer === "kinerja" ? (insight.source_kind === "rpjmd" ? "RPJMD (indikator resmi)" : "Indikator OPD") : "Bank Data (belum diverifikasi)";
 
+/** Nilai nol atau lompatan sangat besar dalam satu tahun: tandai agar jawaban meminta verifikasi, bukan menyimpulkan. */
+const ZERO_WARNING = "Nilai terbaru 0 kemungkinan belum diisi atau salah input; verifikasi sebelum dipakai.";
+const dataWarning = (insight: Insight): string | null => {
+  if (insight.latest_value === 0 && insight.series.some((point) => point.value > 0)) return ZERO_WARNING;
+  if (insight.change_pct !== null && Math.abs(insight.change_pct) >= 50 && insight.series.length >= 2) return `Perubahan sangat besar dalam satu tahun (${pct(insight.change_pct)}); periksa metode pengukuran atau apakah angka itu target, sebelum dipakai sebagai capaian.`;
+  return null;
+};
+
 const brief = (insight: Insight) => ({
   indikator_id: insight.indicator_id, nama: insight.name, kategori: insight.category.replace(/^Bank Data · /u, ""), sumber: insight.source_label, status_data: statusData(insight),
   satuan: insight.unit, tahun_terbaru: insight.latest_year, nilai_terbaru: num(insight.latest_value), perubahan: pct(insight.change_pct), tren: insight.trend, penilaian: insight.assessment, opd: insight.opds,
+  ...(dataWarning(insight) ? { peringatan: dataWarning(insight) } : {}),
 });
 
 export interface AgentRun { answer: string; visuals: Visual[]; sources: AssistantReply["sources"]; toolsUsed: string[]; model: string }
@@ -65,7 +83,7 @@ export class AgentService {
   failure: AgentFailure | null = null;
   constructor(private readonly db: Database, private readonly config?: AppConfig) {}
 
-  execute(name: string, input: Record<string, unknown>, insights: Insight[], achievement: AchievementItem[] = [], knowledge: { contexts: Map<string, IndicatorContext>; focus: FocusOverview | null } = { contexts: new Map(), focus: null }): { result: unknown; focus?: Insight; visual?: Visual } {
+  execute(name: string, input: Record<string, unknown>, insights: Insight[], achievement: AchievementItem[] = [], knowledge: Knowledge = { contexts: new Map(), focus: null }): { result: unknown; focus?: Insight; visual?: Visual } {
     const text = (key: string) => String(input[key] ?? "").trim();
     const limit = (fallback: number, max: number) => Math.min(max, Math.max(1, Number(input.batas) || fallback));
     const byId = (id: string) => insights.find((item) => item.indicator_id === id);
@@ -75,7 +93,15 @@ export class AgentService {
         const query = text("kata_kunci");
         let found = matchInsights(tokenize(query), pool, limit(6, 10)).map((entry) => entry.insight);
         if (!found.length) found = pool.filter((item) => item.name.toLowerCase().includes(query.toLowerCase())).slice(0, limit(6, 10));
-        return { result: found.length ? { jumlah: found.length, indikator: found.map(brief) } : { jumlah: 0, catatan: "Tidak ada indikator yang cocok. Coba kata kunci lain." } };
+        const seen = new Set(found.map((item) => item.name.toLowerCase()));
+        const words = tokenize(query);
+        const targeted = words.length && !input.sumber ? achievement
+          .map((item) => { const itemWords = tokenize(`${item.name} ${item.sector}`); return { item, hits: words.filter((word) => itemWords.some((candidate) => candidate.includes(word) || word.includes(candidate))).length }; })
+          .filter((entry) => entry.hits > 0 && !seen.has(entry.item.name.toLowerCase()))
+          .sort((a, b) => b.hits - a.hits).slice(0, 4)
+          .map(({ item }) => ({ nama: item.name, sektor: item.sector, opd: item.opds, satuan: item.unit, tahun_realisasi: item.latest_year, realisasi: item.latest_value === null ? null : num(item.latest_value), tahun_target: item.target_year, target: item.target_value === null ? null : num(item.target_value), status_capaian: item.status, sumber: "RPJMD", ...(item.latest_value === 0 ? { peringatan: ZERO_WARNING } : {}) })) : [];
+        if (!found.length && !targeted.length) return { result: { jumlah: 0, catatan: "Tidak ada indikator yang cocok. Coba kata kunci lain." } };
+        return { result: { jumlah: found.length + targeted.length, ...(found.length ? { indikator: found.map(brief) } : {}), ...(targeted.length ? { indikator_rpjmd_bertarget: targeted, catatan_bertarget: "Indikator ini baru punya satu tahun data sehingga belum ada analisis tren." } : {}) } };
       }
       case "ambil_tren": {
         const insight = byId(text("indikator_id"));
@@ -93,6 +119,38 @@ export class AgentService {
         return {
           focus: insight, visual: { kind: "districts", title: `${insight.name} per kecamatan (${insight.district_latest.year})`, indicator_id: insight.indicator_id, unit: insight.unit, year: insight.district_latest.year, items: items.map((item) => ({ name: item.name, value: item.value })) },
           result: { indikator: insight.name, satuan: insight.unit, tahun: insight.district_latest.year, kecamatan: items.map((item) => ({ nama: item.name, nilai: num(item.value), perubahan: item.previous ? pct(((item.value - item.previous) / Math.abs(item.previous)) * 100) : null })), kesenjangan_tertinggi_terhadap_terendah: insight.districts?.spread_ratio ? `${insight.districts.spread_ratio}x` : null, opd: insight.opds },
+        };
+      }
+      case "wilayah_prioritas": {
+        const list = knowledge.districts;
+        if (!list || !list.districts.length) return { result: { galat: "Data per kecamatan belum tersedia." } };
+        const wanted = text("nama_kecamatan").toLowerCase();
+        if (wanted) {
+          const details = knowledge.districtDetails ?? new Map<string, DistrictDetail>();
+          const key = [...details.keys()].find((name) => name.toLowerCase().includes(wanted));
+          const detail = key ? details.get(key) : undefined;
+          if (!detail) return { result: { galat: "Kecamatan tidak ditemukan.", kecamatan_tersedia: list.districts.map((entry) => entry.name) } };
+          return { result: {
+            kecamatan: detail.summary.name, indikator: detail.summary.indicators, perlu_perhatian_persen: detail.summary.attention_index, unggul_persen: detail.summary.good_index, membaik: detail.summary.trend_counts.membaik, memburuk: detail.summary.trend_counts.memburuk,
+            indikator_perlu_perhatian: detail.items.filter((cell) => cell.status === "belum_tercapai" || cell.status === "perhatian").slice(0, limit(8, 12)).map((cell) => ({ nama: cell.name, tahun: cell.year, nilai: num(cell.value), satuan: cell.unit, peringkat: `${cell.rank} dari ${cell.of}`, median_kecamatan: num(cell.median), tren: cell.trend, sumber: cell.source_label, status_data: cell.source_kind === "bank_data" ? "Bank Data (belum diverifikasi)" : "resmi" })),
+            catatan: "Peringkat adalah posisi relatif antarkecamatan, bukan penilaian resmi.",
+          } };
+        }
+        const mode = text("mode") === "pertumbuhan" ? "pertumbuhan" : "kondisi";
+        const scored = list.districts
+          .map((entry) => ({ entry, skor: mode === "kondisi" ? (entry.good_index !== null && entry.attention_index !== null ? Math.round((entry.good_index - entry.attention_index) * 10) / 10 : null) : entry.growth_index }))
+          .filter((row): row is { entry: typeof row.entry; skor: number } => row.skor !== null)
+          .sort((a, b) => a.skor - b.skor);
+        const worst = scored.slice(0, limit(6, 17));
+        return {
+          visual: { kind: "districts", title: "Kecamatan menurut persentase indikator perlu perhatian", unit: "%", items: list.districts.filter((entry) => entry.attention_index !== null).sort((a, b) => b.attention_index! - a.attention_index!).slice(0, 8).map((entry) => ({ name: entry.name, value: entry.attention_index! })) },
+          result: {
+            mode, cakupan: { indikator_berdimensi_kecamatan: list.coverage.indicators, dengan_target: list.coverage.with_target, sumber: list.coverage.by_source },
+            penjelasan: mode === "kondisi" ? "Skor kondisi = persen indikator unggul dikurangi persen indikator perlu perhatian; makin rendah makin perlu perhatian. Posisi relatif antarkecamatan, bukan target." : "Skor pertumbuhan = persen indikator membaik dikurangi memburuk; makin rendah makin perlu perhatian.",
+            kecamatan_paling_perlu_perhatian: worst.map((row) => ({ nama: row.entry.name, skor: row.skor, indikator: row.entry.indicators, perlu_perhatian_persen: row.entry.attention_index, unggul_persen: row.entry.good_index, membaik: row.entry.trend_counts.membaik, memburuk: row.entry.trend_counts.memburuk })),
+            kecamatan_terbaik: scored.slice(-3).reverse().map((row) => ({ nama: row.entry.name, skor: row.skor })),
+            catatan: "Sebagian besar indikator kecamatan bersumber Bank Data BPS yang belum diverifikasi OPD atau BAPPERIDA.",
+          },
         };
       }
       case "skor_opd": {
@@ -144,7 +202,7 @@ export class AgentService {
           catatan: "Status menilai realisasi terbit terbaru terhadap target RPJMD tahun yang sama. Berbeda dari penilaian tren (membaik atau memburuk).",
           jumlah_indikator_bertarget: achievement.length, tercapai: count("tercapai"), belum_tercapai: count("belum_tercapai"), belum_ada_realisasi: count("belum_ada_data"),
           daftar_status: status || "belum_tercapai",
-          indikator: sorted.map((item) => ({ nama: item.name, sektor: item.sector, opd: item.opds, satuan: item.unit, tahun_realisasi: item.latest_year, realisasi: item.latest_value === null ? null : num(item.latest_value), tahun_target: item.target_year, target: item.target_value === null ? null : num(item.target_value), selisih: item.gap === null ? null : num(item.gap), status: item.status })),
+          indikator: sorted.map((item) => ({ nama: item.name, sektor: item.sector, opd: item.opds, satuan: item.unit, tahun_realisasi: item.latest_year, realisasi: item.latest_value === null ? null : num(item.latest_value), tahun_target: item.target_year, target: item.target_value === null ? null : num(item.target_value), selisih: item.gap === null ? null : num(item.gap), status: item.status, ...(item.latest_value === 0 ? { peringatan: ZERO_WARNING } : {}) })),
         } };
       }
       case "analisis_silang": {
@@ -177,7 +235,11 @@ export class AgentService {
     const insights = await new InsightService(this.db).all();
     const achievement = (await new AchievementService(this.db).list()).items;
     const contexts = await new CrossAnalysisService(this.db).contexts();
-    const knowledge = { contexts, focus: await new FocusService(this.db).overview({ contexts, achievement }).catch(() => null) };
+    const districtService = new DistrictSummaryService(this.db);
+    const districts = await districtService.list().catch(() => null);
+    const districtDetails = new Map<string, DistrictDetail>();
+    for (const entry of districts?.districts ?? []) { const detail = await districtService.detail(entry.name).catch(() => null); if (detail) districtDetails.set(entry.name, detail); }
+    const knowledge: Knowledge = { contexts, focus: await new FocusService(this.db).overview({ contexts, achievement }).catch(() => null), districts, districtDetails };
     const messages: Array<{ role: "user" | "assistant"; content: unknown }> = [...history.slice(-6), { role: "user", content: question }];
     const evidence: string[] = [question];
     const visuals: Visual[] = []; const focus: Insight[] = []; const toolsUsed: string[] = [];

@@ -18,8 +18,40 @@ const insights = [make("a", "Angka Melek Huruf", [90, 92, 94, 95, 96, 97], ["Din
 const agent = new AgentService({} as Database);
 
 test("alat tersedia lengkap dan prompt membatasi ruang lingkup Kapuas", () => {
-  assert.deepEqual(AGENT_TOOLS.map((tool) => tool.name).sort(), ["ambil_kecamatan", "ambil_tren", "analisis_silang", "capaian_target", "cari_indikator", "indikator_opd", "kondisi_opd", "perubahan_terbesar", "ringkasan_fokus", "ringkasan_umum", "skor_opd"]);
+  assert.deepEqual(AGENT_TOOLS.map((tool) => tool.name).sort(), ["ambil_kecamatan", "ambil_tren", "analisis_silang", "capaian_target", "cari_indikator", "indikator_opd", "kondisi_opd", "perubahan_terbesar", "ringkasan_fokus", "ringkasan_umum", "skor_opd", "wilayah_prioritas"]);
   assert.match(AGENT_SYSTEM_PROMPT, /HANYA hal yang berkaitan dengan Kabupaten Kapuas/);
+});
+
+test("cari_indikator juga menemukan indikator RPJMD bertarget yang baru punya satu tahun data", () => {
+  const achievement = [{ indicator_id: "k", name: "Tingkat Kemiskinan", sector: "Kesejahteraan", unit: "%", source_kind: "rpjmd" as const, direction: "decrease" as const, latest_year: 2025, latest_value: 5.48, target_year: 2025, target_value: 5, gap: 0.48, gap_pct: 9.6, status: "belum_tercapai" as const, opds: ["Dinsos"], follow_up: "" }];
+  const result = agent.execute("cari_indikator", { kata_kunci: "kemiskinan" }, insights, achievement).result as { jumlah: number; indikator_rpjmd_bertarget: Array<{ nama: string; realisasi: string; target: string }> };
+  assert.equal(result.jumlah, 1);
+  assert.equal(result.indikator_rpjmd_bertarget[0]!.nama, "Tingkat Kemiskinan");
+  assert.equal(result.indikator_rpjmd_bertarget[0]!.target, "5");
+});
+
+test("indikator bernilai 0 atau berubah ekstrem diberi peringatan", () => {
+  const zero = make("z", "Usia Harapan Hidup", [69, 70, 71, 0], ["Dinkes"], "rpjmd");
+  const brief = agent.execute("ambil_tren", { indikator_id: "z" }, [zero]).result as { peringatan?: string };
+  assert.match(brief.peringatan ?? "", /0 kemungkinan belum diisi/);
+  const jump = make("j", "Prevalensi Stunting", [22.5, 22.5, 7.7], ["Dinkes"], "rpjmd");
+  assert.match((agent.execute("cari_indikator", { kata_kunci: "stunting" }, [jump]).result as { indikator: Array<{ peringatan?: string }> }).indikator[0]!.peringatan ?? "", /sangat besar/);
+  assert.equal((agent.execute("ambil_tren", { indikator_id: "a" }, insights).result as { peringatan?: string }).peringatan, undefined);
+});
+
+test("wilayah_prioritas mengurutkan kecamatan dan menjelaskan dasar penilaiannya", () => {
+  const empty = { counts: { tercapai: 0, belum_tercapai: 0, unggul: 0, sedang: 0, perhatian: 0, tanpa_arah: 0 }, trend_counts: { membaik: 0, memburuk: 0, stabil: 0 } };
+  const districts = { generated_at: "", coverage: { indicators: 12, with_target: 0, by_source: { rpjmd: 0, opd: 0, bank_data: 12 } }, districts: [
+    { name: "Selat", indicators: 10, ...empty, attention_index: 10, good_index: 60, growth_index: 20 },
+    { name: "Timpah", indicators: 10, ...empty, attention_index: 70, good_index: 10, growth_index: -30 },
+  ] };
+  const outcome = agent.execute("wilayah_prioritas", { mode: "kondisi" }, insights, [], { contexts: new Map(), focus: null, districts, districtDetails: new Map() });
+  const result = outcome.result as { kecamatan_paling_perlu_perhatian: Array<{ nama: string; skor: number }>; catatan: string };
+  assert.equal(result.kecamatan_paling_perlu_perhatian[0]!.nama, "Timpah");
+  assert.equal(result.kecamatan_paling_perlu_perhatian[0]!.skor, -60);
+  assert.match(result.catatan, /belum diverifikasi/);
+  assert.equal(outcome.visual?.kind, "districts");
+  assert.ok("galat" in (agent.execute("wilayah_prioritas", {}, insights).result as object));
 });
 
 test("cari_indikator dan ambil_tren mengembalikan data dan visual", () => {

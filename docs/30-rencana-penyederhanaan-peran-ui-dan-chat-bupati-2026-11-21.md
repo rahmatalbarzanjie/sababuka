@@ -743,3 +743,8 @@ Setiap PR wajib memiliki migration impact, test, screenshot untuk UI, rollback, 
 - Endpoint baca-saja `GET /assistant/overview` (izin `assistant.use`). Teks proses saat menunggu jawaban bergeser tiap beberapa detik; pesan terbaru masuk dengan gerak halus.
 - Perbaikan: sambutan tidak lagi tergulir ke dasar saat dibuka; di ponsel teks pengantar disembunyikan agar kartu dan contoh terlihat tanpa menggulir banyak.
 - Tidak termasuk: status dibaca, Pantauan, Catatan, ringkasan terjadwal (Versi 2).
+
+### 25 November 2026 - ketepatan jawaban chat Bupati
+
+- Uji 20 pertanyaan di produksi menemukan: kemiskinan dijawab "belum ada angka" padahal Tingkat Kemiskinan RPJMD ada; pertanyaan kecamatan dijawab dengan data kabupaten; stunting 22,5 ke 7,72 dan UHH 0 tidak ditandai konsisten; lencana kecukupan dan sumber muncul pada penolakan di luar cakupan.
+- Perbaikan: pencarian memuat indikator bertarget satu tahun, alat `wilayah_prioritas`, `peringatan` data janggal, aturan prompt 11-13 (wilayah, satu topik, tanpa pernyataan umum di luar data), lencana dan sumber hanya bila alat dipakai.
