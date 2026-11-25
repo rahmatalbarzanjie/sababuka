@@ -47,9 +47,10 @@ test("wilayah_prioritas mengurutkan kecamatan dan menjelaskan dasar penilaiannya
     { name: "Timpah", indicators: 10, ...empty, attention_index: 70, good_index: 10, growth_index: -30 },
   ] };
   const outcome = agent.execute("wilayah_prioritas", { mode: "kondisi" }, insights, [], { contexts: new Map(), focus: null, districts, districtDetails: new Map() });
-  const result = outcome.result as { kecamatan_paling_perlu_perhatian: Array<{ nama: string; skor: number }>; catatan: string };
+  const result = outcome.result as { kecamatan_paling_perlu_perhatian: Array<{ nama: string; skor: string }>; catatan: string };
   assert.equal(result.kecamatan_paling_perlu_perhatian[0]!.nama, "Timpah");
-  assert.equal(result.kecamatan_paling_perlu_perhatian[0]!.skor, -60);
+  assert.equal(result.kecamatan_paling_perlu_perhatian[0]!.skor, "-60");
+  assert.deepEqual(ungroundedNumbers("Timpah memiliki 70 persen indikator perlu perhatian dan skor -60,5", JSON.stringify({ a: "70", b: "-60,5" })), []);
   assert.match(result.catatan, /belum diverifikasi/);
   assert.equal(outcome.visual?.kind, "districts");
   assert.ok("galat" in (agent.execute("wilayah_prioritas", {}, insights).result as object));
@@ -153,4 +154,11 @@ test("kondisi_opd menggabungkan capaian target, tren, dan kelengkapan realisasi 
   const single = agent.execute("kondisi_opd", { nama_opd: "pertanian" }, insights, rows).result as { opd: unknown[] };
   assert.equal(single.opd.length, 1);
   assert.match(AGENT_SYSTEM_PROMPT, /kondisi OPD/);
+});
+
+test("angka desimal pada hasil alat wilayah ditulis gaya Indonesia agar lolos pemeriksaan angka", () => {
+  const empty = { counts: { tercapai: 0, belum_tercapai: 0, unggul: 0, sedang: 0, perhatian: 0, tanpa_arah: 0 }, trend_counts: { membaik: 0, memburuk: 0, stabil: 0 } };
+  const districts = { generated_at: "", coverage: { indicators: 12, with_target: 0, by_source: { rpjmd: 0, opd: 0, bank_data: 12 } }, districts: [{ name: "Timpah", indicators: 10, ...empty, attention_index: 59.7, good_index: 10.5, growth_index: -44.9 }] };
+  const json = JSON.stringify(agent.execute("wilayah_prioritas", { mode: "pertumbuhan" }, insights, [], { contexts: new Map(), focus: null, districts, districtDetails: new Map() }).result);
+  assert.deepEqual(ungroundedNumbers("Timpah: skor pertumbuhan -44,9 dan 59,7 persen indikator perlu perhatian, 10,5 persen unggul.", json), []);
 });

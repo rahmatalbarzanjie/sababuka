@@ -763,3 +763,4 @@ Setiap PR wajib memiliki migration impact, test, screenshot untuk UI, rollback, 
 
 - Sidebar pil "Percakapan baru", menu titik tiga per percakapan (ganti nama, arsip, pulihkan), catatan dapat ditutup, kartu contoh pertanyaan, komposer bulat. Tanpa Bagikan, Hapus, maskot, dan suara (di luar kebijakan Versi 1).
 - Diuji lokal pada desktop dan iPhone 13 (tanpa overflow, tanpa galat JS); e2e riwayat chat nyata lolos.
+- Penyebab pasti kegagalan angka pada pertanyaan kecamatan: alat `wilayah_prioritas` mengirim desimal bertitik (44.9) sehingga pemeriksa angka (titik dianggap pemisah ribuan) menolak "44,9" di jawaban. Semua angka alat wilayah kini ditulis gaya Indonesia lewat `num`; aturan: angka desimal pada hasil alat wajib berformat Indonesia.
