@@ -28,12 +28,12 @@ test("Bupati: riwayat chat tersimpan di server (kirim, muat ulang, ganti judul, 
   await login(page, "bupati@sababuka.com");
   await expect(page).toHaveURL(/\/assistant/u);
 
-  await page.getByRole("button", { name: "Chat baru" }).first().click();
+  await page.getByRole("button", { name: "Percakapan baru" }).first().click();
   const question = `Bagaimana kondisi indikator utama Kapuas? ${Date.now()}`;
   await page.getByLabel("Pertanyaan untuk Sababuka").fill(question);
   await page.getByRole("button", { name: "Kirim pertanyaan" }).click();
   await expect(page.locator(".chat-text", { hasText: question }).first()).toBeVisible();
-  await expect(page.getByText("Menganalisis...")).toBeHidden({ timeout: 45_000 });
+  await expect(page.locator(".assistant-thinking")).toBeHidden({ timeout: 45_000 });
 
   // Riwayat dibaca dari server: muat ulang halaman dan buka percakapan dari panel riwayat.
   await page.reload();
@@ -44,7 +44,8 @@ test("Bupati: riwayat chat tersimpan di server (kirim, muat ulang, ganti judul, 
   await expect(page.locator(".chat-text", { hasText: question }).first()).toBeVisible();
 
   const title = `Judul uji ${Date.now()}`;
-  await page.getByRole("button", { name: "Ganti judul chat" }).click();
+  await history.locator(".assistant-session-row.active").getByRole("button", { name: "Opsi percakapan" }).click();
+  await page.getByRole("menuitem", { name: "Ganti nama" }).click();
   await page.getByLabel("Judul chat").fill(title);
   await page.getByRole("button", { name: "Simpan judul" }).click();
   await page.reload();
@@ -52,13 +53,15 @@ test("Bupati: riwayat chat tersimpan di server (kirim, muat ulang, ganti judul, 
   await expect(history.getByRole("button", { name: new RegExp(title, "u") })).toBeVisible();
 
   await history.getByRole("button", { name: new RegExp(title, "u") }).click();
-  await page.getByRole("button", { name: "Arsipkan chat" }).click();
+  await history.locator(".assistant-session-row.active").getByRole("button", { name: "Opsi percakapan" }).click();
+  await page.getByRole("menuitem", { name: "Arsipkan chat" }).click();
   // Percakapan arsip hilang dari daftar aktif dan muncul di arsip.
   await expect(history.getByRole("button", { name: new RegExp(title, "u") })).toBeHidden();
   await history.getByRole("button", { name: "Lihat arsip" }).click();
   await history.getByRole("button", { name: new RegExp(title, "u") }).click();
   await expect(page.getByLabel("Pertanyaan untuk Sababuka")).toBeDisabled();
-  await page.getByRole("button", { name: "Pulihkan chat" }).click();
+  await history.locator(".assistant-session-row.active").getByRole("button", { name: "Opsi percakapan" }).click();
+  await page.getByRole("menuitem", { name: "Pulihkan chat" }).click();
   await history.getByRole("button", { name: "Kembali ke chat aktif" }).click();
   await expect(history.getByRole("button", { name: new RegExp(title, "u") })).toBeVisible();
 

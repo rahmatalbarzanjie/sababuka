@@ -69,7 +69,7 @@ test("Bupati: layout percakapan responsif pada desktop, tablet, dan ponsel", asy
   await page.waitForTimeout(250);
   const historyBox = await page.getByRole("complementary", { name: "Riwayat Tanya Sababuka" }).boundingBox();
   const historyTitleBox = await page.getByText("Riwayat chat", { exact: true }).boundingBox();
-  const newChatBox = await page.getByRole("button", { name: "Chat baru", exact: true }).boundingBox();
+  const newChatBox = await page.getByRole("button", { name: "Percakapan baru", exact: true }).boundingBox();
   expect(historyBox?.x).toBeGreaterThanOrEqual(0);
   expect(historyTitleBox?.x).toBeGreaterThanOrEqual(12);
   expect(newChatBox?.x).toBeGreaterThanOrEqual(12);
