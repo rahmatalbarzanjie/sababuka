@@ -6,7 +6,7 @@ import { recordAudit, type AuditContext } from "./audit-service.js";
 import { buildReply, parseIntent } from "./assistant-intents.js";
 import { CrossAnalysisService, formatCrossAnalysis } from "./cross-analysis-service.js";
 import { InsightService } from "./insight-service.js";
-import { LlmService } from "./llm-service.js";
+import { LlmService, addUsage, type LlmUsage } from "./llm-service.js";
 import { AgentService, type AgentFailure } from "./agent-service.js";
 import { AchievementService } from "./achievement-service.js";
 import type { AppConfig } from "../config.js";
@@ -134,12 +134,12 @@ export class AssistantService {
     const history = await this.db.query<{ message_role: "user" | "assistant"; content: string }>(`SELECT message_role, content FROM sababuka.assistant_messages WHERE session_id = $1 AND message_role IN ('user','assistant') ORDER BY created_at DESC LIMIT 6`, [sessionId]);
     const recent = history.rows.reverse().map((row) => ({ role: row.message_role, content: row.content }));
     let agent: Awaited<ReturnType<AgentService["run"]>> = null;
-    let failure: AgentFailure | "galat_sistem" | null = null; let failureDetail: string | null = null; let attempts = 0;
+    let failure: AgentFailure | "galat_sistem" | null = null; let failureDetail: string | null = null; let attempts = 0; let usedTokens: LlmUsage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
     // Satu percobaan ulang untuk kegagalan sementara; model yang memang tidak dikonfigurasi tidak diulang.
     while (!agent && attempts < 2) {
       attempts += 1;
       const service = new AgentService(this.db, this.config);
-      try { agent = await service.run(question, recent); failure = agent ? null : service.failure; failureDetail = null; } catch (error) { agent = null; failure = "galat_sistem"; failureDetail = plainDash(error instanceof Error ? error.message : String(error)).slice(0, 200); }
+      try { agent = await service.run(question, recent); failure = agent ? null : service.failure; failureDetail = null; usedTokens = addUsage(usedTokens, service.usage); } catch (error) { usedTokens = addUsage(usedTokens, service.usage); agent = null; failure = "galat_sistem"; failureDetail = plainDash(error instanceof Error ? error.message : String(error)).slice(0, 200); }
       if (failure === "llm_tidak_tersedia") break;
     }
     const achievement = (await new AchievementService(this.db).list()).items;
@@ -173,7 +173,7 @@ export class AssistantService {
           throw new ApiError(409, "CONFLICT", "Pertanyaan yang sama masih diproses. Coba lagi beberapa saat.");
         }
         const response = { sufficiency: insightReply.sufficiency, citations, visuals: insightReply.visuals ?? [], suggestions: insightReply.suggestions ?? [] };
-        const inserted = await client.query<{ id: string }>(`INSERT INTO sababuka.assistant_messages (session_id, message_role, content, model_name, structured_data, request_id) VALUES ($1, 'assistant', $2, $5, $3::jsonb, $4) RETURNING id::text`, [sessionId, insightReply.answer, JSON.stringify({ sufficiency: insightReply.sufficiency, retrieval: "trend_engine", narrated_by: agent?.model ?? narrated?.model ?? "rules", answer_mode: agent ? "agent" : "aturan", agent_failure: failure, attempts, tools: agent?.toolsUsed ?? [], usage: agent?.usage ?? null, user_message_id: asked.rows[0].id, sources: insightReply.sources, response }), audit.requestId, agent?.model ?? narrated?.model ?? "sababuka-insight-v1"]);
+        const inserted = await client.query<{ id: string }>(`INSERT INTO sababuka.assistant_messages (session_id, message_role, content, model_name, structured_data, request_id) VALUES ($1, 'assistant', $2, $5, $3::jsonb, $4) RETURNING id::text`, [sessionId, insightReply.answer, JSON.stringify({ sufficiency: insightReply.sufficiency, retrieval: "trend_engine", narrated_by: agent?.model ?? narrated?.model ?? "rules", answer_mode: agent ? "agent" : "aturan", agent_failure: failure, attempts, tools: agent?.toolsUsed ?? [], usage: attempts ? usedTokens : null, user_message_id: asked.rows[0].id, sources: insightReply.sources, response }), audit.requestId, agent?.model ?? narrated?.model ?? "sababuka-insight-v1"]);
         replied = inserted.rows[0]!;
         await client.query(`UPDATE sababuka.assistant_sessions SET title = $2 WHERE id = $1 AND (title IS NULL OR title = '' OR title = 'Tanya Sababuka')`, [sessionId, sessionTitle(question)]);
         await client.query("COMMIT");

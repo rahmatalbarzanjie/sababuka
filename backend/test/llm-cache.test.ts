@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { DEFAULT_MODEL, buildConverseBody } from "../src/services/llm-service.js";
+import { DEFAULT_MODEL, addUsage, buildConverseBody } from "../src/services/llm-service.js";
 
 const tools = [{ name: "a", description: "a", input_schema: {} }, { name: "b", description: "b", input_schema: {} }];
 
-test("model baku Versi 1 adalah model murah", () => {
-  assert.equal(DEFAULT_MODEL, "claude-haiku-5-5");
+test("model baku adalah Sonnet 5.5 dan pemakaian token dijumlahkan", () => {
+  assert.equal(DEFAULT_MODEL, "claude-sonnet-5-5");
+  const a = { input_tokens: 1, output_tokens: 2, cache_read_input_tokens: 3, cache_creation_input_tokens: 4 };
+  assert.deepEqual(addUsage(a, a), { input_tokens: 2, output_tokens: 4, cache_read_input_tokens: 6, cache_creation_input_tokens: 8 });
 });
 
 test("permintaan percakapan menandai sistem, alat terakhir, dan pesan terakhir untuk cache", () => {

@@ -12,8 +12,8 @@ const HEALTH_KEY = "assistant.llm_health";
 const HEALTH_ENTITY = "00000000-0000-0000-0000-000000000a11";
 export type LlmHealthState = "ok" | "credit_exhausted" | "invalid_key" | "error";
 const classify = (message: string): LlmHealthState => /credit balance|billing|purchase credits/i.test(message) ? "credit_exhausted" : /invalid x-api-key|authentication|permission/i.test(message) ? "invalid_key" : "error";
-/** Model murah untuk semua pertanyaan di Versi 1 (keputusan pemilik, 25 Nov 2026); ganti lewat LLM_MODEL bila mutu perlu dinaikkan. */
-export const DEFAULT_MODEL = "claude-haiku-5-5";
+/** Sonnet baku (keputusan pemilik, 25 Nov 2026): Haiku gagal pemeriksaan angka pada 2 dari 3 pertanyaan uji. Ganti lewat LLM_MODEL. */
+export const DEFAULT_MODEL = "claude-sonnet-5-5";
 
 const SYSTEM_PROMPT = `Anda adalah Sababuka, asisten data Bupati Kapuas. Jawab dalam bahasa Indonesia yang jelas, ringkas, dan hormat (maksimal 160 kata).
 Aturan ketat:
@@ -28,7 +28,9 @@ export interface ToolDefinition { name: string; description: string; input_schem
 export interface ContentBlock { type: string; text?: string; id?: string; name?: string; input?: unknown }
 export interface LlmUsage { input_tokens: number; output_tokens: number; cache_read_input_tokens: number; cache_creation_input_tokens: number }
 
-const EPHEMERAL = { type: "ephemeral" } as const;
+export const addUsage = (total: LlmUsage, extra: LlmUsage): LlmUsage => ({ input_tokens: total.input_tokens + extra.input_tokens, output_tokens: total.output_tokens + extra.output_tokens, cache_read_input_tokens: total.cache_read_input_tokens + extra.cache_read_input_tokens, cache_creation_input_tokens: total.cache_creation_input_tokens + extra.cache_creation_input_tokens });
+
+const EPHEMERAL ={ type: "ephemeral" } as const;
 
 /**
  * Badan permintaan percakapan dengan prompt caching: prompt sistem dan definisi alat sama di setiap langkah dan setiap
