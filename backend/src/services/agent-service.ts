@@ -6,7 +6,7 @@ import { InsightService, type Insight } from "./insight-service.js";
 import { CrossAnalysisService, buildCrossAnalysis, type IndicatorContext } from "./cross-analysis-service.js";
 import { FocusService, type FocusOverview } from "./focus-service.js";
 import { OPD_SCORE_WEIGHTS, conditionLabel, opdPerformance } from "./opd-performance.js";
-import { LlmService, ungroundedNumbers, type ToolDefinition } from "./llm-service.js";
+import { LlmService, ungroundedNumbers, type LlmUsage, type ToolDefinition } from "./llm-service.js";
 import { DistrictSummaryService } from "./district-summary-service.js";
 
 type DistrictList = Awaited<ReturnType<DistrictSummaryService["list"]>>;
@@ -74,7 +74,7 @@ const brief = (insight: Insight) => ({
   ...(dataWarning(insight) ? { peringatan: dataWarning(insight) } : {}),
 });
 
-export interface AgentRun { answer: string; visuals: Visual[]; sources: AssistantReply["sources"]; toolsUsed: string[]; model: string }
+export interface AgentRun { answer: string; visuals: Visual[]; sources: AssistantReply["sources"]; toolsUsed: string[]; model: string; usage: LlmUsage }
 
 /** Alasan agen tidak menghasilkan jawaban; dicatat di audit agar kegagalan ke mesin aturan dapat ditelusuri. */
 export type AgentFailure = "llm_tidak_tersedia" | "jawaban_terpotong" | "jawaban_kosong" | "angka_tidak_terverifikasi" | "langkah_habis";
@@ -244,8 +244,10 @@ export class AgentService {
     const evidence: string[] = [question];
     const visuals: Visual[] = []; const focus: Insight[] = []; const toolsUsed: string[] = [];
     let corrected = false;
+    const usage: LlmUsage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
     for (let step = 0; step < 7; step += 1) {
       const reply = await llm.converse(AGENT_SYSTEM_PROMPT, messages, AGENT_TOOLS, 4000);
+      for (const field of Object.keys(usage) as Array<keyof LlmUsage>) usage[field] += reply.usage?.[field] ?? 0;
       if (reply.stop_reason === "tool_use") {
         const calls = reply.content.filter((block) => block.type === "tool_use");
         messages.push({ role: "assistant", content: reply.content });
@@ -272,7 +274,7 @@ export class AgentService {
         continue;
       }
       if (bad.length) { this.failure = "angka_tidak_terverifikasi"; return null; }
-      return { answer, visuals, toolsUsed, model: llm.modelName(), sources: focus.slice(0, 4).map((item) => ({ label: `${item.name} · ${item.latest_year}`, indicator: item.name, year: item.latest_year, source: item.source_label, indicator_id: item.indicator_id, source_url: item.source_url })) };
+      return { answer, visuals, toolsUsed, model: llm.modelName(), usage, sources: focus.slice(0, 4).map((item) => ({ label: `${item.name} · ${item.latest_year}`, indicator: item.name, year: item.latest_year, source: item.source_label, indicator_id: item.indicator_id, source_url: item.source_url })) };
     }
     this.failure = "langkah_habis";
     return null;

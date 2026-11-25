@@ -12,7 +12,8 @@ const HEALTH_KEY = "assistant.llm_health";
 const HEALTH_ENTITY = "00000000-0000-0000-0000-000000000a11";
 export type LlmHealthState = "ok" | "credit_exhausted" | "invalid_key" | "error";
 const classify = (message: string): LlmHealthState => /credit balance|billing|purchase credits/i.test(message) ? "credit_exhausted" : /invalid x-api-key|authentication|permission/i.test(message) ? "invalid_key" : "error";
-export const DEFAULT_MODEL = "claude-sonnet-5-5";
+/** Model murah untuk semua pertanyaan di Versi 1 (keputusan pemilik, 25 Nov 2026); ganti lewat LLM_MODEL bila mutu perlu dinaikkan. */
+export const DEFAULT_MODEL = "claude-haiku-5-5";
 
 const SYSTEM_PROMPT = `Anda adalah Sababuka, asisten data Bupati Kapuas. Jawab dalam bahasa Indonesia yang jelas, ringkas, dan hormat (maksimal 160 kata).
 Aturan ketat:
@@ -25,6 +26,26 @@ interface SecretRow { encrypted_secret: string; masked_hint: string | null; last
 
 export interface ToolDefinition { name: string; description: string; input_schema: Record<string, unknown> }
 export interface ContentBlock { type: string; text?: string; id?: string; name?: string; input?: unknown }
+export interface LlmUsage { input_tokens: number; output_tokens: number; cache_read_input_tokens: number; cache_creation_input_tokens: number }
+
+const EPHEMERAL = { type: "ephemeral" } as const;
+
+/**
+ * Badan permintaan percakapan dengan prompt caching: prompt sistem dan definisi alat sama di setiap langkah dan setiap
+ * pertanyaan, dan riwayat langkah sebelumnya diulang pada tiap putaran alat, jadi tiga titik cache (alat terakhir, sistem,
+ * blok pesan terakhir) membuat bagian berulang dibaca dengan harga cache, bukan harga masuk penuh.
+ */
+export function buildConverseBody(model: string, system: string, messages: Array<{ role: "user" | "assistant"; content: unknown }>, tools: ToolDefinition[], maxTokens: number) {
+  const cachedTools = tools.map((tool, index) => index === tools.length - 1 ? { ...tool, cache_control: EPHEMERAL } : tool);
+  const cachedMessages = messages.map((message, index) => {
+    if (index !== messages.length - 1) return message;
+    const blocks = typeof message.content === "string" ? [{ type: "text", text: message.content }] : Array.isArray(message.content) ? [...message.content as Array<Record<string, unknown>>] : null;
+    if (!blocks?.length) return message;
+    blocks[blocks.length - 1] = { ...blocks[blocks.length - 1], cache_control: EPHEMERAL };
+    return { ...message, content: blocks };
+  });
+  return { model, max_tokens: maxTokens, system: [{ type: "text", text: system, cache_control: EPHEMERAL }], tools: cachedTools, messages: cachedMessages };
+}
 
 /** Angka pada teks (selain tahun dan bilangan kecil) yang tidak muncul pada bukti. Kosong = semua angka berdasar data. */
 export function ungroundedNumbers(answer: string, facts: string): string[] {
@@ -83,19 +104,20 @@ export class LlmService {
   async available(): Promise<boolean> { return Boolean(await this.apiKey()); }
 
   /** Satu putaran percakapan dengan alat (tool use). */
-  async converse(system: string, messages: Array<{ role: "user" | "assistant"; content: unknown }>, tools: ToolDefinition[], maxTokens: number): Promise<{ content: ContentBlock[]; stop_reason: string }> {
+  async converse(system: string, messages: Array<{ role: "user" | "assistant"; content: unknown }>, tools: ToolDefinition[], maxTokens: number): Promise<{ content: ContentBlock[]; stop_reason: string; usage: LlmUsage }> {
     const key = await this.apiKey();
     if (!key) throw new Error("Kunci API belum dikonfigurasi.");
     const response = await fetch(API_URL, {
       method: "POST",
       headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: this.model(), max_tokens: maxTokens, system, tools, messages }),
+      body: JSON.stringify(buildConverseBody(this.model(), system, messages, tools, maxTokens)),
       signal: AbortSignal.timeout(40_000),
     });
-    const payload = await response.json().catch(() => ({})) as { content?: ContentBlock[]; stop_reason?: string; error?: { message?: string } };
+    const payload = await response.json().catch(() => ({})) as { content?: ContentBlock[]; stop_reason?: string; usage?: Partial<LlmUsage>; error?: { message?: string } };
     if (!response.ok) { const text = payload.error?.message?.replaceAll(key, "***").slice(0, 200) ?? `HTTP ${response.status}`; await this.noteHealth(classify(text), text); throw new Error(text); }
     await this.noteHealth("ok", null);
-    return { content: payload.content ?? [], stop_reason: payload.stop_reason ?? "end_turn" };
+    const usage = payload.usage ?? {};
+    return { content: payload.content ?? [], stop_reason: payload.stop_reason ?? "end_turn", usage: { input_tokens: usage.input_tokens ?? 0, output_tokens: usage.output_tokens ?? 0, cache_read_input_tokens: usage.cache_read_input_tokens ?? 0, cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0 } };
   }
 
   async status() {

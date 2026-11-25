@@ -748,3 +748,8 @@ Setiap PR wajib memiliki migration impact, test, screenshot untuk UI, rollback, 
 
 - Uji 20 pertanyaan di produksi menemukan: kemiskinan dijawab "belum ada angka" padahal Tingkat Kemiskinan RPJMD ada; pertanyaan kecamatan dijawab dengan data kabupaten; stunting 22,5 ke 7,72 dan UHH 0 tidak ditandai konsisten; lencana kecukupan dan sumber muncul pada penolakan di luar cakupan.
 - Perbaikan: pencarian memuat indikator bertarget satu tahun, alat `wilayah_prioritas`, `peringatan` data janggal, aturan prompt 11-13 (wilayah, satu topik, tanpa pernyataan umum di luar data), lencana dan sumber hanya bila alat dipakai.
+
+### 25 November 2026 - hemat biaya model AI
+
+- Kredit API habis setelah uji beruntun. Model bawaan diturunkan ke Haiku 5.5 untuk semua pertanyaan Versi 1; prompt caching ditambahkan pada sistem, alat, dan pesan terakhir; token dan cache tercatat per jawaban.
+- Setelah kredit diisi, ulang uji 20 pertanyaan dan bandingkan mutu jawaban Haiku dengan hasil Sonnet (docs di scratchpad uji). Bila mutu kurang, set LLM_MODEL ke Sonnet tanpa mengubah kode.
