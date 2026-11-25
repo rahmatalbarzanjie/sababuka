@@ -81,6 +81,8 @@ export type AgentFailure = "llm_tidak_tersedia" | "jawaban_terpotong" | "jawaban
 
 export class AgentService {
   failure: AgentFailure | null = null;
+  /** Token pemakaian seluruh panggilan model pada run terakhir, termasuk run yang gagal, agar biaya percobaan gagal ikut terpantau. */
+  usage: LlmUsage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
   constructor(private readonly db: Database, private readonly config?: AppConfig) {}
 
   execute(name: string, input: Record<string, unknown>, insights: Insight[], achievement: AchievementItem[] = [], knowledge: Knowledge = { contexts: new Map(), focus: null }): { result: unknown; focus?: Insight; visual?: Visual } {
@@ -244,7 +246,7 @@ export class AgentService {
     const evidence: string[] = [question];
     const visuals: Visual[] = []; const focus: Insight[] = []; const toolsUsed: string[] = [];
     let corrected = false;
-    const usage: LlmUsage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
+    const usage = this.usage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
     for (let step = 0; step < 7; step += 1) {
       const reply = await llm.converse(AGENT_SYSTEM_PROMPT, messages, AGENT_TOOLS, 4000);
       for (const field of Object.keys(usage) as Array<keyof LlmUsage>) usage[field] += reply.usage?.[field] ?? 0;
