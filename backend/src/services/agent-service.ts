@@ -57,6 +57,7 @@ export const AGENT_TOOLS: ToolDefinition[] = [
 ];
 
 const num = (value: number) => new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(value);
+const optNum = (value: number | null) => value === null ? null : num(value);
 const pct = (value: number | null) => value === null ? null : `${value > 0 ? "+" : ""}${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 }).format(value)}%`;
 const statusData = (insight: Insight) => insight.layer === "kinerja" ? (insight.source_kind === "rpjmd" ? "RPJMD (indikator resmi)" : "Indikator OPD") : "Bank Data (belum diverifikasi)";
 
@@ -135,7 +136,7 @@ export class AgentService {
           const detail = key ? details.get(key) : undefined;
           if (!detail) return { result: { galat: "Kecamatan tidak ditemukan.", kecamatan_tersedia: list.districts.map((entry) => entry.name) } };
           return { result: {
-            kecamatan: detail.summary.name, indikator: detail.summary.indicators, perlu_perhatian_persen: detail.summary.attention_index, unggul_persen: detail.summary.good_index, membaik: detail.summary.trend_counts.membaik, memburuk: detail.summary.trend_counts.memburuk,
+            kecamatan: detail.summary.name, indikator: detail.summary.indicators, perlu_perhatian_persen: optNum(detail.summary.attention_index), unggul_persen: optNum(detail.summary.good_index), membaik: detail.summary.trend_counts.membaik, memburuk: detail.summary.trend_counts.memburuk,
             indikator_perlu_perhatian: detail.items.filter((cell) => cell.status === "belum_tercapai" || cell.status === "perhatian").slice(0, limit(8, 12)).map((cell) => ({ nama: cell.name, tahun: cell.year, nilai: num(cell.value), satuan: cell.unit, peringkat: `${cell.rank} dari ${cell.of}`, median_kecamatan: num(cell.median), tren: cell.trend, sumber: cell.source_label, status_data: cell.source_kind === "bank_data" ? "Bank Data (belum diverifikasi)" : "resmi" })),
             catatan: "Peringkat adalah posisi relatif antarkecamatan, bukan penilaian resmi.",
           } };
@@ -151,8 +152,8 @@ export class AgentService {
           result: {
             mode, cakupan: { indikator_berdimensi_kecamatan: list.coverage.indicators, dengan_target: list.coverage.with_target, sumber: list.coverage.by_source },
             penjelasan: mode === "kondisi" ? "Skor kondisi = persen indikator unggul dikurangi persen indikator perlu perhatian; makin rendah makin perlu perhatian. Posisi relatif antarkecamatan, bukan target." : "Skor pertumbuhan = persen indikator membaik dikurangi memburuk; makin rendah makin perlu perhatian.",
-            kecamatan_paling_perlu_perhatian: worst.map((row) => ({ nama: row.entry.name, skor: row.skor, indikator: row.entry.indicators, perlu_perhatian_persen: row.entry.attention_index, unggul_persen: row.entry.good_index, membaik: row.entry.trend_counts.membaik, memburuk: row.entry.trend_counts.memburuk })),
-            kecamatan_terbaik: scored.slice(-3).reverse().map((row) => ({ nama: row.entry.name, skor: row.skor })),
+            kecamatan_paling_perlu_perhatian: worst.map((row) => ({ nama: row.entry.name, skor: num(row.skor), indikator: row.entry.indicators, perlu_perhatian_persen: optNum(row.entry.attention_index), unggul_persen: optNum(row.entry.good_index), membaik: row.entry.trend_counts.membaik, memburuk: row.entry.trend_counts.memburuk })),
+            kecamatan_terbaik: scored.slice(-3).reverse().map((row) => ({ nama: row.entry.name, skor: num(row.skor) })),
             catatan: "Sebagian besar indikator kecamatan bersumber Bank Data BPS yang belum diverifikasi OPD atau BAPPERIDA.",
           },
         };
