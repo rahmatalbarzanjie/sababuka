@@ -1,4 +1,4 @@
-import { Archive, Check, History, Menu, Pencil, Plus, RotateCcw, Send, ShieldCheck, UserRound, X } from "lucide-react";
+import { Archive, Check, History, Info, Menu, MessageSquare, MoreVertical, Pencil, RotateCcw, Send, ShieldCheck, SquarePen, UserRound, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, jsonBody } from "../api";
 import { SababukaAssistantMark, type SababukaAssistantState } from "../branding/SababukaBrand";
@@ -18,6 +18,7 @@ interface SessionDetail extends Session { messages: ChatMessage[] }
 
 const THINKING = ["Memeriksa angka dan tren indikator...", "Membandingkan dengan target dan OPD terkait...", "Menyusun jawaban dan sumber data..."];
 const DRAFT_KEY = "sababuka.assistant.draft";
+const NOTICE_KEY = "sababuka.assistant.notice-dismissed";
 
 export function AssistantPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -31,8 +32,10 @@ export function AssistantPage() {
   const [error, setError] = useState("");
   const [failedRequest, setFailedRequest] = useState<{ question: string; clientId: string } | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [renaming, setRenaming] = useState(false);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [menuFor, setMenuFor] = useState<string | null>(null);
   const [titleDraft, setTitleDraft] = useState("");
+  const [noticeHidden, setNoticeHidden] = useState(() => { try { return window.sessionStorage.getItem(NOTICE_KEY) === "1"; } catch { return false; } });
   const stream = useRef<HTMLDivElement>(null);
   const [thinkingStep, setThinkingStep] = useState(0);
   const composer = useRef<HTMLTextAreaElement>(null);
@@ -47,6 +50,15 @@ export function AssistantPage() {
   };
 
   useEffect(() => { void loadSessions(); }, []);
+  useEffect(() => {
+    // Menu percakapan menutup saat mengetuk di luar atau menekan Escape.
+    if (!menuFor) return;
+    const close = (event: Event) => { if (!(event.target as HTMLElement).closest(".assistant-session-row")) setMenuFor(null); };
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") setMenuFor(null); };
+    document.addEventListener("pointerdown", close); document.addEventListener("keydown", escape);
+    return () => { document.removeEventListener("pointerdown", close); document.removeEventListener("keydown", escape); };
+  }, [menuFor]);
+  const hideNotice = () => { setNoticeHidden(true); try { window.sessionStorage.setItem(NOTICE_KEY, "1"); } catch { /* tetap tertutup selama halaman terbuka */ } };
   useEffect(() => {
     try {
       if (message) window.sessionStorage.setItem(DRAFT_KEY, message);
@@ -76,18 +88,19 @@ export function AssistantPage() {
     setLoadingChat(true); setError(""); setFailedRequest(null);
     try {
       const detail = await api<SessionDetail>(`/assistant/sessions/${item.id}`);
-      setSession(detail); setMessages(detail.messages); setHistoryOpen(false); setRenaming(false);
+      setSession(detail); setMessages(detail.messages); setHistoryOpen(false); setRenamingId(null);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Chat belum dapat dibuka."); }
     finally { setLoadingChat(false); }
   };
-  const newChat = () => { setSession(null); setMessages([]); setError(""); setFailedRequest(null); setRenaming(false); setHistoryOpen(false); };
+  const newChat = () => { setSession(null); setMessages([]); setError(""); setFailedRequest(null); setRenamingId(null); setMenuFor(null); setHistoryOpen(false); };
   const toggleArchived = async () => { const next = !showArchived; setShowArchived(next); setSession(null); setMessages([]); await loadSessions(next); };
-  const updateSession = async (input: { title?: string; status?: "active" | "archived" }) => {
-    if (!session) return;
+  const updateSession = async (id: string, input: { title?: string; status?: "active" | "archived" }) => {
     try {
-      const updated = await api<Session>(`/assistant/sessions/${session.id}`, { method: "PATCH", mutation: true, body: jsonBody(input) });
-      setSession(updated); setRenaming(false);
-      if (input.status) { setMessages([]); setSession(null); }
+      const updated = await api<Session>(`/assistant/sessions/${id}`, { method: "PATCH", mutation: true, body: jsonBody(input) });
+      setRenamingId(null); setMenuFor(null);
+      if (session?.id === id) {
+        if (input.status) { setMessages([]); setSession(null); } else setSession((current) => current ? { ...current, title: updated.title } : current);
+      }
       await loadSessions(showArchived);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Perubahan riwayat belum dapat disimpan."); }
   };
@@ -118,21 +131,37 @@ export function AssistantPage() {
     <button type="button" className={`assistant-history-overlay${historyOpen ? " open" : ""}`} aria-label="Tutup riwayat chat" onClick={() => setHistoryOpen(false)} />
     <aside className={`assistant-history${historyOpen ? " open" : ""}`} aria-label="Riwayat Tanya Sababuka">
       <header><div><History /><strong>Riwayat chat</strong></div><button type="button" className="icon-button assistant-history-close" aria-label="Tutup riwayat" onClick={() => setHistoryOpen(false)}><X /></button></header>
-      <button type="button" className="button primary assistant-new-chat" onClick={newChat}><Plus />Chat baru</button>
+      <button type="button" className="assistant-new-chat" onClick={newChat}><SquarePen />Percakapan baru</button>
       <div className="assistant-session-list">
-        {loadingSessions ? <Spinner /> : sessions.length === 0 ? <p className="assistant-session-empty">{showArchived ? "Belum ada chat yang diarsipkan." : "Belum ada riwayat. Mulai chat baru untuk bertanya."}</p> : sessions.map((item) => <button type="button" key={item.id} className={session?.id === item.id ? "active" : ""} onClick={() => void openSession(item)}><strong>{plain(item.title || "Chat baru")}</strong><small>{formatDate(item.updated_at ?? item.started_at)}{typeof item.message_count === "number" ? ` · ${item.message_count} pesan` : ""}</small></button>)}
+        <p className="assistant-session-label">{showArchived ? "Arsip" : "Riwayat"}</p>
+        {loadingSessions ? <Spinner /> : sessions.length === 0 ? <p className="assistant-session-empty">{showArchived ? "Belum ada chat yang diarsipkan." : "Belum ada riwayat. Mulai percakapan baru untuk bertanya."}</p> : sessions.map((item) => {
+          const title = plain(item.title || "Percakapan baru");
+          return <div key={item.id} className={`assistant-session-row${session?.id === item.id ? " active" : ""}${menuFor === item.id ? " menu-open" : ""}`}>
+            {renamingId === item.id
+              ? <form onSubmit={(event) => { event.preventDefault(); if (titleDraft.trim()) void updateSession(item.id, { title: titleDraft.trim() }); }}><input aria-label="Judul chat" value={titleDraft} onChange={(event) => setTitleDraft(event.target.value)} autoFocus maxLength={255} /><button type="submit" className="icon-button" aria-label="Simpan judul"><Check /></button><button type="button" className="icon-button" aria-label="Batal mengganti judul" onClick={() => setRenamingId(null)}><X /></button></form>
+              : <>
+                <button type="button" className="assistant-session-open" title={title} onClick={() => void openSession(item)}><MessageSquare /><span>{title}</span></button>
+                <button type="button" className="assistant-session-more" aria-label="Opsi percakapan" aria-haspopup="menu" aria-expanded={menuFor === item.id} onClick={() => setMenuFor(menuFor === item.id ? null : item.id)}><MoreVertical /></button>
+                {menuFor === item.id && <div className="assistant-session-menu" role="menu">
+                  <button type="button" role="menuitem" onClick={() => { setTitleDraft(item.title ?? ""); setRenamingId(item.id); setMenuFor(null); }}><Pencil />Ganti nama</button>
+                  <button type="button" role="menuitem" onClick={() => void updateSession(item.id, { status: item.status === "archived" ? "active" : "archived" })}>{item.status === "archived" ? <RotateCcw /> : <Archive />}{item.status === "archived" ? "Pulihkan chat" : "Arsipkan chat"}</button>
+                </div>}
+              </>}
+          </div>;
+        })}
       </div>
-      <button type="button" className="assistant-archive-filter" onClick={() => void toggleArchived()}>{showArchived ? <RotateCcw /> : <Archive />}{showArchived ? "Kembali ke chat aktif" : "Lihat arsip"}</button>
+      <footer>
+        <button type="button" className="assistant-archive-filter" onClick={() => void toggleArchived()}>{showArchived ? <RotateCcw /> : <Archive />}{showArchived ? "Kembali ke chat aktif" : "Lihat arsip"}</button>
+        <small>&copy; 2026 SABABUKA BERSINAR</small>
+      </footer>
     </aside>
 
     <section className="assistant-conversation" aria-label="Percakapan Tanya Sababuka">
       <header className="assistant-conversation-header">
         <button type="button" className="icon-button assistant-history-trigger" aria-label="Buka riwayat chat" aria-expanded={historyOpen} onClick={() => setHistoryOpen(true)}><Menu /></button>
-        <div className="assistant-conversation-title">
-          {renaming && session ? <form onSubmit={(event) => { event.preventDefault(); if (titleDraft.trim()) void updateSession({ title: titleDraft.trim() }); }}><input aria-label="Judul chat" value={titleDraft} onChange={(event) => setTitleDraft(event.target.value)} autoFocus maxLength={255} /><button type="submit" className="icon-button" aria-label="Simpan judul"><Check /></button><button type="button" className="icon-button" aria-label="Batal mengganti judul" onClick={() => setRenaming(false)}><X /></button></form> : <div><strong>{plain(session?.title || "Chat baru")}</strong><small><ShieldCheck /> Jawaban dari data resmi yang sudah dipublikasikan</small></div>}
-        </div>
-        {session && !renaming && <div className="assistant-conversation-actions"><button type="button" className="icon-button" title="Ganti judul" aria-label="Ganti judul chat" onClick={() => { setTitleDraft(session.title ?? ""); setRenaming(true); }}><Pencil /></button><button type="button" className="icon-button" title={session.status === "archived" ? "Pulihkan chat" : "Arsipkan chat"} aria-label={session.status === "archived" ? "Pulihkan chat" : "Arsipkan chat"} onClick={() => void updateSession({ status: session.status === "archived" ? "active" : "archived" })}>{session.status === "archived" ? <RotateCcw /> : <Archive />}</button></div>}
+        <div className="assistant-conversation-title"><div><strong>{plain(session?.title || "Percakapan baru")}</strong><small><ShieldCheck /> Jawaban dari data resmi yang sudah dipublikasikan</small></div></div>
       </header>
+      {!noticeHidden && <div className="assistant-notice" role="note"><Info aria-hidden="true" /><p>Sababuka membantu menelusuri data resmi Kabupaten Kapuas yang sudah terbit. Jawaban dibatasi pada data terbit dan tidak memuat opini atau prediksi di luar data. Jawaban AI dapat keliru, periksa sumber bila tersedia.</p><button type="button" className="icon-button" aria-label="Tutup catatan" onClick={hideNotice}><X /></button></div>}
 
       <div className="chat-stream" ref={stream} aria-live="polite">
         {loadingChat ? <div className="assistant-chat-loading"><Spinner /><span>Memuat percakapan...</span></div> : !messages.length && <ChatWelcome onAsk={(question) => void ask(question)} />}
@@ -146,7 +175,8 @@ export function AssistantPage() {
 
       {last?.suggestions && last.suggestions.length > 0 && !busy && <div className="assistant-suggestions follow-up">{last.suggestions.map((suggestion) => <button key={suggestion} type="button" onClick={() => void ask(suggestion)}>{suggestion}</button>)}</div>}
       {error && <div className="assistant-error"><Notice tone="error">{error}</Notice>{failedRequest && <button type="button" className="button secondary" disabled={busy} onClick={() => void ask(failedRequest.question, failedRequest.clientId, false)}>Coba kirim lagi</button>}</div>}
-      <form className="chat-composer" onSubmit={submit}><textarea ref={composer} aria-label="Pertanyaan untuk Sababuka" rows={1} data-field="message" value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); submit(event as unknown as FormEvent); } }} placeholder="Tanyakan tentang Kapuas..." disabled={session?.status === "archived"} /><button className="button primary" disabled={busy || !message.trim() || session?.status === "archived"} aria-label="Kirim pertanyaan"><Send />{busy ? "Menganalisis..." : "Kirim"}</button></form>
+      <form className="chat-composer" onSubmit={submit}><textarea ref={composer} aria-label="Pertanyaan untuk Sababuka" rows={1} data-field="message" value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); submit(event as unknown as FormEvent); } }} placeholder="Tanya apa pun tentang Kapuas..." disabled={session?.status === "archived"} /><button className="chat-send" disabled={busy || !message.trim() || session?.status === "archived"} aria-label="Kirim pertanyaan" title="Kirim"><Send /></button></form>
+      <p className="chat-footnote">Sababuka dapat keliru. Periksa sumber data resmi bila tersedia.</p>
       {session?.status === "archived" && <small className="assistant-archived-note">Pulihkan chat ini untuk melanjutkan percakapan.</small>}
     </section>
   </div>;

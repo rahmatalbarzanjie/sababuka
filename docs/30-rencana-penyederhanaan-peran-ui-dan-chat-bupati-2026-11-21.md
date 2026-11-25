@@ -755,3 +755,8 @@ Setiap PR wajib memiliki migration impact, test, screenshot untuk UI, rollback, 
 - Setelah kredit diisi, ulang uji 20 pertanyaan dan bandingkan mutu jawaban Haiku dengan hasil Sonnet (docs di scratchpad uji). Bila mutu kurang, set LLM_MODEL ke Sonnet tanpa mengubah kode.
 
 - Koreksi: Haiku 5.5 gagal pemeriksaan angka pada 2 dari 3 pertanyaan uji produksi (kecamatan, kemiskinan), jadi model bawaan dikembalikan ke Sonnet 5.5 dengan caching tetap aktif. Cache terbukti bekerja (11.877 token dibaca dari cache pada satu jawaban).
+
+### 25 November 2026 - tampilan chat mengacu Satu Data Jakarta
+
+- Sidebar pil "Percakapan baru", menu titik tiga per percakapan (ganti nama, arsip, pulihkan), catatan dapat ditutup, kartu contoh pertanyaan, komposer bulat. Tanpa Bagikan, Hapus, maskot, dan suara (di luar kebijakan Versi 1).
+- Diuji lokal pada desktop dan iPhone 13 (tanpa overflow, tanpa galat JS); e2e riwayat chat nyata lolos.
