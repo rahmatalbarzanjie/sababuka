@@ -152,8 +152,9 @@ export class AssistantService {
       }
     }
     if (agent) {
-      insightReply.answer = plainDash(agent.answer); insightReply.visuals = agent.visuals; insightReply.sources = agent.sources.length ? agent.sources : insightReply.sources;
-      insightReply.sufficiency = "sufficient"; insightReply.suggestions = [];
+      // Sumber hanya dari alat yang dipakai agen; penolakan di luar cakupan tidak boleh mewarisi sumber mesin aturan.
+      insightReply.answer = plainDash(agent.answer); insightReply.visuals = agent.visuals; insightReply.sources = agent.sources;
+      insightReply.sufficiency = agent.toolsUsed.length && !agent.sources.length && !agent.visuals.length ? "insufficient" : "sufficient"; insightReply.suggestions = [];
     }
     {
       const narrated = !agent && insightReply.facts ? await new LlmService(this.db, this.config).narrate(question, insightReply.facts, insightReply.answer) : null;
