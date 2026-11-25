@@ -1,5 +1,7 @@
+import { Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import { SababukaMark } from "../branding/SababukaBrand";
 import { greetingFor } from "../utils/greeting";
 
 interface Overview {
@@ -47,6 +49,7 @@ export function ChatWelcome({ onAsk }: { onAsk: (question: string) => void }) {
   const now = new Date();
 
   return <div className="assistant-welcome welcome-live">
+    <SababukaMark className="welcome-mark" />
     <p className="welcome-eyebrow" style={{ "--i": 0 } as React.CSSProperties}>{longDate(now)}</p>
     <h2 style={{ "--i": 1 } as React.CSSProperties}>{greetingFor(now.getHours())}, Bapak Bupati.</h2>
     <p className="welcome-sub" style={{ "--i": 2 } as React.CSSProperties}>Tanyakan capaian RPJMD, kondisi OPD, atau wilayah yang perlu perhatian. Jawaban bersumber dari data yang sudah terbit.</p>
@@ -70,6 +73,6 @@ export function ChatWelcome({ onAsk }: { onAsk: (question: string) => void }) {
       </div>}
     </section>}
 
-    <div className="assistant-suggestions" style={{ "--i": 4 } as React.CSSProperties}>{EXAMPLES.map((example) => <button key={example} type="button" onClick={() => onAsk(example)}>{example}</button>)}</div>
+    <div className="assistant-suggestions" style={{ "--i": 4 } as React.CSSProperties}>{EXAMPLES.map((example) => <button key={example} type="button" onClick={() => onAsk(example)}><Sparkles aria-hidden="true" /><span>{example}</span></button>)}</div>
   </div>;
 }

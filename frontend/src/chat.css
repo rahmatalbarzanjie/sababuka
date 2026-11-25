@@ -190,3 +190,71 @@ html[data-theme="dark"] .welcome-live { --snap-good: #52c98a; --snap-bad: #ff8d8
   .chat-visuals .insight-bars > div > div { grid-area: batang; }
   .chat-visuals .insight-bars > div > b { grid-area: nilai; }
 }
+
+/* Tata letak percakapan mengikuti gaya referensi Satu Data Jakarta: sidebar ringkas dengan menu per percakapan, catatan yang dapat ditutup, kartu contoh pertanyaan, dan komposer bulat. */
+.workspace.portal .assistant-conversation { display: flex; flex-direction: column; }
+.workspace.portal .assistant-conversation > * { flex: none; }
+.workspace.portal .assistant-conversation > .chat-stream { flex: 1 1 0; min-height: 0; }
+.assistant-history { padding: 16px 12px 10px; background: var(--ui-surface); gap: 12px; }
+@media (min-width: 861px) { .assistant-history { grid-template-rows: auto minmax(0, 1fr) auto; } .assistant-history > header { display: none; } }
+.assistant-new-chat { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--ui-active); color: var(--ui-accent); font: inherit; font-weight: 600; cursor: pointer; transition: filter .15s ease; }
+.assistant-new-chat:hover { filter: brightness(.97); }
+.assistant-new-chat svg { width: 18px; height: 18px; flex: none; }
+.assistant-session-label { margin: 6px 10px 2px; color: var(--ui-muted); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.assistant-session-list { gap: 2px; }
+.assistant-session-row { position: relative; display: flex; align-items: center; border-radius: 12px; }
+.assistant-session-row:hover, .assistant-session-row.menu-open { background: var(--ui-surface-subtle); }
+.assistant-session-row.active { background: var(--ui-active); color: var(--ui-accent); }
+.assistant-session-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 6px 0 12px; border: 0; border-radius: 12px; background: transparent; color: inherit; font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.assistant-session-open svg { width: 18px; height: 18px; flex: none; }
+.assistant-session-open span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.assistant-session-more { flex: none; width: 36px; height: 36px; margin-right: 4px; display: grid; place-items: center; border: 0; border-radius: 10px; background: transparent; color: var(--ui-muted); cursor: pointer; opacity: 0; transition: opacity .12s ease, background .12s ease; }
+.assistant-session-more svg { width: 18px; height: 18px; }
+.assistant-session-row:hover .assistant-session-more, .assistant-session-row:focus-within .assistant-session-more, .assistant-session-row.active .assistant-session-more, .assistant-session-row.menu-open .assistant-session-more { opacity: 1; }
+.assistant-session-more:hover { background: color-mix(in srgb, var(--ui-accent) 12%, transparent); }
+@media (hover: none) { .assistant-session-more { opacity: 1; } }
+.assistant-session-menu { position: absolute; z-index: 6; top: calc(100% - 2px); right: 6px; min-width: 196px; padding: 6px; display: grid; border: 1px solid var(--ui-border); border-radius: 14px; background: var(--ui-surface); box-shadow: 0 12px 28px rgba(8, 30, 48, .16); color: var(--ui-text); }
+.assistant-session-menu button { display: flex; align-items: center; gap: 12px; min-height: 42px; padding: 0 12px; border: 0; border-radius: 10px; background: transparent; color: inherit; font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.assistant-session-menu button:hover { background: var(--ui-surface-subtle); }
+.assistant-session-menu svg { width: 18px; height: 18px; color: var(--ui-muted); }
+.assistant-session-row form { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; padding: 4px; }
+.assistant-session-row form input { flex: 1; min-width: 0; }
+.assistant-history > footer { display: grid; gap: 8px; padding-top: 10px; border-top: 1px solid var(--ui-rule); }
+.assistant-history > footer small { text-align: center; color: var(--ui-muted); font-size: 11.5px; }
+.assistant-archive-filter { justify-content: center; border: 1px solid var(--ui-control); border-radius: 12px; }
+
+.assistant-conversation-header { min-height: 60px; }
+.workspace.portal .assistant-conversation .assistant-notice { display: flex; align-items: flex-start; gap: 12px; margin: 14px var(--gutter) 0; padding: 12px 8px 12px 16px; border: 1px solid var(--ui-border); border-radius: 14px; background: var(--ui-active); }
+.assistant-notice > svg { width: 20px; height: 20px; flex: none; margin-top: 1px; color: var(--ui-accent); }
+.assistant-notice p { flex: 1; margin: 0; color: var(--ui-text); font-size: 13px; line-height: 1.55; }
+.assistant-notice .icon-button { flex: none; width: 32px; height: 32px; }
+
+.welcome-mark { display: block; width: 56px; height: 75px; margin: 0 auto 10px; object-fit: contain; animation: welcome-rise .5s cubic-bezier(.2, .7, .2, 1) both; }
+.workspace.portal .assistant-conversation .assistant-welcome .assistant-suggestions button { display: flex; align-items: center; justify-content: flex-start; gap: 14px; min-height: 76px; padding: 14px 18px; border: 1px solid var(--ui-border); border-radius: 18px; background: var(--ui-surface); color: var(--ui-text); font-size: 15px; line-height: 1.4; text-align: left; box-shadow: 0 1px 2px rgba(10, 34, 65, .05); transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+.workspace.portal .assistant-conversation .assistant-welcome .assistant-suggestions button:hover { border-color: var(--ui-accent); box-shadow: 0 6px 18px rgba(10, 34, 65, .08); transform: translateY(-1px); }
+.welcome-live .assistant-suggestions button svg { flex: none; width: 24px; height: 24px; color: #c98a00; }
+html[data-theme="dark"] .welcome-live .assistant-suggestions button svg { color: #f0b429; }
+
+.workspace.portal .assistant-conversation .chat-composer { margin-bottom: 6px; padding: 6px 6px 6px 22px; }
+.chat-send { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--ui-accent); color: #fff; cursor: pointer; transition: opacity .15s ease, transform .15s ease; }
+.chat-send svg { width: 20px; height: 20px; }
+.chat-send:hover:not(:disabled) { transform: scale(1.05); }
+.chat-send:disabled { opacity: .4; cursor: not-allowed; }
+.workspace.portal .assistant-conversation .chat-footnote { margin: 0 var(--gutter) max(10px, env(safe-area-inset-bottom, 0px)); color: var(--ui-muted); font-size: 11.5px; text-align: center; }
+@media (max-width: 640px) {
+  .welcome-mark { width: 44px; height: 59px; margin-bottom: 6px; }
+  .workspace.portal .assistant-conversation .assistant-welcome .assistant-suggestions button { min-height: 60px; padding: 10px 14px; font-size: 14px; }
+  .workspace.portal .assistant-conversation .assistant-notice { margin-top: 10px; padding-block: 10px; }
+  .workspace.portal .assistant-conversation .chat-composer { margin-bottom: 4px; }
+}
+@media (prefers-reduced-motion: reduce) { .welcome-mark { animation: none; } .assistant-session-more, .assistant-new-chat, .chat-send { transition: none; } }
+/* Penyesuaian setelah uji tampilan: tombol tutup catatan tanpa kotak, catatan lebih ringkas, lambang sambutan terbaca. */
+.workspace.portal .assistant-conversation .assistant-notice { margin-top: 10px; padding: 9px 6px 9px 14px; }
+.assistant-notice p { font-size: 12.5px; line-height: 1.5; }
+.assistant-notice .icon-button { width: 30px; height: 30px; border: 0; background: transparent; box-shadow: none; }
+.assistant-notice .icon-button:hover { background: color-mix(in srgb, var(--ui-accent) 12%, transparent); }
+img.sababuka-mark.welcome-mark { width: 56px; height: 75px; margin: 0 auto 8px; }
+.workspace.portal .assistant-conversation .assistant-welcome { padding-top: clamp(14px, 4vh, 40px); }
+@media (max-width: 640px) { img.sababuka-mark.welcome-mark { width: 40px; height: 54px; } }
+/* Di ponsel catatan atas disembunyikan agar sambutan terlihat; peringatan "dapat keliru" tetap ada di bawah komposer. */
+@media (max-width: 640px) { .workspace.portal .assistant-conversation .assistant-notice { display: none; } }

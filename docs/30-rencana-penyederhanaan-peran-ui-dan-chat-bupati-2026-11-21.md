@@ -759,3 +759,7 @@ Setiap PR wajib memiliki migration impact, test, screenshot untuk UI, rollback, 
 ### 25 November 2026 - angka tidak terverifikasi pada chat
 
 - Uji 20 pertanyaan dengan Sonnet: 6 dari 24 jawaban jatuh ke mesin aturan karena `angka_tidak_terverifikasi` (kecamatan, kemiskinan, penduduk per kecamatan). Perbaikan: selisih disediakan oleh alat pencarian, riwayat percakapan ikut sebagai bukti, dua putaran koreksi, tidak ada percobaan ulang untuk kegagalan angka, angka yang gagal dicatat di `agent_failure_detail`. Ukur ulang setelah deploy.
+### 25 November 2026 - tampilan chat mengacu Satu Data Jakarta
+
+- Sidebar pil "Percakapan baru", menu titik tiga per percakapan (ganti nama, arsip, pulihkan), catatan dapat ditutup, kartu contoh pertanyaan, komposer bulat. Tanpa Bagikan, Hapus, maskot, dan suara (di luar kebijakan Versi 1).
+- Diuji lokal pada desktop dan iPhone 13 (tanpa overflow, tanpa galat JS); e2e riwayat chat nyata lolos.
