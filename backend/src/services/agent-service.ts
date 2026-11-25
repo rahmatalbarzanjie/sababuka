@@ -81,6 +81,8 @@ export type AgentFailure = "llm_tidak_tersedia" | "jawaban_terpotong" | "jawaban
 
 export class AgentService {
   failure: AgentFailure | null = null;
+  /** Rincian singkat kegagalan, mis. angka yang tidak ditemukan pada hasil alat, untuk audit. */
+  failureDetail: string | null = null;
   /** Token pemakaian seluruh panggilan model pada run terakhir, termasuk run yang gagal, agar biaya percobaan gagal ikut terpantau. */
   usage: LlmUsage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
   constructor(private readonly db: Database, private readonly config?: AppConfig) {}
@@ -101,7 +103,7 @@ export class AgentService {
           .map((item) => { const itemWords = tokenize(`${item.name} ${item.sector}`); return { item, hits: words.filter((word) => itemWords.some((candidate) => candidate.includes(word) || word.includes(candidate))).length }; })
           .filter((entry) => entry.hits > 0 && !seen.has(entry.item.name.toLowerCase()))
           .sort((a, b) => b.hits - a.hits).slice(0, 4)
-          .map(({ item }) => ({ nama: item.name, sektor: item.sector, opd: item.opds, satuan: item.unit, tahun_realisasi: item.latest_year, realisasi: item.latest_value === null ? null : num(item.latest_value), tahun_target: item.target_year, target: item.target_value === null ? null : num(item.target_value), status_capaian: item.status, sumber: "RPJMD", ...(item.latest_value === 0 ? { peringatan: ZERO_WARNING } : {}) })) : [];
+          .map(({ item }) => ({ nama: item.name, sektor: item.sector, opd: item.opds, satuan: item.unit, tahun_realisasi: item.latest_year, realisasi: item.latest_value === null ? null : num(item.latest_value), tahun_target: item.target_year, target: item.target_value === null ? null : num(item.target_value), selisih: item.gap === null ? null : num(item.gap), status_capaian: item.status, sumber: "RPJMD", ...(item.latest_value === 0 ? { peringatan: ZERO_WARNING } : {}) })) : [];
         if (!found.length && !targeted.length) return { result: { jumlah: 0, catatan: "Tidak ada indikator yang cocok. Coba kata kunci lain." } };
         return { result: { jumlah: found.length + targeted.length, ...(found.length ? { indikator: found.map(brief) } : {}), ...(targeted.length ? { indikator_rpjmd_bertarget: targeted, catatan_bertarget: "Indikator ini baru punya satu tahun data sehingga belum ada analisis tren." } : {}) } };
       }
@@ -232,7 +234,7 @@ export class AgentService {
   /** Jalankan percakapan beralat. Mengembalikan null bila model tidak tersedia atau jawaban tidak lolos pemeriksaan angka. */
   async run(question: string, history: Array<{ role: "user" | "assistant"; content: string }>): Promise<AgentRun | null> {
     const llm = new LlmService(this.db, this.config);
-    this.failure = null;
+    this.failure = null; this.failureDetail = null;
     if (!(await llm.available())) { this.failure = "llm_tidak_tersedia"; return null; }
     const insights = await new InsightService(this.db).all();
     const achievement = (await new AchievementService(this.db).list()).items;
@@ -243,9 +245,9 @@ export class AgentService {
     for (const entry of districts?.districts ?? []) { const detail = await districtService.detail(entry.name).catch(() => null); if (detail) districtDetails.set(entry.name, detail); }
     const knowledge: Knowledge = { contexts, focus: await new FocusService(this.db).overview({ contexts, achievement }).catch(() => null), districts, districtDetails };
     const messages: Array<{ role: "user" | "assistant"; content: unknown }> = [...history.slice(-6), { role: "user", content: question }];
-    const evidence: string[] = [question];
+    const evidence: string[] = [question, ...history.slice(-6).map((turn) => turn.content)];
     const visuals: Visual[] = []; const focus: Insight[] = []; const toolsUsed: string[] = [];
-    let corrected = false;
+    let corrections = 0;
     const usage = this.usage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
     for (let step = 0; step < 7; step += 1) {
       const reply = await llm.converse(AGENT_SYSTEM_PROMPT, messages, AGENT_TOOLS, 4000);
@@ -269,13 +271,13 @@ export class AgentService {
       const answer = reply.content.filter((block) => block.type === "text").map((block) => String(block.text ?? "")).join("").trim();
       if (!answer) { this.failure = "jawaban_kosong"; return null; }
       const bad = ungroundedNumbers(answer, evidence.join(" "));
-      if (bad.length && !corrected) {
-        corrected = true;
+      if (bad.length && corrections < 2) {
+        corrections += 1;
         messages.push({ role: "assistant", content: answer });
         messages.push({ role: "user", content: `Angka berikut tidak ada pada hasil data: ${bad.join(", ")}. Tulis ulang jawaban hanya dengan angka yang tertulis pada hasil data (tanpa menghitung sendiri). Jika angka itu memang diperlukan tetapi tidak tersedia, katakan datanya tidak ada.` });
         continue;
       }
-      if (bad.length) { this.failure = "angka_tidak_terverifikasi"; return null; }
+      if (bad.length) { this.failure = "angka_tidak_terverifikasi"; this.failureDetail = `Angka tidak terverifikasi: ${bad.join(", ")}`.slice(0, 200); return null; }
       return { answer, visuals, toolsUsed, model: llm.modelName(), usage, sources: focus.slice(0, 4).map((item) => ({ label: `${item.name} · ${item.latest_year}`, indicator: item.name, year: item.latest_year, source: item.source_label, indicator_id: item.indicator_id, source_url: item.source_url })) };
     }
     this.failure = "langkah_habis";

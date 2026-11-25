@@ -139,8 +139,9 @@ export class AssistantService {
     while (!agent && attempts < 2) {
       attempts += 1;
       const service = new AgentService(this.db, this.config);
-      try { agent = await service.run(question, recent); failure = agent ? null : service.failure; failureDetail = null; usedTokens = addUsage(usedTokens, service.usage); } catch (error) { usedTokens = addUsage(usedTokens, service.usage); agent = null; failure = "galat_sistem"; failureDetail = plainDash(error instanceof Error ? error.message : String(error)).slice(0, 200); }
-      if (failure === "llm_tidak_tersedia") break;
+      try { agent = await service.run(question, recent); failure = agent ? null : service.failure; failureDetail = agent ? null : service.failureDetail; usedTokens = addUsage(usedTokens, service.usage); } catch (error) { usedTokens = addUsage(usedTokens, service.usage); agent = null; failure = "galat_sistem"; failureDetail = plainDash(error instanceof Error ? error.message : String(error)).slice(0, 200); }
+      // Kegagalan angka bersifat berulang bila diulang dengan data yang sama; hanya kegagalan sementara yang dicoba lagi.
+      if (failure === "llm_tidak_tersedia" || failure === "angka_tidak_terverifikasi") break;
     }
     const achievement = (await new AchievementService(this.db).list()).items;
     const insightReply = buildReply(question, await new InsightService(this.db).all(), achievement);
@@ -173,7 +174,7 @@ export class AssistantService {
           throw new ApiError(409, "CONFLICT", "Pertanyaan yang sama masih diproses. Coba lagi beberapa saat.");
         }
         const response = { sufficiency: insightReply.sufficiency, citations, visuals: insightReply.visuals ?? [], suggestions: insightReply.suggestions ?? [] };
-        const inserted = await client.query<{ id: string }>(`INSERT INTO sababuka.assistant_messages (session_id, message_role, content, model_name, structured_data, request_id) VALUES ($1, 'assistant', $2, $5, $3::jsonb, $4) RETURNING id::text`, [sessionId, insightReply.answer, JSON.stringify({ sufficiency: insightReply.sufficiency, retrieval: "trend_engine", narrated_by: agent?.model ?? narrated?.model ?? "rules", answer_mode: agent ? "agent" : "aturan", agent_failure: failure, attempts, tools: agent?.toolsUsed ?? [], usage: attempts ? usedTokens : null, user_message_id: asked.rows[0].id, sources: insightReply.sources, response }), audit.requestId, agent?.model ?? narrated?.model ?? "sababuka-insight-v1"]);
+        const inserted = await client.query<{ id: string }>(`INSERT INTO sababuka.assistant_messages (session_id, message_role, content, model_name, structured_data, request_id) VALUES ($1, 'assistant', $2, $5, $3::jsonb, $4) RETURNING id::text`, [sessionId, insightReply.answer, JSON.stringify({ sufficiency: insightReply.sufficiency, retrieval: "trend_engine", narrated_by: agent?.model ?? narrated?.model ?? "rules", answer_mode: agent ? "agent" : "aturan", agent_failure: failure, agent_failure_detail: failureDetail, attempts, tools: agent?.toolsUsed ?? [], usage: attempts ? usedTokens : null, user_message_id: asked.rows[0].id, sources: insightReply.sources, response }), audit.requestId, agent?.model ?? narrated?.model ?? "sababuka-insight-v1"]);
         replied = inserted.rows[0]!;
         await client.query(`UPDATE sababuka.assistant_sessions SET title = $2 WHERE id = $1 AND (title IS NULL OR title = '' OR title = 'Tanya Sababuka')`, [sessionId, sessionTitle(question)]);
         await client.query("COMMIT");

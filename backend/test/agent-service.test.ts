@@ -28,6 +28,7 @@ test("cari_indikator juga menemukan indikator RPJMD bertarget yang baru punya sa
   assert.equal(result.jumlah, 1);
   assert.equal(result.indikator_rpjmd_bertarget[0]!.nama, "Tingkat Kemiskinan");
   assert.equal(result.indikator_rpjmd_bertarget[0]!.target, "5");
+  assert.equal((result.indikator_rpjmd_bertarget[0] as unknown as { selisih: string }).selisih, "0,48");
 });
 
 test("indikator bernilai 0 atau berubah ekstrem diberi peringatan", () => {
